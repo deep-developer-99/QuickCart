@@ -10,8 +10,14 @@ const seedAdmin = async (): Promise<void> => {
   try {
     await connectDB();
 
-    const email = "admin@quickcart.com";
-    const password = "Admin@123";
+    const email = process.env.ADMIN_EMAIL;
+    const password = process.env.ADMIN_PASSWORD;
+
+    if (!email || !password) {
+      throw new Error(
+        "ADMIN_EMAIL and ADMIN_PASSWORD are required in .env file",
+      );
+    }
 
     const existingAdmin = await Admin.findOne({ email });
 
