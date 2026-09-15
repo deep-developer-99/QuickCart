@@ -13,10 +13,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://quick-cart-indol-rho-13.vercel.app",
-    ],
+    origin: [process.env.CLIENT_URL || "http://localhost:5173"],
     credentials: true,
   }),
 );
