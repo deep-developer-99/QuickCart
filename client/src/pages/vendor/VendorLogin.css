@@ -1,0 +1,105 @@
+.vendor-login-page {
+  min-height: calc(100vh - 140px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  background: #f1faf4;
+}
+
+.vendor-login-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 40px;
+  background: white;
+  border: 1px solid #e2e8e5;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.vendor-login-logo {
+  text-align: center;
+  color: #4caf50;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.vendor-login-card h1 {
+  text-align: center;
+  margin: 12px 0 8px;
+  color: #172033;
+}
+
+.vendor-login-subtitle {
+  text-align: center;
+  color: #718096;
+  margin-bottom: 28px;
+}
+
+.vendor-login-card form {
+  display: flex;
+  flex-direction: column;
+}
+
+.vendor-login-card label {
+  margin-bottom: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #273043;
+}
+
+.vendor-login-card input {
+  padding: 13px 14px;
+  margin-bottom: 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+}
+
+.vendor-login-card input:focus {
+  border-color: #4caf50;
+}
+
+.vendor-login-card button {
+  padding: 14px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 8px;
+  background: #4caf50;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.vendor-login-card button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vendor-login-error {
+  padding: 12px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  color: #b42318;
+  background: #fef3f2;
+  border: 1px solid #fecdca;
+}
+
+.vendor-login-footer {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+  color: #718096;
+  font-size: 14px;
+}
+
+.vendor-login-footer a {
+  display: block;
+  margin-top: 8px;
+  color: #4caf50;
+  font-weight: 600;
+  text-decoration: none;
+}

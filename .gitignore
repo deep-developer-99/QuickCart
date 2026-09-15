@@ -1,0 +1,98 @@
+# Dependencies
+
+node_modules/
+
+
+# Environment Variables / Secrets
+
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+
+# Keep example environment files
+
+!.env.example
+
+
+# Frontend - Client
+
+client/dist/
+client/build/
+client/.vite/
+
+# React/Vite cache
+
+client/.cache/
+
+# Frontend logs
+
+client/npm-debug.log*
+client/yarn-debug.log*
+client/yarn-error.log*
+client/pnpm-debug.log*
+
+
+# Backend - Server
+
+server/dist/
+server/build/
+
+# Backend logs
+
+server/npm-debug.log*
+server/yarn-debug.log*
+server/yarn-error.log*
+server/pnpm-debug.log*
+
+# Temporary files
+
+server/tmp/
+server/temp/
+
+
+# Testing
+
+coverage/
+.nyc_output/
+
+
+# VS Code
+
+.vscode/
+
+
+# Operating System
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+# Logs
+
+*.log
+logs/
+
+
+# Temporary Files
+
+*.tmp
+*.temp
+
+
+# Build / Cache
+
+.cache/
+.parcel-cache/
+.vite/
+
+
+# Miscellaneous
+
+*.swp
+*.swo

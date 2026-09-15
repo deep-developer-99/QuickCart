@@ -1,0 +1,77 @@
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+
+import Home from "../pages/user/Home";
+import Login from "../pages/user/Login";
+import Products from "../pages/user/Products";
+import ProductDetails from "../pages/user/ProductDetails";
+import Cart from "../pages/user/Cart";
+import Checkout from "../pages/user/Checkout";
+import MyOrders from "../pages/user/MyOrders";
+import Profile from "../pages/user/Profile";
+import OrderConfirmation from "../pages/user/OrderConfirmation";
+
+import VendorLogin from "../pages/vendor/VendorLogin";
+import VendorRegister from "../pages/vendor/VendorRegister";
+import VendorDashboard from "../pages/vendor/VendorDashboard";
+import VendorProducts from "../pages/vendor/VendorProducts";
+import VendorOrders from "../pages/vendor/VendorOrders";
+
+import AdminLogin from "../pages/admin/AdminLogin";
+import AdminDashboard from "../pages/admin/AdminDashboard";
+import AdminUsers from "../pages/admin/AdminUsers";
+import AdminVendors from "../pages/admin/AdminVendors";
+import AdminProducts from "../pages/admin/AdminProducts";
+import AdminOrders from "../pages/admin/AdminOrders";
+
+import ProtectedRoute from "./ProtectedRoute";
+import UserLayout from "../layouts/UserLayout";
+
+const AppRoutes = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<UserLayout />}>
+          {/* Public User Routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/products/:id" element={<ProductDetails />} />
+
+          {/* Protected Routes of User */}
+          <Route element={<ProtectedRoute allowedRole="user" />}>
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/my-orders" element={<MyOrders />} />
+            <Route path="/order-confirmation" element={<OrderConfirmation />} />
+            <Route path="/me" element={<Profile />} />
+          </Route>
+        </Route>
+
+        {/* Vendor Routes */}
+        <Route path="/vendor/login" element={<VendorLogin />} />
+        <Route path="/vendor/register" element={<VendorRegister />} />
+
+        {/* Protected Routes of Vendor */}
+        <Route element={<ProtectedRoute allowedRole="vendor" />}>
+          <Route path="/vendor/dashboard" element={<VendorDashboard />} />
+          <Route path="/vendor/products" element={<VendorProducts />} />
+          <Route path="/vendor/orders" element={<VendorOrders />} />
+        </Route>
+
+        {/* Admin Routes */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+
+        {/* Protected Routes of Admin */}
+        <Route element={<ProtectedRoute allowedRole="admin" />}>
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/vendors" element={<AdminVendors />} />
+          <Route path="/admin/products" element={<AdminProducts />} />
+          <Route path="/admin/orders" element={<AdminOrders />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+};
+
+export default AppRoutes;
