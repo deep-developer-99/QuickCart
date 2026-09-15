@@ -11,9 +11,15 @@ import orderRoutes from "./routes/orderRoutes";
 
 const app = express();
 
+const CLIENT_URL = process.env.CLIENT_URL;
+
+if (!CLIENT_URL) {
+  throw new Error("CLIENT_URL is not defined");
+}
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: CLIENT_URL,
     credentials: true,
   }),
 );
