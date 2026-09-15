@@ -15,7 +15,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://quick-cart-indol-rho-13.vercel.app/",
+      "https://quick-cart-indol-rho-13.vercel.app",
     ],
     credentials: true,
   }),
