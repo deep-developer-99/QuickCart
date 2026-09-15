@@ -11,7 +11,7 @@ import orderRoutes from "./routes/orderRoutes";
 
 const app = express();
 
-const CLIENT_URL = process.env.CLIENT_API_URL;
+const CLIENT_URL = process.env.CLIENT_URL;
 
 if (!CLIENT_URL) {
   throw new Error("CLIENT_URL is not defined");
