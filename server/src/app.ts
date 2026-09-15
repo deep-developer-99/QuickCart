@@ -11,15 +11,12 @@ import orderRoutes from "./routes/orderRoutes";
 
 const app = express();
 
-const CLIENT_LINK = process.env.CLIENT_URL;
-
-if (!CLIENT_LINK) {
-  throw new Error("CLIENT_URL is not defined");
-}
-
 app.use(
   cors({
-    origin: CLIENT_LINK,
+    origin: [
+      "http://localhost:5173",
+      "https://quick-cart-indol-rho-13.vercel.app/",
+    ],
     credentials: true,
   }),
 );
