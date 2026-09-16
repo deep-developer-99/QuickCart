@@ -11,28 +11,17 @@ import {
 } from "../controllers/productController";
 
 import authMiddleware from "../middleware/authMiddleware";
-import authorize from "../middleware/authorize";
 
 const router = Router();
 
 router.get("/", getAllProductsController);
-router.get(
-  "/vendor",
-  authMiddleware,
-  authorize("vendor"),
-  getVendorProductsController,
-);
-router.post("/", authMiddleware, authorize("vendor"), createProductController);
-router.put(
-  "/:id/restore",
-  authMiddleware,
-  authorize("vendor"),
-  restoreProductController,
-);
+router.get("/vendor", authMiddleware("vendor"), getVendorProductsController);
+router.post("/", authMiddleware("vendor"), createProductController);
+router.put("/:id/restore", authMiddleware("vendor"), restoreProductController);
 router
   .route("/:id")
-  .put(authMiddleware, authorize("vendor"), updateProductController)
-  .delete(authMiddleware, authorize("vendor"), deleteProductController);
+  .put(authMiddleware("vendor"), updateProductController)
+  .delete(authMiddleware("vendor"), deleteProductController);
 
 router.get("/:id", getProductByIdController);
 

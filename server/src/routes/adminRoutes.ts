@@ -13,11 +13,10 @@ import {
 } from "../controllers/adminController";
 
 import authMiddleware from "../middleware/authMiddleware";
-import authorize from "../middleware/authorize";
 
 const router = Router();
 
-router.use(authMiddleware, authorize("admin"));
+router.use(authMiddleware("admin"));
 
 // Dashboard
 router.get("/dashboard", getAdminDashboardController);

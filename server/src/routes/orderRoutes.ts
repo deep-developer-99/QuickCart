@@ -10,43 +10,30 @@ import {
 } from "../controllers/orderController";
 
 import authMiddleware from "../middleware/authMiddleware";
-import authorize from "../middleware/authorize";
 
 const router = Router();
 
 // User Routes
-router.post("/", authMiddleware, authorize("user"), createOrderController);
+router.post("/", authMiddleware("user"), createOrderController);
 
-router.get(
-  "/my-orders",
-  authMiddleware,
-  authorize("user"),
-  getMyOrdersController,
-);
+router.get("/my-orders", authMiddleware("user"), getMyOrdersController);
 
 // Vendor Routes
 router.get(
   "/vendor/dashboard",
-  authMiddleware,
-  authorize("vendor"),
+  authMiddleware("vendor"),
   getVendorDashboardController,
 );
 
-router.get(
-  "/vendor",
-  authMiddleware,
-  authorize("vendor"),
-  getVendorOrdersController,
-);
+router.get("/vendor", authMiddleware("vendor"), getVendorOrdersController);
 
 router.put(
   "/:id/status",
-  authMiddleware,
-  authorize("vendor"),
+  authMiddleware("vendor"),
   updateVendorOrderStatusController,
 );
 
 // User Single Order
-router.get("/:id", authMiddleware, authorize("user"), getOrderByIdController);
+router.get("/:id", authMiddleware("user"), getOrderByIdController);
 
 export default router;

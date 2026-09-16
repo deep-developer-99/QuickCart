@@ -21,6 +21,6 @@ router.post("/google", loginGoogleController);
 router.post("/phone/send-otp", sendPhoneOtpController);
 router.post("/phone/verify-otp", verifyPhoneOtpController);
 router.post("/logout", logoutController);
-router.get("/me", authMiddleware, getMeController);
+router.get("/me", authMiddleware("user"), getMeController);
 
 export default router;

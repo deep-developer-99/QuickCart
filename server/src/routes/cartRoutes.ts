@@ -9,11 +9,10 @@ import {
 } from "../controllers/cartController";
 
 import authMiddleware from "../middleware/authMiddleware";
-import authorize from "../middleware/authorize";
 
 const router = Router();
 
-router.use(authMiddleware, authorize("user"));
+router.use(authMiddleware("user"));
 
 router
   .route("/")
