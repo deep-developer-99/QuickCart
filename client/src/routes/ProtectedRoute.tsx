@@ -1,12 +1,14 @@
 import { Navigate, Outlet } from "react-router-dom";
 
 import { useAppSelector } from "../hooks/reduxHooks";
+import useAuth from "../hooks/useAuth";
 
 interface ProtectedRouteProps {
   allowedRole: "user" | "vendor" | "admin";
 }
 
 const ProtectedRoute = ({ allowedRole }: ProtectedRouteProps) => {
+  useAuth();
   const { user, isAuthenticated, isLoading } = useAppSelector(
     (state) => state.auth,
   );

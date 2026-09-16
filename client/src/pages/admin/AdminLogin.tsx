@@ -22,8 +22,8 @@ const AdminLogin = () => {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
-    if (isAuthenticated && user?.role === "vendor") {
-      navigate("/vendor/dashboard", { replace: true });
+    if (isAuthenticated && user?.role === "admin") {
+      navigate("/admin/dashboard", { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 
