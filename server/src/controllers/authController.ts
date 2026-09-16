@@ -47,10 +47,12 @@ export const loginVendorController = async (
 
     const result = await loginVendor(email, password);
 
+    const isProduction = process.env.NODE_ENV === "production";
+
     res.cookie("token", result.token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -84,10 +86,12 @@ export const loginAdminController = async (
 
     const result = await loginAdmin(email, password);
 
+    const isProduction = process.env.NODE_ENV === "production";
+
     res.cookie("token", result.token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -129,10 +133,12 @@ export const loginGoogleController = async (
 
     const result = await loginGoogleUser(credential);
 
+    const isProduction = process.env.NODE_ENV === "production";
+
     res.cookie("token", result.token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -207,10 +213,12 @@ export const verifyPhoneOtpController = async (
 
     const result = await verifyPhoneOtpService(phone, code, name);
 
+    const isProduction = process.env.NODE_ENV === "production";
+
     res.cookie("token", result.token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
