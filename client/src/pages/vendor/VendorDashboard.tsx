@@ -35,7 +35,7 @@ const VendorDashboard = () => {
         const response = await api.get("/orders/vendor/dashboard");
 
         if (response.data?.success) {
-          setDashboard(response.data);
+          setDashboard(response.data.data);
         } else {
           setError("Failed to load dashboard.");
         }
