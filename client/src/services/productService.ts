@@ -22,3 +22,46 @@ export const getCategories = async () => {
 
   return response.data;
 };
+
+// Create Data
+export const createProduct = async (productData: {
+  name: string;
+  description: string;
+  image: string;
+  price: number;
+  discountPrice?: number;
+  stock: number;
+  category: string;
+}) => {
+  const response = await api.post("/products", productData);
+  return response.data;
+};
+
+export const updateProduct = async (
+  id: string,
+  data: {
+    name?: string;
+    description?: string;
+    image?: string;
+    price?: number;
+    discountPrice?: number;
+    stock?: number;
+    category?: string;
+  },
+) => {
+  const response = await api.put(`/products/${id}`, data);
+
+  return response.data;
+};
+
+export const deleteProduct = async (id: string) => {
+  const response = await api.delete(`/products/${id}`);
+
+  return response.data;
+};
+
+export const restoreProduct = async (id: string) => {
+  const response = await api.put(`/products/${id}/restore`);
+
+  return response.data;
+};
