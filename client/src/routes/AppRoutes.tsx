@@ -9,6 +9,7 @@ import Checkout from "../pages/user/Checkout";
 import MyOrders from "../pages/user/MyOrders";
 import Profile from "../pages/user/Profile";
 import OrderConfirmation from "../pages/user/OrderConfirmation";
+import MyOrderDetails from "../pages/user/MyOrderDetails";
 
 import VendorLogin from "../pages/vendor/VendorLogin";
 import VendorRegister from "../pages/vendor/VendorRegister";
@@ -24,21 +25,22 @@ import AdminProducts from "../pages/admin/AdminProducts";
 import AdminOrders from "../pages/admin/AdminOrders";
 
 import ProtectedRoute from "./ProtectedRoute";
+import PublicRoute from "./PublicRoute";
 import UserLayout from "../layouts/UserLayout";
-import MyOrderDetails from "../pages/user/MyOrderDetails";
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<UserLayout />}>
-          {/* Public User Routes */}
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
+          <Route element={<PublicRoute />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+          </Route>
+
           <Route path="/products" element={<Products />} />
           <Route path="/products/:id" element={<ProductDetails />} />
 
-          {/* Protected Routes of User */}
           <Route element={<ProtectedRoute allowedRole="user" />}>
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
@@ -49,21 +51,18 @@ const AppRoutes = () => {
           </Route>
         </Route>
 
-        {/* Vendor Routes */}
-        <Route path="/vendor/login" element={<VendorLogin />} />
-        <Route path="/vendor/register" element={<VendorRegister />} />
+        <Route element={<PublicRoute />}>
+          <Route path="/vendor/login" element={<VendorLogin />} />
+          <Route path="/vendor/register" element={<VendorRegister />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+        </Route>
 
-        {/* Protected Routes of Vendor */}
         <Route element={<ProtectedRoute allowedRole="vendor" />}>
           <Route path="/vendor/dashboard" element={<VendorDashboard />} />
           <Route path="/vendor/products" element={<VendorProducts />} />
           <Route path="/vendor/orders" element={<VendorOrders />} />
         </Route>
 
-        {/* Admin Routes */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-
-        {/* Protected Routes of Admin */}
         <Route element={<ProtectedRoute allowedRole="admin" />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />

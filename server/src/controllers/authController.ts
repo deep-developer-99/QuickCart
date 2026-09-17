@@ -247,10 +247,12 @@ export const verifyPhoneOtpController = async (
 // Logout
 export const logoutController = (req: Request, res: Response): void => {
   try {
+    const isProduction = process.env.NODE_ENV === "production";
+
     res.clearCookie("token", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
     });
 
     res.status(200).json({

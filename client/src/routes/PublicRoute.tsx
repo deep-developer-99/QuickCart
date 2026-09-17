@@ -2,10 +2,6 @@ import { Navigate, Outlet } from "react-router-dom";
 
 import { useAppSelector } from "../hooks/reduxHooks";
 
-interface ProtectedRouteProps {
-  allowedRole: "user" | "vendor" | "admin";
-}
-
 const getRoleHome = (role: "user" | "vendor" | "admin") => {
   if (role === "vendor") return "/vendor/dashboard";
   if (role === "admin") return "/admin/dashboard";
@@ -13,7 +9,7 @@ const getRoleHome = (role: "user" | "vendor" | "admin") => {
   return "/";
 };
 
-const ProtectedRoute = ({ allowedRole }: ProtectedRouteProps) => {
+const PublicRoute = () => {
   const { user, isAuthenticated, isLoading } = useAppSelector(
     (state) => state.auth,
   );
@@ -22,23 +18,11 @@ const ProtectedRoute = ({ allowedRole }: ProtectedRouteProps) => {
     return <div>Loading.......</div>;
   }
 
-  if (!isAuthenticated || !user) {
-    if (allowedRole === "vendor") {
-      return <Navigate to="/vendor/login" replace />;
-    }
-
-    if (allowedRole === "admin") {
-      return <Navigate to="/admin/login" replace />;
-    }
-
-    return <Navigate to="/login" replace />;
-  }
-
-  if (user.role !== allowedRole) {
+  if (isAuthenticated && user) {
     return <Navigate to={getRoleHome(user.role)} replace />;
   }
 
   return <Outlet />;
 };
 
-export default ProtectedRoute;
+export default PublicRoute;
