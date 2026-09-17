@@ -24,8 +24,14 @@ const Footer = () => {
 
           <Link to="/">Home</Link>
           <Link to="/products">Products</Link>
-          <Link to="/cart">Cart</Link>
-          <Link to="/my-orders">My Orders</Link>
+          {isAuthenticated ? (
+            <>
+              <Link to="/cart">Cart</Link>
+              <Link to="/my-orders">My Orders</Link>
+            </>
+          ) : (
+            ""
+          )}
         </div>
 
         {/* Account */}
@@ -34,7 +40,7 @@ const Footer = () => {
 
           {isAuthenticated ? "" : <Link to="/login">Login</Link>}
 
-          <Link to="/me">Profile</Link>
+          {isAuthenticated ? <Link to="/me">Profile</Link> : ""}
         </div>
 
         <div className="footer-section">

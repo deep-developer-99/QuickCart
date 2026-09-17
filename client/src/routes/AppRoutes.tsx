@@ -27,10 +27,12 @@ import AdminUsers from "../pages/admin/AdminUsers";
 import AdminVendors from "../pages/admin/AdminVendors";
 import AdminProducts from "../pages/admin/AdminProducts";
 import AdminOrders from "../pages/admin/AdminOrders";
+import ScrollToTop from "../components/ScrollToTop";
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         <Route element={<UserLayout />}>
           <Route path="/" element={<HomeRoute />} />
