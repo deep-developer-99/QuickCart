@@ -169,7 +169,7 @@ export const getOrderById = async (orderId: string, userId: string) => {
     .populate("address")
     .populate({
       path: "items.product",
-      select: "name image price",
+      select: "name image price discountPrice",
     })
     .populate({
       path: "items.vendor",
