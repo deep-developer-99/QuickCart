@@ -3,12 +3,16 @@ import "./CategoryCard.css";
 
 interface CategoryCardProps {
   category: Category;
-  onClick: () => void;
+  onClick: (categoryName: string) => void;
 }
 
 const CategoryCard = ({ category, onClick }: CategoryCardProps) => {
   return (
-    <button type="button" className="category-card" onClick={onClick}>
+    <button
+      type="button"
+      className="category-card"
+      onClick={() => onClick(category.name)}
+    >
       <div className="category-card-image-wrapper">
         {category.image ? (
           <img
@@ -22,6 +26,7 @@ const CategoryCard = ({ category, onClick }: CategoryCardProps) => {
           </div>
         )}
       </div>
+
       <h3>{category.name}</h3>
     </button>
   );

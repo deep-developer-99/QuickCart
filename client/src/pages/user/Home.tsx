@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { getCategories, getProducts } from "../../services/productService";
 
@@ -11,6 +11,8 @@ import type { Category, Product } from "../../types/product";
 import "./Home.css";
 
 const Home = () => {
+  const navigate = useNavigate();
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,7 +46,6 @@ const Home = () => {
 
   return (
     <div className="home-page">
-      {/* Hero Section */}
       <section className="home-hero">
         <div className="hero-content">
           <span className="hero-tag">⚡ Quick & Fresh</span>
@@ -81,7 +82,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Features */}
       <section className="home-features">
         <div className="feature-card">
           <div className="feature-icon">🚀</div>
@@ -108,7 +108,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Categories */}
       <section className="home-section">
         <div className="section-heading">
           <div>
@@ -128,7 +127,7 @@ const Home = () => {
                 key={category._id}
                 category={category}
                 onClick={() => {
-                  window.location.href = `/products?category=${category._id}`;
+                  navigate(`/products?category=${category._id}`);
                 }}
               />
             ))}
@@ -136,7 +135,6 @@ const Home = () => {
         )}
       </section>
 
-      {/* Products */}
       <section className="home-section products-section">
         <div className="section-heading">
           <div>
@@ -163,7 +161,6 @@ const Home = () => {
         )}
       </section>
 
-      {/* Vendor CTA */}
       <section className="vendor-cta">
         <div>
           <span>GROW WITH QUICKCART</span>
