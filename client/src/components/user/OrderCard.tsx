@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 
 import type { Order, OrderStatus } from "../../types/order";
 
@@ -28,6 +29,10 @@ const getStatusClass = (status: OrderStatus): string => {
 };
 
 const OrderCard = ({ order }: OrderCardProps) => {
+  const [showAllItems, setShowAllItems] = useState(false);
+
+  const visibleItems = showAllItems ? order.items : order.items.slice(0, 3);
+
   return (
     <div className="order-card">
       <div className="order-card-header">
@@ -43,42 +48,57 @@ const OrderCard = ({ order }: OrderCardProps) => {
       </div>
 
       <div className="order-card-items">
-        {order.items.slice(0, 3).map((item, index) => (
-          <div className="order-card-item" key={`${item.name}-${index}`}>
-            <img src={item.image} alt={item.name} />
+        {visibleItems.map((item, index) => {
+          const sellingPrice = item.discountedPrice ?? item.price;
 
-            <div>
-              <h4>{item.name}</h4>
+          const hasDiscount =
+            item.discountedPrice !== undefined &&
+            item.discountedPrice < item.price;
 
-              <div className="order-item-price">
-                <span className="discounted-price">
-                  ₹{item.discountedPrice ?? item.price}
-                </span>
+          return (
+            <div className="order-card-item" key={`${item.name}-${index}`}>
+              <img src={item.image} alt={item.name} />
 
-                {item.discountedPrice !== undefined &&
-                  item.discountedPrice < item.price && (
+              <div>
+                <h4>{item.name}</h4>
+
+                <div className="order-item-price">
+                  <span className="discounted-price">₹{sellingPrice}</span>
+
+                  {hasDiscount && (
                     <span className="original-price">₹{item.price}</span>
                   )}
 
-                <span className="item-quantity">× {item.quantity}</span>
+                  <span className="item-quantity">× {item.quantity}</span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {order.items.length > 3 && (
-          <p className="more-items">+ {order.items.length - 3} more item(s)</p>
+          <button
+            type="button"
+            className="more-items"
+            onClick={() => setShowAllItems((previous) => !previous)}
+          >
+            {showAllItems
+              ? "Show less"
+              : `+ ${order.items.length - 3} more item(s)`}
+          </button>
         )}
       </div>
 
       <div className="order-card-footer">
         <div>
           <span>Total</span>
+
           <strong>₹{order.totalAmount}</strong>
         </div>
 
         <div>
           <span>Payment</span>
+
           <strong>{order.paymentMethod}</strong>
         </div>
 
