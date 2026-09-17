@@ -96,6 +96,14 @@ export const getProductById = async (productId: string) => {
   return product;
 };
 
+export const getProductsByCategory = async (categoryId: string) => {
+  const product = await Product.find({
+    category: categoryId,
+  }).populate("category");
+
+  return product;
+};
+
 // Get Vendor's Product
 export const getVendorProducts = async (vendorId: string) => {
   const product = await Product.find({ vendor: vendorId })

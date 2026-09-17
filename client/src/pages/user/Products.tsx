@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
-import { getProducts, getCategories } from "../../services/productService";
+import {
+  getProducts,
+  getCategories,
+  getProductsByCategory,
+} from "../../services/productService";
 
 import type { Product, Category } from "../../types/product";
 
@@ -17,6 +22,9 @@ const Products = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [searchParams] = useSearchParams();
+  const categoryId = searchParams.get("category");
 
   // Fetch categories
   useEffect(() => {
@@ -46,10 +54,12 @@ const Products = () => {
         setIsLoading(true);
         setError("");
 
-        const response = await getProducts(
-          search.trim() || undefined,
-          selectedCategory || undefined,
-        );
+        const response = categoryId
+          ? await getProductsByCategory(categoryId)
+          : await getProducts(
+              search.trim() || undefined,
+              selectedCategory || undefined,
+            );
 
         if (response?.success && Array.isArray(response.data)) {
           setProducts(response.data);
@@ -72,7 +82,7 @@ const Products = () => {
     };
 
     fetchProducts();
-  }, [search, selectedCategory]);
+  }, [search, selectedCategory, categoryId]);
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(event.target.value);

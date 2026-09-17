@@ -6,6 +6,7 @@ import {
   getAllProducts,
   getVendorProducts,
   getProductById,
+  getProductsByCategory,
   updateProduct,
   deleteProduct,
   restoreProduct,
@@ -86,6 +87,30 @@ export const getProductByIdController = async (
     });
   } catch (error) {
     console.error("Get product error:", error);
+
+    res.status(404).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Product not found",
+    });
+  }
+};
+
+// Get All Products By Category
+export const getProductsByCategoryController = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { categoryId } = req.params as { categoryId: string };
+
+    const product = await getProductsByCategory(categoryId);
+
+    res.status(200).json({
+      success: true,
+      data: product,
+    });
+  } catch (error) {
+    console.error("Get products through category error:", error);
 
     res.status(404).json({
       success: false,
