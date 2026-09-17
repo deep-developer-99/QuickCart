@@ -25,6 +25,7 @@ import AdminOrders from "../pages/admin/AdminOrders";
 
 import ProtectedRoute from "./ProtectedRoute";
 import UserLayout from "../layouts/UserLayout";
+import MyOrderDetails from "../pages/user/MyOrderDetails";
 
 const AppRoutes = () => {
   return (
@@ -42,6 +43,7 @@ const AppRoutes = () => {
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/my-orders" element={<MyOrders />} />
+            <Route path="/my-orders/:id" element={<MyOrderDetails />} />
             <Route path="/order-confirmation" element={<OrderConfirmation />} />
             <Route path="/me" element={<Profile />} />
           </Route>
