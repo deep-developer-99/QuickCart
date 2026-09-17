@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 
 import { logout } from "../../services/authService";
 import { logoutUser } from "../../store/slice/authSlice";
@@ -34,34 +34,57 @@ const Navbar = () => {
   return (
     <header className="navbar">
       <div className="navbar-container">
-        {/* Logo */}
         <Link to="/" className="navbar-logo" onClick={closeMenu}>
           QuickCart
         </Link>
 
-        {/* Desktop Navigation */}
         <nav className="navbar-links">
-          <Link to="/" className="navbar-link">
+          <NavLink
+            to="/"
+            className={({ isActive }) =>
+              isActive ? "navbar-link active" : "navbar-link"
+            }
+          >
             Home
-          </Link>
+          </NavLink>
 
-          <Link to="/products" className="navbar-link">
+          <NavLink
+            to="/products"
+            className={({ isActive }) =>
+              isActive ? "navbar-link active" : "navbar-link"
+            }
+          >
             Products
-          </Link>
+          </NavLink>
 
           {isAuthenticated && user?.role === "user" ? (
             <>
-              <Link to="/cart" className="navbar-link">
+              <NavLink
+                to="/cart"
+                className={({ isActive }) =>
+                  isActive ? "navbar-link active" : "navbar-link"
+                }
+              >
                 Cart
-              </Link>
+              </NavLink>
 
-              <Link to="/my-orders" className="navbar-link">
+              <NavLink
+                to="/my-orders"
+                className={({ isActive }) =>
+                  isActive ? "navbar-link active" : "navbar-link"
+                }
+              >
                 My Orders
-              </Link>
+              </NavLink>
 
-              <Link to="/me" className="navbar-link">
+              <NavLink
+                to="/me"
+                className={({ isActive }) =>
+                  isActive ? "navbar-link active" : "navbar-link"
+                }
+              >
                 Profile
-              </Link>
+              </NavLink>
 
               <button
                 type="button"
@@ -72,13 +95,17 @@ const Navbar = () => {
               </button>
             </>
           ) : (
-            <Link to="/login" className="navbar-login">
+            <NavLink
+              to="/login"
+              className={({ isActive }) =>
+                isActive ? "navbar-login active" : "navbar-login"
+              }
+            >
               Login
-            </Link>
+            </NavLink>
           )}
         </nav>
 
-        {/* Mobile Menu Button */}
         <button
           type="button"
           className="navbar-menu-button"
@@ -91,34 +118,59 @@ const Navbar = () => {
         </button>
       </div>
 
-      {/* Mobile Navigation */}
       {isMenuOpen && (
         <nav className="mobile-menu">
-          <Link to="/" className="mobile-menu-link" onClick={closeMenu}>
+          <NavLink
+            to="/"
+            className={({ isActive }) =>
+              isActive ? "mobile-menu-link active" : "mobile-menu-link"
+            }
+            onClick={closeMenu}
+          >
             Home
-          </Link>
+          </NavLink>
 
-          <Link to="/products" className="mobile-menu-link" onClick={closeMenu}>
+          <NavLink
+            to="/products"
+            className={({ isActive }) =>
+              isActive ? "mobile-menu-link active" : "mobile-menu-link"
+            }
+            onClick={closeMenu}
+          >
             Products
-          </Link>
+          </NavLink>
 
           {isAuthenticated && user?.role === "user" ? (
             <>
-              <Link to="/cart" className="mobile-menu-link" onClick={closeMenu}>
+              <NavLink
+                to="/cart"
+                className={({ isActive }) =>
+                  isActive ? "mobile-menu-link active" : "mobile-menu-link"
+                }
+                onClick={closeMenu}
+              >
                 Cart
-              </Link>
+              </NavLink>
 
-              <Link
+              <NavLink
                 to="/my-orders"
-                className="mobile-menu-link"
+                className={({ isActive }) =>
+                  isActive ? "mobile-menu-link active" : "mobile-menu-link"
+                }
                 onClick={closeMenu}
               >
                 My Orders
-              </Link>
+              </NavLink>
 
-              <Link to="/me" className="mobile-menu-link" onClick={closeMenu}>
+              <NavLink
+                to="/me"
+                className={({ isActive }) =>
+                  isActive ? "mobile-menu-link active" : "mobile-menu-link"
+                }
+                onClick={closeMenu}
+              >
                 Profile
-              </Link>
+              </NavLink>
 
               <button
                 type="button"
@@ -129,9 +181,15 @@ const Navbar = () => {
               </button>
             </>
           ) : (
-            <Link to="/login" className="mobile-menu-login" onClick={closeMenu}>
+            <NavLink
+              to="/login"
+              className={({ isActive }) =>
+                isActive ? "mobile-menu-login active" : "mobile-menu-login"
+              }
+              onClick={closeMenu}
+            >
               Login
-            </Link>
+            </NavLink>
           )}
         </nav>
       )}
