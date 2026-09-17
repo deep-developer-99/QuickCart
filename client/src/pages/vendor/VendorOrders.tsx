@@ -16,6 +16,25 @@ const statuses: OrderStatus[] = [
   "Delivered",
 ];
 
+const getStatusClass = (status: OrderStatus): string => {
+  switch (status) {
+    case "Placed":
+      return "status-placed";
+
+    case "Accepted":
+      return "status-accepted";
+
+    case "Out for Delivery":
+      return "status-delivery";
+
+    case "Delivered":
+      return "status-delivered";
+
+    default:
+      return "";
+  }
+};
+
 const VendorOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,10 +42,6 @@ const VendorOrders = () => {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  // ==============================
-  // Fetch Vendor Orders
-  // ==============================
 
   const fetchOrders = async () => {
     try {
@@ -51,10 +66,6 @@ const VendorOrders = () => {
     fetchOrders();
   }, []);
 
-  // ==============================
-  // Update Order Status
-  // ==============================
-
   const handleStatusChange = async (orderId: string, status: OrderStatus) => {
     try {
       setUpdatingId(orderId);
@@ -77,10 +88,6 @@ const VendorOrders = () => {
     }
   };
 
-  // ==============================
-  // Loading
-  // ==============================
-
   if (isLoading) {
     return (
       <div className="vendor-orders-page">
@@ -88,10 +95,6 @@ const VendorOrders = () => {
       </div>
     );
   }
-
-  // ==============================
-  // UI
-  // ==============================
 
   return (
     <div className="vendor-orders-page">
@@ -110,17 +113,9 @@ const VendorOrders = () => {
           </div>
         </div>
 
-        {/* Error */}
-
         {error && <div className="vendor-order-error">{error}</div>}
 
-        {/* Success */}
-
         {success && <div className="vendor-order-success">{success}</div>}
-
-        {/* ==============================
-            No Orders
-        ============================== */}
 
         {orders.length === 0 ? (
           <div className="no-orders">
@@ -131,10 +126,6 @@ const VendorOrders = () => {
             <p>You don't have any orders containing your products yet.</p>
           </div>
         ) : (
-          /* ==============================
-             Orders
-          ============================== */
-
           <div className="vendor-orders-list">
             {orders.map((order) => (
               <div className="vendor-order-card" key={order._id}>
@@ -162,10 +153,6 @@ const VendorOrders = () => {
                   </span>
                 </div>
 
-                {/* ==============================
-                    Order Items
-                ============================== */}
-
                 <div className="order-items">
                   {order.items.map((item, index) => {
                     const sellingPrice = item.discountedPrice ?? item.price;
@@ -184,8 +171,6 @@ const VendorOrders = () => {
                         className="vendor-order-item"
                         key={`${productId}-${index}`}
                       >
-                        {/* Product Image */}
-
                         <div className="order-item-image">
                           {item.image ? (
                             <img src={item.image} alt={item.name} />
@@ -193,8 +178,6 @@ const VendorOrders = () => {
                             <span>No Image</span>
                           )}
                         </div>
-
-                        {/* Product Info */}
 
                         <div className="order-item-info">
                           <h4>{item.name}</h4>
@@ -214,8 +197,6 @@ const VendorOrders = () => {
                           </div>
                         </div>
 
-                        {/* Item Total */}
-
                         <div className="vendor-item-total">
                           ₹{sellingPrice * item.quantity}
                         </div>
@@ -223,10 +204,6 @@ const VendorOrders = () => {
                     );
                   })}
                 </div>
-
-                {/* ==============================
-                    Order Footer
-                ============================== */}
 
                 <div className="order-card-footer">
                   {/* Payment */}
@@ -237,8 +214,6 @@ const VendorOrders = () => {
                     <strong>{order.paymentMethod}</strong>
                   </div>
 
-                  {/* Total */}
-
                   <div className="order-footer-info">
                     <span>Total</span>
 
@@ -246,8 +221,6 @@ const VendorOrders = () => {
                       ₹{order.totalAmount}
                     </strong>
                   </div>
-
-                  {/* Status */}
 
                   <div className="status-control">
                     <label htmlFor={`status-${order._id}`}>Update Status</label>
@@ -280,29 +253,6 @@ const VendorOrders = () => {
       </div>
     </div>
   );
-};
-
-// ==============================
-// Status Class
-// ==============================
-
-const getStatusClass = (status: OrderStatus): string => {
-  switch (status) {
-    case "Placed":
-      return "status-placed";
-
-    case "Accepted":
-      return "status-accepted";
-
-    case "Out for Delivery":
-      return "status-delivery";
-
-    case "Delivered":
-      return "status-delivered";
-
-    default:
-      return "";
-  }
 };
 
 export default VendorOrders;

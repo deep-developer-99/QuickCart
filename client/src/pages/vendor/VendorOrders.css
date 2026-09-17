@@ -9,10 +9,6 @@
   margin: 0 auto;
 }
 
-/* ==============================
-   Header
-============================== */
-
 .vendor-orders-header {
   display: flex;
   justify-content: space-between;
@@ -42,10 +38,6 @@
   white-space: nowrap;
 }
 
-/* ==============================
-   Loading
-============================== */
-
 .vendor-orders-loading {
   min-height: 400px;
   display: flex;
@@ -55,10 +47,6 @@
   color: #667085;
   font-size: 18px;
 }
-
-/* ==============================
-   Messages
-============================== */
 
 .vendor-order-error,
 .vendor-order-success {
@@ -80,19 +68,11 @@
   color: #348638;
 }
 
-/* ==============================
-   Orders List
-============================== */
-
 .vendor-orders-list {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
-
-/* ==============================
-   Order Card
-============================== */
 
 .vendor-order-card {
   background: #ffffff;
@@ -100,10 +80,6 @@
   border-radius: 14px;
   overflow: hidden;
 }
-
-/* ==============================
-   Order Header
-============================== */
 
 .order-card-header {
   display: flex;
@@ -141,10 +117,6 @@
   font-size: 13px !important;
 }
 
-/* ==============================
-   Status
-============================== */
-
 .order-status {
   padding: 7px 13px;
 
@@ -176,10 +148,6 @@
   color: #15803d;
 }
 
-/* ==============================
-   Order Items
-============================== */
-
 .order-items {
   padding: 10px 20px;
 }
@@ -198,10 +166,6 @@
 .vendor-order-item:last-child {
   border-bottom: none;
 }
-
-/* ==============================
-   Product Image
-============================== */
 
 .order-item-image {
   width: 70px;
@@ -231,10 +195,6 @@
   object-fit: contain;
 }
 
-/* ==============================
-   Product Info
-============================== */
-
 .order-item-info {
   flex: 1;
 }
@@ -252,10 +212,6 @@
   color: #667085;
   font-size: 13px;
 }
-
-/* ==============================
-   Price
-============================== */
 
 .vendor-order-price {
   display: flex;
@@ -281,10 +237,6 @@
   text-decoration: line-through;
 }
 
-/* ==============================
-   Item Total
-============================== */
-
 .vendor-item-total {
   min-width: 90px;
 
@@ -295,10 +247,6 @@
   font-size: 15px;
   font-weight: 700;
 }
-
-/* ==============================
-   Footer
-============================== */
 
 .order-card-footer {
   display: flex;
@@ -339,10 +287,6 @@
 
   font-size: 16px !important;
 }
-
-/* ==============================
-   Status Control
-============================== */
 
 .status-control {
   margin-left: auto;
@@ -396,10 +340,6 @@
   cursor: not-allowed;
 }
 
-/* ==============================
-   Empty Orders
-============================== */
-
 .no-orders {
   background: #ffffff;
 
@@ -430,10 +370,6 @@
   color: #667085;
   font-size: 14px;
 }
-
-/* ==============================
-   Responsive
-============================== */
 
 @media (max-width: 800px) {
   .order-card-footer {
