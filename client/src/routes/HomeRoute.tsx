@@ -1,8 +1,9 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
+import Home from "../pages/user/Home";
 import { useAppSelector } from "../hooks/reduxHooks";
 
-const PublicRoute = () => {
+const HomeRoute = () => {
   const { user, isAuthenticated, isLoading } = useAppSelector(
     (state) => state.auth,
   );
@@ -19,11 +20,9 @@ const PublicRoute = () => {
     if (user.role === "admin") {
       return <Navigate to="/admin/dashboard" replace />;
     }
-
-    return <Navigate to="/" replace />;
   }
 
-  return <Outlet />;
+  return <Home />;
 };
 
-export default PublicRoute;
+export default HomeRoute;

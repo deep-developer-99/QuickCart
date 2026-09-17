@@ -1,15 +1,19 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
-import Home from "../pages/user/Home";
+import HomeRoute from "./HomeRoute";
+import PublicRoute from "./PublicRoute";
+import ProtectedRoute from "./ProtectedRoute";
+import UserLayout from "../layouts/UserLayout";
+
 import Login from "../pages/user/Login";
 import Products from "../pages/user/Products";
 import ProductDetails from "../pages/user/ProductDetails";
 import Cart from "../pages/user/Cart";
 import Checkout from "../pages/user/Checkout";
 import MyOrders from "../pages/user/MyOrders";
-import Profile from "../pages/user/Profile";
-import OrderConfirmation from "../pages/user/OrderConfirmation";
 import MyOrderDetails from "../pages/user/MyOrderDetails";
+import OrderConfirmation from "../pages/user/OrderConfirmation";
+import Profile from "../pages/user/Profile";
 
 import VendorLogin from "../pages/vendor/VendorLogin";
 import VendorRegister from "../pages/vendor/VendorRegister";
@@ -24,17 +28,14 @@ import AdminVendors from "../pages/admin/AdminVendors";
 import AdminProducts from "../pages/admin/AdminProducts";
 import AdminOrders from "../pages/admin/AdminOrders";
 
-import ProtectedRoute from "./ProtectedRoute";
-import PublicRoute from "./PublicRoute";
-import UserLayout from "../layouts/UserLayout";
-
 const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<UserLayout />}>
+          <Route path="/" element={<HomeRoute />} />
+
           <Route element={<PublicRoute />}>
-            <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
           </Route>
 
