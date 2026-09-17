@@ -20,7 +20,9 @@ const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
       <div className="cart-item-info">
         <h3>{product.name}</h3>
 
-        <p className="cart-item-price">₹{product.price}</p>
+        <p className="cart-item-price">
+          ₹{product.discountPrice ?? product.price}
+        </p>
 
         <div className="cart-item-actions">
           <div className="cart-quantity-control">
@@ -53,7 +55,9 @@ const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
         </div>
       </div>
 
-      <div className="cart-item-total">₹{product.price * quantity}</div>
+      <div className="cart-item-total">
+        ₹{(product.discountPrice ?? product.price) * quantity}
+      </div>
     </div>
   );
 };

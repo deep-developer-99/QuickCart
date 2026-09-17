@@ -50,9 +50,18 @@ const OrderCard = ({ order }: OrderCardProps) => {
             <div>
               <h4>{item.name}</h4>
 
-              <p>
-                ₹{item.price} × {item.quantity}
-              </p>
+              <div className="order-item-price">
+                <span className="discounted-price">
+                  ₹{item.discountedPrice ?? item.price}
+                </span>
+
+                {item.discountedPrice !== undefined &&
+                  item.discountedPrice < item.price && (
+                    <span className="original-price">₹{item.price}</span>
+                  )}
+
+                <span className="item-quantity">× {item.quantity}</span>
+              </div>
             </div>
           </div>
         ))}

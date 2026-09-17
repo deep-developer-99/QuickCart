@@ -146,7 +146,8 @@ const Checkout = () => {
   }
 
   const total = cart.items.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
+    (sum, item) =>
+      sum + (item.product.discountPrice ?? item.product.price) * item.quantity,
     0,
   );
 
@@ -308,7 +309,11 @@ const Checkout = () => {
                   {item.product.name} × {item.quantity}
                 </span>
 
-                <strong>₹{item.product.price * item.quantity}</strong>
+                <strong>
+                  ₹
+                  {(item.product.discountPrice ?? item.product.price) *
+                    item.quantity}
+                </strong>
               </div>
             ))}
 

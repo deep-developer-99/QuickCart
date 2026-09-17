@@ -57,7 +57,9 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
         throw new Error(`Insufficient stock for ${product.name}`);
       }
 
-      totalAmount += product.price * cartItem.quantity;
+      const discountedPrice = product.discountPrice ?? product.price;
+
+      totalAmount += discountedPrice * cartItem.quantity;
 
       orderItems.push({
         product: product._id,
@@ -65,6 +67,7 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
         name: product.name,
         image: product.image,
         price: product.price,
+        discountedPrice,
         quantity: cartItem.quantity,
       });
     }

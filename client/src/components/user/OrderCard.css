@@ -183,3 +183,29 @@
     text-align: center;
   }
 }
+
+/* Item pricing */
+
+.order-item-price {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 5px;
+}
+
+.discounted-price {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.original-price {
+  color: #94a3b8;
+  font-size: 11px;
+  text-decoration: line-through;
+}
+
+.item-quantity {
+  color: #64748b;
+  font-size: 12px;
+}

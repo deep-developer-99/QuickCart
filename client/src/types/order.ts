@@ -16,6 +16,7 @@ export interface OrderItem {
         name: string;
         image: string;
         price: number;
+        discountPrice?: number;
       };
 
   vendor:
@@ -29,6 +30,7 @@ export interface OrderItem {
   name: string;
   image: string;
   price: number;
+  discountedPrice?: number;
   quantity: number;
 }
 
