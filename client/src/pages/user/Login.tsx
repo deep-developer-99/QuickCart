@@ -185,6 +185,8 @@ const Login = () => {
                 onSuccess={handleGoogleSuccess}
                 onError={handleGoogleError}
                 useOneTap={false}
+                use_fedcm_for_button={true}
+                ux_mode="popup"
               />
             </div>
 
