@@ -1,0 +1,100 @@
+.admin-page-success {
+  margin-bottom: 20px;
+  padding: 14px;
+  border: 1px solid #bbf7d0;
+  border-radius: 7px;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.table-subtext {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.status-badge,
+.account-badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.status-approved {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.status-rejected {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.account-badge.active {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.account-badge.inactive {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.vendor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.vendor-actions button {
+  padding: 7px 10px;
+  border: none;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vendor-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.approve-button,
+.activate-button {
+  background: #16a34a;
+  color: white;
+}
+
+.approve-button:hover,
+.activate-button:hover {
+  background: #15803d;
+}
+
+.reject-button,
+.deactivate-button {
+  background: #dc2626;
+  color: white;
+}
+
+.reject-button:hover,
+.deactivate-button:hover {
+  background: #b91c1c;
+}
+
+.admin-vendors-loading {
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+}
