@@ -299,6 +299,7 @@ export const getMeController = async (
         success: false,
         message: "Account not found",
       });
+      return;
     }
 
     res.status(200).json({
