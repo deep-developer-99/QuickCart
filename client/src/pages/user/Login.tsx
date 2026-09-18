@@ -1,12 +1,15 @@
 import axios from "axios";
-
+import { GoogleLogin } from "@react-oauth/google";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { sendPhoneOtp, verifyPhoneOtp } from "../../services/authService";
+import {
+  sendPhoneOtp,
+  verifyPhoneOtp,
+  loginGoogle,
+} from "../../services/authService";
 
 import { setCredentials } from "../../store/slice/authSlice";
-
 import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
 
 import "./Login.css";
@@ -14,6 +17,7 @@ import "./Login.css";
 const Login = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
   const [phone, setPhone] = useState("");
@@ -31,6 +35,45 @@ const Login = () => {
       navigate("/", { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
+
+  // GOOGLE LOGIN
+  const handleGoogleSuccess = async (credentialResponse: {
+    credential?: string;
+  }) => {
+    setError("");
+
+    if (!credentialResponse.credential) {
+      setError("Google login failed. Credential not received.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const response = await loginGoogle(credentialResponse.credential);
+
+      if (response?.success && response?.data) {
+        dispatch(setCredentials(response.data));
+        navigate("/", { replace: true });
+      } else {
+        setError(response?.message || "Google login failed.");
+      }
+    } catch (error: unknown) {
+      console.error("Google login error:", error);
+
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Google login failed.");
+      } else {
+        setError("Google login failed.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("Google login was unsuccessful. Please try again.");
+  };
 
   // SEND OTP
   const handleSendOtp = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -51,7 +94,6 @@ const Login = () => {
       });
 
       setIsNewUser(response?.data?.isNewUser ?? false);
-
       setOtpSent(true);
     } catch (error: unknown) {
       console.error("Send OTP error:", error);
@@ -101,7 +143,6 @@ const Login = () => {
 
       if (response?.success && response?.data) {
         dispatch(setCredentials(response.data));
-
         navigate("/", { replace: true });
       } else {
         setError(response?.message || "Invalid OTP.");
@@ -131,10 +172,27 @@ const Login = () => {
         <p className="login-description">
           {otpSent
             ? `Enter the OTP sent to ${phone}`
-            : "Login using your phone number"}
+            : "Login using your phone number or Google"}
         </p>
 
         {error && <div className="login-error">{error}</div>}
+
+        {/* GOOGLE LOGIN */}
+        {!otpSent && (
+          <>
+            <div className="google-login-container">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap={false}
+              />
+            </div>
+
+            <div className="login-divider">
+              <span>OR</span>
+            </div>
+          </>
+        )}
 
         {/* PHONE NUMBER FORM */}
         {!otpSent ? (
@@ -149,7 +207,6 @@ const Login = () => {
               value={phone}
               onChange={(event) => {
                 const value = event.target.value.replace(/\D/g, "");
-
                 setPhone(value);
               }}
               maxLength={10}
@@ -192,7 +249,6 @@ const Login = () => {
               value={otp}
               onChange={(event) => {
                 const value = event.target.value.replace(/\D/g, "");
-
                 setOtp(value);
               }}
               maxLength={6}
@@ -228,8 +284,7 @@ const Login = () => {
 
         <div className="login-footer">
           <span>New to QuickCart?</span>
-
-          <span>Login with your phone to continue.</span>
+          <span>Login with Google or your phone to continue.</span>
         </div>
       </div>
     </div>

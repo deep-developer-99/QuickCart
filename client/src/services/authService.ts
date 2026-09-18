@@ -59,6 +59,12 @@ export const verifyPhoneOtp = async (data: VerifyPhoneOtpData) => {
   return response.data;
 };
 
+export const loginGoogle = async (credential: string) => {
+  const response = await api.post("/auth/google", { credential });
+
+  return response.data;
+};
+
 export const getCurrentUser = async () => {
   const response = await api.get("/auth/me");
 
