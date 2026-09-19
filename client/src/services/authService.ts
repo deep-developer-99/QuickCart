@@ -76,3 +76,14 @@ export const logout = async () => {
 
   return response.data;
 };
+
+export interface UpdateProfileData {
+  name: string;
+  phone?: string;
+}
+
+export const updateProfile = async (data: UpdateProfileData) => {
+  const response = await api.put("/auth/profile", data);
+
+  return response.data;
+};

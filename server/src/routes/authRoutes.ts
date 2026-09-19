@@ -9,6 +9,7 @@ import {
   verifyPhoneOtpController,
   logoutController,
   getMeController,
+  updateProfileController,
 } from "../controllers/authController";
 import authMiddleware from "../middleware/authMiddleware";
 
@@ -22,5 +23,6 @@ router.post("/phone/send-otp", sendPhoneOtpController);
 router.post("/phone/verify-otp", verifyPhoneOtpController);
 router.post("/logout", logoutController);
 router.get("/me", authMiddleware("user", "admin", "vendor"), getMeController);
+router.put("/profile", authMiddleware("user"), updateProfileController);
 
 export default router;

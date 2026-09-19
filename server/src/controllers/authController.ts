@@ -315,3 +315,104 @@ export const getMeController = async (
     });
   }
 };
+
+// Update User Profile
+export const updateProfileController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user || req.user.role !== "user") {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const { name, phone } = req.body;
+
+    if (typeof name !== "string" || !name.trim()) {
+      res.status(400).json({
+        success: false,
+        message: "Name is required",
+      });
+      return;
+    }
+
+    const trimmedName = name.trim();
+    const trimmedPhone = typeof phone === "string" ? phone.trim() : "";
+
+    if (trimmedName.length < 2) {
+      res.status(400).json({
+        success: false,
+        message: "Name must be at least 2 characters long",
+      });
+      return;
+    }
+
+    if (trimmedPhone && !/^\+?[0-9]{10,15}$/.test(trimmedPhone)) {
+      res.status(400).json({
+        success: false,
+        message: "Please enter a valid phone number",
+      });
+      return;
+    }
+
+    if (trimmedPhone) {
+      const existingUser = await User.findOne({
+        phone: trimmedPhone,
+        _id: { $ne: req.user.id },
+      });
+
+      if (existingUser) {
+        res.status(409).json({
+          success: false,
+          message: "This phone number is already registered",
+        });
+        return;
+      }
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    user.name = trimmedName;
+
+    if (trimmedPhone) {
+      user.phone = trimmedPhone;
+    } else {
+      user.phone = undefined;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        profileImage: user.profileImage,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("Update profile error:", error);
+
+    res.status(500).json({
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to update profile",
+    });
+  }
+};
