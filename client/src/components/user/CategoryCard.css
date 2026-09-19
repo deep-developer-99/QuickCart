@@ -1,50 +1,138 @@
-.category-card {
-  width: 100%;
-  min-height: 155px;
+/* Category Card */
 
-  padding: 18px 12px;
+.category-card {
+  position: relative;
+  width: 100%;
+  min-height: 175px;
+  padding: 18px 12px 16px;
 
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 12px;
 
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border: 1px solid #e4ebe5;
+  border-radius: 18px;
 
-  background: #ffffff;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdfb 100%);
 
   cursor: pointer;
+  overflow: hidden;
+
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.045);
 
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease,
+    background 0.25s ease;
+}
+
+.category-card::before {
+  content: "";
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  top: -58px;
+  right: -45px;
+
+  border-radius: 50%;
+
+  background: rgba(77, 159, 80, 0.07);
+
+  transition:
+    transform 0.3s ease,
+    background 0.3s ease;
+}
+
+.category-card::after {
+  content: "";
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  bottom: -55px;
+  left: -40px;
+
+  border-radius: 50%;
+
+  background: rgba(134, 239, 172, 0.08);
+
+  transition: transform 0.3s ease;
 }
 
 .category-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-7px);
 
-  border-color: #bbf7d0;
+  border-color: #b8ddb9;
 
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, #ffffff 0%, #f5fbf5 100%);
+
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.1);
 }
 
-.category-card-image-wrapper {
-  width: 75px;
-  height: 75px;
+.category-card:hover::before {
+  transform: scale(1.25);
+  background: rgba(77, 159, 80, 0.11);
+}
 
-  margin-bottom: 12px;
+.category-card:hover::after {
+  transform: scale(1.2);
+}
+
+/* Category Image */
+
+.category-card-image-wrapper {
+  position: relative;
+  z-index: 1;
+
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 5px;
+
+  border: 1px solid #dcebdc;
+  border-radius: 50%;
+
+  background: #f1f8f1;
+
+  box-shadow:
+    0 7px 18px rgba(63, 139, 67, 0.09),
+    inset 0 0 0 4px rgba(255, 255, 255, 0.8);
+
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.category-card:hover .category-card-image-wrapper {
+  transform: scale(1.07);
+
+  box-shadow:
+    0 10px 24px rgba(63, 139, 67, 0.15),
+    inset 0 0 0 4px rgba(255, 255, 255, 0.9);
 }
 
 .category-card-image,
 .category-card-placeholder {
+  display: block;
+
   width: 100%;
   height: 100%;
 
   border-radius: 50%;
 
   object-fit: cover;
+  object-position: center;
+}
+
+.category-card-image {
+  background: #ffffff;
 }
 
 .category-card-placeholder {
@@ -52,20 +140,88 @@
   align-items: center;
   justify-content: center;
 
-  background: #dcfce7;
-  color: #16a34a;
+  background: linear-gradient(135deg, #e9f8ea, #d5efd7);
+
+  color: #3f8b43;
 
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
-.category-card h3 {
-  margin: 0;
+/* Category Name */
 
-  color: #334155;
+.category-card h3 {
+  position: relative;
+  z-index: 1;
+
+  max-width: 100%;
+  margin: 0;
+  padding: 0 5px;
+
+  color: #172033;
 
   font-size: 14px;
-  font-weight: 600;
+  line-height: 1.3;
+  font-weight: 750;
 
   text-align: center;
+  text-transform: capitalize;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  transition: color 0.2s ease;
+}
+
+.category-card:hover h3 {
+  color: #3f8b43;
+}
+
+/* Keyboard Accessibility */
+
+.category-card:focus-visible {
+  outline: 3px solid rgba(77, 159, 80, 0.25);
+  outline-offset: 3px;
+}
+
+/* Responsive */
+
+@media (max-width: 1000px) {
+  .category-card {
+    min-height: 165px;
+  }
+
+  .category-card-image-wrapper {
+    width: 82px;
+    height: 82px;
+  }
+}
+
+@media (max-width: 600px) {
+  .category-card {
+    min-height: 155px;
+    padding: 15px 10px;
+    border-radius: 15px;
+  }
+
+  .category-card-image-wrapper {
+    width: 76px;
+    height: 76px;
+  }
+
+  .category-card h3 {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 450px) {
+  .category-card {
+    min-height: 150px;
+  }
+
+  .category-card-image-wrapper {
+    width: 72px;
+    height: 72px;
+  }
 }
