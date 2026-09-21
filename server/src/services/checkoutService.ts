@@ -28,7 +28,9 @@ export const calculateCheckout = async (userId: string) => {
       throw new Error(`Insufficient stock for ${product.name}`);
     }
 
-    const itemTotal = product.price * cartItem.quantity;
+    const discountedPrice = product.discountPrice ?? product.price;
+
+    const itemTotal = discountedPrice * cartItem.quantity;
 
     totalAmount += itemTotal;
 
