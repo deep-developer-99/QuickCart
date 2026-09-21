@@ -4,7 +4,7 @@ import {
   createProduct,
   deleteProduct,
   getCategories,
-  getProducts,
+  getVendorProducts,
   restoreProduct,
   updateProduct,
 } from "../../services/productService";
@@ -16,7 +16,6 @@ import "./VendorProducts.css";
 interface ProductForm {
   name: string;
   description: string;
-  image: string;
   price: string;
   discountPrice: string;
   stock: string;
@@ -26,7 +25,6 @@ interface ProductForm {
 const initialForm: ProductForm = {
   name: "",
   description: "",
-  image: "",
   price: "",
   discountPrice: "",
   stock: "",
@@ -47,6 +45,9 @@ const VendorProducts = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState("");
+
   // ==============================
   // Fetch Vendor Products + Categories
   // ==============================
@@ -57,7 +58,7 @@ const VendorProducts = () => {
       setError("");
 
       const [productResponse, categoryResponse] = await Promise.all([
-        getProducts(),
+        getVendorProducts(),
         getCategories(),
       ]);
 
@@ -98,6 +99,32 @@ const VendorProducts = () => {
     }));
   };
 
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError("Only JPG, JPEG, PNG and WEBP images are allowed.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image size must be less than 5MB.");
+      event.target.value = "";
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setError("");
+  };
+
   // ==============================
   // Reset Form
   // ==============================
@@ -105,6 +132,8 @@ const VendorProducts = () => {
   const resetForm = () => {
     setForm(initialForm);
     setEditingProduct(null);
+    setImageFile(null);
+    setImagePreview("");
   };
 
   // ==============================
@@ -128,8 +157,8 @@ const VendorProducts = () => {
       return;
     }
 
-    if (!form.image.trim()) {
-      setError("Product image URL is required.");
+    if (!editingProduct && !imageFile) {
+      setError("Product image is required.");
       return;
     }
 
@@ -143,7 +172,7 @@ const VendorProducts = () => {
       return;
     }
 
-    if (!form.stock || Number(form.stock) < 0) {
+    if (form.stock === "" || Number(form.stock) < 0) {
       setError("Please enter a valid stock.");
       return;
     }
@@ -156,23 +185,25 @@ const VendorProducts = () => {
     try {
       setIsSubmitting(true);
 
-      const productData = {
-        name: form.name.trim(),
-        description: form.description.trim(),
-        image: form.image.trim(),
-        price: Number(form.price),
-        ...(form.discountPrice
-          ? {
-              discountPrice: Number(form.discountPrice),
-            }
-          : {}),
-        stock: Number(form.stock),
-        category: form.category,
-      };
+      const formData = new FormData();
+
+      formData.append("name", form.name.trim());
+      formData.append("description", form.description.trim());
+      formData.append("price", form.price);
+      formData.append("stock", form.stock);
+      formData.append("category", form.category);
+
+      if (form.discountPrice) {
+        formData.append("discountPrice", form.discountPrice);
+      }
+
+      if (imageFile) {
+        formData.append("image", imageFile);
+      }
 
       // Update existing product
       if (editingProduct) {
-        const response = await updateProduct(editingProduct._id, productData);
+        const response = await updateProduct(editingProduct._id, formData);
 
         if (response?.success) {
           setSuccess("Product updated successfully.");
@@ -184,7 +215,7 @@ const VendorProducts = () => {
       }
 
       // Create new product
-      const response = await createProduct(productData);
+      const response = await createProduct(formData);
 
       if (response?.success) {
         setSuccess("Product added successfully.");
@@ -215,7 +246,6 @@ const VendorProducts = () => {
     setForm({
       name: product.name,
       description: product.description || "",
-      image: product.image || "",
       price: String(product.price),
       discountPrice:
         product.discountPrice !== undefined
@@ -225,6 +255,8 @@ const VendorProducts = () => {
       category: categoryId || "",
     });
 
+    setImageFile(null);
+    setImagePreview(product.image || "");
     setError("");
     setSuccess("");
 
@@ -428,17 +460,29 @@ const VendorProducts = () => {
 
             {/* Image */}
 
-            <div className="form-group">
-              <label htmlFor="image">Image URL</label>
+            <div className="form-group form-group-full">
+              <label htmlFor="image">Product Image</label>
 
               <input
                 id="image"
                 name="image"
-                type="url"
-                placeholder="https://example.com/image.jpg"
-                value={form.image}
-                onChange={handleChange}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleImageChange}
               />
+
+              <small>
+                JPG, JPEG, PNG or WEBP. Maximum size: 5MB.
+                {editingProduct
+                  ? " Leave empty to keep the current image."
+                  : ""}
+              </small>
+
+              {imagePreview && (
+                <div className="product-image-preview">
+                  <img src={imagePreview} alt="Product preview" />
+                </div>
+              )}
             </div>
 
             {/* Description */}

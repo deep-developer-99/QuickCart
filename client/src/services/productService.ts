@@ -11,6 +11,12 @@ export const getProducts = async (search?: string, category?: string) => {
   return response.data;
 };
 
+export const getVendorProducts = async () => {
+  const response = await api.get("/products/vendor");
+
+  return response.data;
+};
+
 export const getProductById = async (id: string) => {
   const response = await api.get(`/products/${id}`);
 
@@ -29,32 +35,12 @@ export const getCategories = async () => {
   return response.data;
 };
 
-// Create Data
-export const createProduct = async (productData: {
-  name: string;
-  description: string;
-  image: string;
-  price: number;
-  discountPrice?: number;
-  stock: number;
-  category: string;
-}) => {
+export const createProduct = async (productData: FormData) => {
   const response = await api.post("/products", productData);
   return response.data;
 };
 
-export const updateProduct = async (
-  id: string,
-  data: {
-    name?: string;
-    description?: string;
-    image?: string;
-    price?: number;
-    discountPrice?: number;
-    stock?: number;
-    category?: string;
-  },
-) => {
+export const updateProduct = async (id: string, data: FormData) => {
   const response = await api.put(`/products/${id}`, data);
 
   return response.data;

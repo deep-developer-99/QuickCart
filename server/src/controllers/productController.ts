@@ -5,14 +5,18 @@ import {
   createProduct,
   getAllProducts,
   getVendorProducts,
+  getVendorProductById,
   getProductById,
   getProductsByCategory,
   updateProduct,
   deleteProduct,
   restoreProduct,
 } from "../services/productService";
+import {
+  deleteImageFromCloudinary,
+  uploadImageToCloudinary,
+} from "../services/cloudinaryService";
 
-// Create Product
 export const createProductController = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -26,13 +30,87 @@ export const createProductController = async (
       return;
     }
 
-    const product = await createProduct(req.body, req.user.id);
+    if (!req.file) {
+      res.status(400).json({
+        success: false,
+        message: "Product image is required",
+      });
+      return;
+    }
 
-    res.status(201).json({
-      success: true,
-      message: "Product created successfully",
-      data: product,
-    });
+    const price = Number(req.body.price);
+    const stock = Number(req.body.stock);
+    const discountPrice =
+      req.body.discountPrice !== undefined && req.body.discountPrice !== ""
+        ? Number(req.body.discountPrice)
+        : undefined;
+
+    if (!Number.isFinite(price) || price <= 0) {
+      res.status(400).json({
+        success: false,
+        message: "Please enter a valid price",
+      });
+      return;
+    }
+
+    if (!Number.isFinite(stock) || stock < 0) {
+      res.status(400).json({
+        success: false,
+        message: "Please enter a valid stock quantity",
+      });
+      return;
+    }
+
+    if (
+      discountPrice !== undefined &&
+      (!Number.isFinite(discountPrice) || discountPrice < 0)
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Please enter a valid discount price",
+      });
+      return;
+    }
+
+    if (discountPrice !== undefined && discountPrice >= price) {
+      res.status(400).json({
+        success: false,
+        message: "Discount price must be less than the original price",
+      });
+      return;
+    }
+
+    const uploadedImage = await uploadImageToCloudinary(
+      req.file.buffer,
+      "quickcart/products",
+    );
+
+    try {
+      const product = await createProduct(
+        {
+          name: String(req.body.name ?? "").trim(),
+          description: String(req.body.description ?? "").trim(),
+          image: uploadedImage.secure_url,
+          imagePublicId: uploadedImage.public_id,
+          price,
+          discountPrice,
+          stock,
+          category: String(req.body.category ?? ""),
+        },
+        req.user.id,
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Product created successfully",
+        data: product,
+      });
+    } catch (error) {
+      await deleteImageFromCloudinary(uploadedImage.public_id).catch(() => {
+        console.error("Failed to clean up uploaded product image.");
+      });
+      throw error;
+    }
   } catch (error) {
     console.error("Create product error:", error);
 
@@ -44,7 +122,6 @@ export const createProductController = async (
   }
 };
 
-// Get All Products
 export const getAllProductsController = async (
   req: Request,
   res: Response,
@@ -71,7 +148,6 @@ export const getAllProductsController = async (
   }
 };
 
-// Get Product By Id
 export const getProductByIdController = async (
   req: Request,
   res: Response,
@@ -95,7 +171,6 @@ export const getProductByIdController = async (
   }
 };
 
-// Get All Products By Category
 export const getProductsByCategoryController = async (
   req: Request,
   res: Response,
@@ -103,11 +178,11 @@ export const getProductsByCategoryController = async (
   try {
     const { categoryId } = req.params as { categoryId: string };
 
-    const product = await getProductsByCategory(categoryId);
+    const products = await getProductsByCategory(categoryId);
 
     res.status(200).json({
       success: true,
-      data: product,
+      data: products,
     });
   } catch (error) {
     console.error("Get products through category error:", error);
@@ -119,7 +194,6 @@ export const getProductsByCategoryController = async (
   }
 };
 
-// Get Vendor's Product
 export const getVendorProductsController = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -149,11 +223,12 @@ export const getVendorProductsController = async (
   }
 };
 
-// Update Product
 export const updateProductController = async (
   req: AuthenticatedRequest,
   res: Response,
 ): Promise<void> => {
+  let uploadedImagePublicId: string | undefined;
+
   try {
     if (!req.user) {
       res.status(401).json({
@@ -165,7 +240,79 @@ export const updateProductController = async (
 
     const { id } = req.params as { id: string };
 
-    const product = await updateProduct(id, req.user.id, req.body);
+    const existingProduct = await getVendorProductById(id, req.user.id);
+
+    let image = existingProduct.image;
+    let imagePublicId = existingProduct.imagePublicId;
+
+    if (req.file) {
+      const uploadedImage = await uploadImageToCloudinary(
+        req.file.buffer,
+        "quickcart/products",
+      );
+
+      uploadedImagePublicId = uploadedImage.public_id;
+      image = uploadedImage.secure_url;
+      imagePublicId = uploadedImage.public_id;
+    }
+
+    const price =
+      req.body.price !== undefined && req.body.price !== ""
+        ? Number(req.body.price)
+        : undefined;
+    const stock =
+      req.body.stock !== undefined && req.body.stock !== ""
+        ? Number(req.body.stock)
+        : undefined;
+    const discountPrice =
+      req.body.discountPrice !== undefined && req.body.discountPrice !== ""
+        ? Number(req.body.discountPrice)
+        : undefined;
+
+    if (price !== undefined && (!Number.isFinite(price) || price <= 0)) {
+      throw new Error("Please enter a valid price");
+    }
+
+    if (stock !== undefined && (!Number.isFinite(stock) || stock < 0)) {
+      throw new Error("Please enter a valid stock quantity");
+    }
+
+    if (
+      discountPrice !== undefined &&
+      (!Number.isFinite(discountPrice) || discountPrice < 0)
+    ) {
+      throw new Error("Please enter a valid discount price");
+    }
+
+    const finalPrice = price ?? existingProduct.price;
+
+    if (discountPrice !== undefined && discountPrice >= finalPrice) {
+      throw new Error("Discount price must be less than the original price");
+    }
+
+    const product = await updateProduct(id, req.user.id, {
+      name:
+        req.body.name !== undefined ? String(req.body.name).trim() : undefined,
+      description:
+        req.body.description !== undefined
+          ? String(req.body.description).trim()
+          : undefined,
+      image,
+      imagePublicId,
+      price,
+      discountPrice,
+      stock,
+      category:
+        req.body.category !== undefined ? String(req.body.category) : undefined,
+    });
+
+    if (req.file && existingProduct.imagePublicId) {
+      await deleteImageFromCloudinary(existingProduct.imagePublicId).catch(
+        (error) => {
+          console.error("Failed to delete old product image:", error);
+        },
+      );
+    }
 
     res.status(200).json({
       success: true,
@@ -173,6 +320,12 @@ export const updateProductController = async (
       data: product,
     });
   } catch (error) {
+    if (uploadedImagePublicId) {
+      await deleteImageFromCloudinary(uploadedImagePublicId).catch(() => {
+        console.error("Failed to clean up new product image.");
+      });
+    }
+
     console.error("Update product error:", error);
 
     res.status(400).json({
@@ -183,7 +336,6 @@ export const updateProductController = async (
   }
 };
 
-// Delete Product Controller
 export const deleteProductController = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -216,7 +368,6 @@ export const deleteProductController = async (
   }
 };
 
-// Restore Product
 export const restoreProductController = async (
   req: AuthenticatedRequest,
   res: Response,

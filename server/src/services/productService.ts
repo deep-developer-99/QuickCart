@@ -5,6 +5,7 @@ interface CreateProductData {
   name: string;
   description: string;
   image: string;
+  imagePublicId?: string;
   price: number;
   discountPrice?: number;
   stock: number;
@@ -15,32 +16,39 @@ interface UpdateProductData {
   name?: string;
   description?: string;
   image?: string;
+  imagePublicId?: string;
   price?: number;
   discountPrice?: number;
   stock?: number;
   category?: string;
 }
 
-// Create Product
 export const createProduct = async (
   data: CreateProductData,
   vendorId: string,
 ) => {
-  const { name, description, image, price, discountPrice, stock, category } =
-    data;
+  const {
+    name,
+    description,
+    image,
+    imagePublicId,
+    price,
+    discountPrice,
+    stock,
+    category,
+  } = data;
 
-  // Check whether category exists
   const existingCategory = await Category.findById(category);
 
   if (!existingCategory) {
     throw new Error("Category not found");
   }
 
-  // Create product
   const product = await Product.create({
     name,
     description,
     image,
+    imagePublicId,
     price,
     discountPrice,
     stock,
@@ -52,14 +60,12 @@ export const createProduct = async (
   return product;
 };
 
-// Get All Active Product
 export const getAllProducts = async (search?: string, category?: string) => {
   const filter: Record<string, unknown> = {
     isActive: true,
     stock: { $gt: 0 },
   };
 
-  // Search by product name
   if (search) {
     filter.name = {
       $regex: search,
@@ -67,7 +73,6 @@ export const getAllProducts = async (search?: string, category?: string) => {
     };
   }
 
-  // Filter by category
   if (category) {
     filter.category = category;
   }
@@ -80,7 +85,6 @@ export const getAllProducts = async (search?: string, category?: string) => {
   return products;
 };
 
-// Get Product By Id
 export const getProductById = async (productId: string) => {
   const product = await Product.findOne({
     _id: productId,
@@ -97,23 +101,39 @@ export const getProductById = async (productId: string) => {
 };
 
 export const getProductsByCategory = async (categoryId: string) => {
-  const product = await Product.find({
+  const products = await Product.find({
     category: categoryId,
-  }).populate("category");
+    isActive: true,
+    stock: { $gt: 0 },
+  }).populate("category", "name image");
 
-  return product;
+  return products;
 };
 
-// Get Vendor's Product
 export const getVendorProducts = async (vendorId: string) => {
-  const product = await Product.find({ vendor: vendorId })
+  const products = await Product.find({ vendor: vendorId })
     .populate("category", "name image")
     .sort({ createdAt: -1 });
 
+  return products;
+};
+
+export const getVendorProductById = async (
+  productId: string,
+  vendorId: string,
+) => {
+  const product = await Product.findOne({
+    _id: productId,
+    vendor: vendorId,
+  }).populate("category", "name image");
+
+  if (!product) {
+    throw new Error("Product not found or access denied");
+  }
+
   return product;
 };
 
-// Update Product Data
 export const updateProduct = async (
   productId: string,
   vendorId: string,
@@ -143,7 +163,6 @@ export const updateProduct = async (
   return product;
 };
 
-// Delete Product
 export const deleteProduct = async (
   productId: string,
   vendorId: string,
@@ -156,7 +175,8 @@ export const deleteProduct = async (
   if (!product) {
     throw new Error("Product not found or access denied");
   }
-  if (!product.isActive === true) {
+
+  if (product.isActive === false) {
     throw new Error("Product is already deleted");
   }
 
@@ -165,7 +185,6 @@ export const deleteProduct = async (
   await product.save();
 };
 
-// Restore Product
 export const restoreProduct = async (productId: string, vendorId: string) => {
   const product = await Product.findOne({
     _id: productId,
@@ -176,7 +195,7 @@ export const restoreProduct = async (productId: string, vendorId: string) => {
     throw new Error("Product not found or access denied");
   }
 
-  if (!product.isActive === false) {
+  if (product.isActive === true) {
     throw new Error("Product is already active");
   }
 
