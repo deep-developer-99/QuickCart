@@ -79,10 +79,6 @@ const ProductDetails = () => {
 
       if (response?.success) {
         setSuccess("Product added to cart successfully.");
-
-        setTimeout(() => {
-          navigate("/cart");
-        }, 800);
       } else {
         setError(response?.message || "Failed to add product to cart.");
       }
