@@ -14,8 +14,9 @@ export interface IOrder extends Document {
   user: Types.ObjectId;
   items: IOrderItem[];
   address: Types.ObjectId;
-  paymentMethod: "COD" | "RAZORPAY_FAKE";
+  paymentMethod: "COD" | "RAZORPAY";
   paymentId?: string;
+  razorpayOrderId?: string;
   totalAmount: number;
   status: "Placed" | "Accepted" | "Out for Delivery" | "Delivered";
   createdAt: Date;
@@ -91,11 +92,15 @@ const orderSchema = new Schema<IOrder>(
 
     paymentMethod: {
       type: String,
-      enum: ["COD", "RAZORPAY_FAKE"],
+      enum: ["COD", "RAZORPAY"],
       required: true,
     },
 
     paymentId: {
+      type: String,
+    },
+
+    razorpayOrderId: {
       type: String,
     },
 

@@ -2,6 +2,8 @@ import { Router } from "express";
 
 import {
   createOrderController,
+  createRazorpayOrderController,
+  verifyRazorpayPaymentController,
   getMyOrdersController,
   getOrderByIdController,
   getVendorOrdersController,
@@ -13,8 +15,20 @@ import authMiddleware from "../middleware/authMiddleware";
 
 const router = Router();
 
-// User Routes
+// User payment/order routes
 router.post("/", authMiddleware("user"), createOrderController);
+
+router.post(
+  "/razorpay/create-order",
+  authMiddleware("user"),
+  createRazorpayOrderController,
+);
+
+router.post(
+  "/razorpay/verify",
+  authMiddleware("user"),
+  verifyRazorpayPaymentController,
+);
 
 router.get("/my-orders", authMiddleware("user"), getMyOrdersController);
 

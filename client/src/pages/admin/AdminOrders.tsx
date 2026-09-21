@@ -50,7 +50,7 @@ interface AdminOrder {
         state: string;
         pincode: string;
       };
-  paymentMethod: "COD" | "RAZORPAY_FAKE";
+  paymentMethod: "COD" | "RAZORPAY";
   paymentId?: string;
   totalAmount: number;
   status: OrderStatus;

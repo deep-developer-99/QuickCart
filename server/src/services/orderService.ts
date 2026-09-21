@@ -7,12 +7,13 @@ import Product from "../models/Product";
 
 interface CreateOrderData {
   addressId: string;
-  paymentMethod: "COD" | "RAZORPAY_FAKE";
+  paymentMethod: "COD" | "RAZORPAY";
   paymentId?: string;
+  razorpayOrderId?: string;
 }
 
 export const createOrder = async (userId: string, data: CreateOrderData) => {
-  const { addressId, paymentMethod, paymentId } = data;
+  const { addressId, paymentMethod, paymentId, razorpayOrderId } = data;
 
   const session = await mongoose.startSession();
 
@@ -109,6 +110,7 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
           address: new Types.ObjectId(addressId),
           paymentMethod,
           paymentId,
+          razorpayOrderId,
           totalAmount,
           status: "Placed",
         },

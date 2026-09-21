@@ -23,6 +23,7 @@
     "google-auth-library": "^11.0.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.5",
+    "razorpay": "^2.9.8",
     "twilio": "^6.1.1"
   },
   "devDependencies": {

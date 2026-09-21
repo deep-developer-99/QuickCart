@@ -1,14 +1,19 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import { useState, useEffect } from "react";
+import axios from "axios";
 
 import { getCart } from "../../services/cartService";
-
 import { createAddress, getAddresses } from "../../services/addressService";
-import { createOrder } from "../../services/orderService";
+import {
+  createOrder,
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+} from "../../services/orderService";
 
 import type { Address, CreateAddressData } from "../../types/address";
 import type { Cart } from "../../types/cart";
+
+import { loadRazorpayScript } from "../../utils/razorpay";
 
 import "./Checkout.css";
 
@@ -17,12 +22,9 @@ const Checkout = () => {
 
   const [cart, setCart] = useState<Cart | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
-
   const [selectedAddress, setSelectedAddress] = useState("");
 
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "RAZORPAY_FAKE">(
-    "COD",
-  );
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "RAZORPAY">("COD");
 
   const [showAddressForm, setShowAddressForm] = useState(false);
 
@@ -73,6 +75,17 @@ const Checkout = () => {
   const handleAddressChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
 
+    if (name === "phone") {
+      const phone = value.replace(/\D/g, "").slice(0, 10);
+
+      setAddressForm((previous) => ({
+        ...previous,
+        phone,
+      }));
+
+      return;
+    }
+
     setAddressForm((previous) => ({
       ...previous,
       [name]: value,
@@ -84,13 +97,16 @@ const Checkout = () => {
   ) => {
     event.preventDefault();
 
+    if (!/^\d{10}$/.test(addressForm.phone)) {
+      alert("Phone number must be exactly 10 digits.");
+      return;
+    }
+
     try {
       const response = await createAddress(addressForm);
-
       const newAddress = response.data;
 
       setAddresses((previous) => [...previous, newAddress]);
-
       setSelectedAddress(newAddress._id);
       setShowAddressForm(false);
 
@@ -105,6 +121,120 @@ const Checkout = () => {
       });
     } catch (error) {
       console.error("Failed to create address:", error);
+
+      if (axios.isAxiosError(error)) {
+        alert(error.response?.data?.message || "Failed to save address.");
+      } else {
+        alert("Failed to save address.");
+      }
+    }
+  };
+
+  const handleCodOrder = async () => {
+    try {
+      setIsSubmitting(true);
+
+      await createOrder(selectedAddress, "COD");
+
+      navigate("/order-confirmation");
+    } catch (error) {
+      console.error("Failed to place COD order:", error);
+
+      if (axios.isAxiosError(error)) {
+        alert(error.response?.data?.message || "Failed to place order.");
+      } else {
+        alert("Failed to place order.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRazorpayPayment = async () => {
+    try {
+      setIsSubmitting(true);
+
+      const isLoaded = await loadRazorpayScript();
+
+      if (!isLoaded) {
+        throw new Error("Unable to load Razorpay Checkout.");
+      }
+
+      const response = await createRazorpayOrder(selectedAddress);
+
+      if (!response?.success || !response?.data) {
+        throw new Error(
+          response?.message || "Failed to create Razorpay order.",
+        );
+      }
+
+      const { keyId, razorpayOrderId, amount, currency } = response.data;
+      const selectedAddressData = addresses.find(
+        (address) => address._id === selectedAddress,
+      );
+
+      const razorpay = new window.Razorpay({
+        key: keyId,
+        amount,
+        currency,
+        name: "QuickCart",
+        description: "QuickCart Order",
+        order_id: razorpayOrderId,
+        prefill: {
+          name: selectedAddressData?.fullName,
+          contact: selectedAddressData?.phone,
+        },
+        theme: {
+          color: "#3f8b43",
+        },
+        handler: async (paymentResponse) => {
+          try {
+            await verifyRazorpayPayment({
+              addressId: selectedAddress,
+              razorpayPaymentId: paymentResponse.razorpay_payment_id,
+              razorpayOrderId: paymentResponse.razorpay_order_id,
+              razorpaySignature: paymentResponse.razorpay_signature,
+            });
+
+            navigate("/order-confirmation");
+          } catch (error) {
+            console.error("Razorpay verification failed:", error);
+
+            if (axios.isAxiosError(error)) {
+              alert(
+                error.response?.data?.message || "Payment verification failed.",
+              );
+            } else {
+              alert("Payment verification failed.");
+            }
+          } finally {
+            setIsSubmitting(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setIsSubmitting(false);
+          },
+        },
+      });
+
+      razorpay.open();
+    } catch (error) {
+      console.error("Razorpay payment error:", error);
+
+      if (axios.isAxiosError(error)) {
+        alert(
+          error.response?.data?.message || "Unable to start Razorpay payment.",
+        );
+      } else {
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Unable to start Razorpay payment.",
+        );
+      }
+
+      setIsSubmitting(false);
     }
   };
 
@@ -119,18 +249,12 @@ const Checkout = () => {
       return;
     }
 
-    try {
-      setIsSubmitting(true);
-
-      await createOrder(selectedAddress, paymentMethod);
-
-      navigate("/order-confirmation");
-    } catch (error) {
-      console.error("Failed to place order:", error);
-      alert("Failed to place order.");
-    } finally {
-      setIsSubmitting(false);
+    if (paymentMethod === "COD") {
+      await handleCodOrder();
+      return;
     }
+
+    await handleRazorpayPayment();
   };
 
   if (isLoading) {
@@ -161,7 +285,6 @@ const Checkout = () => {
 
         <div className="checkout-layout">
           <div className="checkout-main">
-            {/* Address */}
             <section className="checkout-section">
               <div className="checkout-section-header">
                 <h2>Delivery Address</h2>
@@ -185,9 +308,12 @@ const Checkout = () => {
                   />
 
                   <input
+                    type="tel"
                     name="phone"
                     placeholder="Phone"
                     value={addressForm.phone}
+                    maxLength={10}
+                    inputMode="numeric"
                     onChange={handleAddressChange}
                     required
                   />
@@ -267,7 +393,6 @@ const Checkout = () => {
               </div>
             </section>
 
-            {/* Payment */}
             <section className="checkout-section">
               <h2>Payment Method</h2>
 
@@ -287,19 +412,18 @@ const Checkout = () => {
               <label className="payment-option">
                 <input
                   type="radio"
-                  checked={paymentMethod === "RAZORPAY_FAKE"}
-                  onChange={() => setPaymentMethod("RAZORPAY_FAKE")}
+                  checked={paymentMethod === "RAZORPAY"}
+                  onChange={() => setPaymentMethod("RAZORPAY")}
                 />
 
                 <div>
-                  <strong>Mock Razorpay Payment</strong>
-                  <p>Demo payment for the assignment.</p>
+                  <strong>Online Payment</strong>
+                  <p>Pay securely using Razorpay.</p>
                 </div>
               </label>
             </section>
           </div>
 
-          {/* Summary */}
           <aside className="checkout-summary">
             <h2>Order Summary</h2>
 
@@ -328,7 +452,13 @@ const Checkout = () => {
               onClick={handlePlaceOrder}
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Placing Order..." : "Place Order"}
+              {isSubmitting
+                ? paymentMethod === "RAZORPAY"
+                  ? "Opening Razorpay..."
+                  : "Placing Order..."
+                : paymentMethod === "RAZORPAY"
+                  ? "Pay with Razorpay"
+                  : "Place Order"}
             </button>
           </aside>
         </div>

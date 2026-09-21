@@ -1,6 +1,6 @@
 import type { Address } from "./address";
 
-export type PaymentMethod = "COD" | "RAZORPAY_FAKE";
+export type PaymentMethod = "COD" | "RAZORPAY";
 
 export type OrderStatus =
   | "Placed"
@@ -41,6 +41,7 @@ export interface Order {
   address: Address | string;
   paymentMethod: PaymentMethod;
   paymentId?: string;
+  razorpayOrderId?: string;
   totalAmount: number;
   status: OrderStatus;
   createdAt: string;
