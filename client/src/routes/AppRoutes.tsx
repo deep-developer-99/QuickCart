@@ -48,7 +48,6 @@ const AppRoutes = () => {
           <Route path="/search" element={<SearchResults />} />
 
           <Route path="/products/:id" element={<ProductDetails />} />
-          <Route path="/products/:id" element={<ProductDetails />} />
 
           <Route element={<ProtectedRoute allowedRole="user" />}>
             <Route path="/cart" element={<Cart />} />
