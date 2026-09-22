@@ -4,6 +4,7 @@ import Order from "../models/Order";
 import Cart from "../models/Cart";
 import Address from "../models/Address";
 import Product from "../models/Product";
+import { notifyVendorsAboutNewOrder } from "./notificationService";
 
 interface CreateOrderData {
   addressId: string;
@@ -129,6 +130,16 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
 
     // 7. Commit transaction
     await session.commitTransaction();
+
+    try {
+      await notifyVendorsAboutNewOrder(
+        orderItems.map((item) => item.vendor.toString()),
+        order._id.toString(),
+        orderItems.reduce((total, item) => total + item.quantity, 0),
+      );
+    } catch (notificationError) {
+      console.error("New order notification error:", notificationError);
+    }
 
     return order;
   } catch (error) {

@@ -1,0 +1,231 @@
+.notification-bell-container {
+  position: fixed;
+  top: 18px;
+  right: 24px;
+  z-index: 1000;
+}
+
+.notification-bell-button {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.notification-bell-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+
+.notification-bell-icon {
+  font-size: 21px;
+  line-height: 1;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: 56px;
+  right: 0;
+  width: min(390px, calc(100vw - 32px));
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16);
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.notification-header h3 {
+  margin: 0 0 3px;
+  color: #111827;
+  font-size: 16px;
+}
+
+.notification-header span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.notification-header button {
+  border: 0;
+  background: transparent;
+  color: #3f8b43;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notification-list {
+  max-height: 430px;
+  overflow-y: auto;
+}
+
+.notification-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 38px 1fr 7px;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-item:hover {
+  background: #f8fafc;
+}
+
+.notification-item.unread {
+  background: #f4fbf4;
+}
+
+.notification-item-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #eef8ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-item-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.notification-item-content strong {
+  color: #172033;
+  font-size: 13px;
+}
+
+.notification-item-content span {
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.notification-item-content small {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.notification-unread-dot {
+  width: 7px;
+  height: 7px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #3f8b43;
+}
+
+.notification-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #64748b;
+}
+
+.notification-empty span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 28px;
+}
+
+.notification-empty p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.notification-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1100;
+  width: min(380px, calc(100vw - 32px));
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid #dcebdc;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-toast-icon {
+  font-size: 22px;
+}
+
+.notification-toast span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notification-toast strong {
+  color: #172033;
+  font-size: 13px;
+}
+
+.notification-toast small {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (max-width: 600px) {
+  .notification-bell-container {
+    top: 12px;
+    right: 14px;
+  }
+
+  .notification-dropdown {
+    right: -4px;
+  }
+
+  .notification-toast {
+    right: 16px;
+    bottom: 16px;
+  }
+}

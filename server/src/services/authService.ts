@@ -7,6 +7,7 @@ import Vendor from "../models/Vendor";
 import Admin from "../models/Admin";
 
 import generateToken from "../utils/jwt";
+import { notifyAdminsAboutNewVendor } from "./notificationService";
 
 interface LoginResponse {
   id: string;
@@ -54,7 +55,7 @@ export const registerVendor = async (
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  await Vendor.create({
+  const vendor = await Vendor.create({
     name,
     email,
     password: hashedPassword,
@@ -66,6 +67,12 @@ export const registerVendor = async (
     status: "pending",
     role: "vendor",
   });
+
+  try {
+    await notifyAdminsAboutNewVendor(name, shopName, vendor._id.toString());
+  } catch (notificationError) {
+    console.error("New vendor notification error:", notificationError);
+  }
 };
 
 // VENDOR LOGIN

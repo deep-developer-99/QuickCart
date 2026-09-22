@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
 
 import { useAppSelector } from "../hooks/reduxHooks";
+import NotificationBell from "../components/common/NotificationBell";
 
 interface ProtectedRouteProps {
   allowedRole: "user" | "vendor" | "admin";
@@ -38,7 +39,14 @@ const ProtectedRoute = ({ allowedRole }: ProtectedRouteProps) => {
     return <Navigate to={getRoleHome(user.role)} replace />;
   }
 
-  return <Outlet />;
+  return (
+    <>
+      {(allowedRole === "vendor" || allowedRole === "admin") && (
+        <NotificationBell />
+      )}
+      <Outlet />
+    </>
+  );
 };
 
 export default ProtectedRoute;
