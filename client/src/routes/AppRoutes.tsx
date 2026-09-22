@@ -1,4 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import CategoryProducts from "../pages/user/CategoryProducts";
+import SearchResults from "../pages/user/SearchResults";
 
 import HomeRoute from "./HomeRoute";
 import PublicRoute from "./PublicRoute";
@@ -6,7 +8,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import UserLayout from "../layouts/UserLayout";
 
 import Login from "../pages/user/Login";
-import Products from "../pages/user/Products";
+
 import ProductDetails from "../pages/user/ProductDetails";
 import Cart from "../pages/user/Cart";
 import Checkout from "../pages/user/Checkout";
@@ -41,7 +43,11 @@ const AppRoutes = () => {
             <Route path="/login" element={<Login />} />
           </Route>
 
-          <Route path="/products" element={<Products />} />
+          <Route path="/category/:categoryId" element={<CategoryProducts />} />
+
+          <Route path="/search" element={<SearchResults />} />
+
+          <Route path="/products/:id" element={<ProductDetails />} />
           <Route path="/products/:id" element={<ProductDetails />} />
 
           <Route element={<ProtectedRoute allowedRole="user" />}>

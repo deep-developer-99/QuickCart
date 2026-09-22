@@ -23,7 +23,6 @@ const Footer = () => {
           <h3>Quick Links</h3>
 
           <Link to="/">Home</Link>
-          <Link to="/products">Products</Link>
           {isAuthenticated ? (
             <>
               <Link to="/cart">Cart</Link>

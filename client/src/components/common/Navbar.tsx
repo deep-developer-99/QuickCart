@@ -4,16 +4,18 @@ import { NavLink, Link, useNavigate } from "react-router-dom";
 import { logout } from "../../services/authService";
 import { logoutUser } from "../../store/slice/authSlice";
 import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
+import SearchBar from "./SearchBar";
+import LocationSelector from "./LocationSelector";
 
 import "./Navbar.css";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const isUser = isAuthenticated && user?.role === "user";
 
   const handleLogout = async () => {
     try {
@@ -27,63 +29,53 @@ const Navbar = () => {
     }
   };
 
-  const closeMenu = () => {
-    setIsMenuOpen(false);
-  };
+  const closeMenu = () => setIsMenuOpen(false);
 
   return (
     <header className="navbar">
       <div className="navbar-container">
-        <Link to="/" className="navbar-logo" onClick={closeMenu}>
-          QuickCart
-        </Link>
+        <div className="navbar-brand-area">
+          <Link to="/" className="navbar-logo" onClick={closeMenu}>
+            QuickCart
+          </Link>
+          <LocationSelector />
+        </div>
 
-        <nav className="navbar-links">
-          <NavLink
-            to="/"
-            className={({ isActive }) =>
-              isActive ? "navbar-link active" : "navbar-link"
-            }
-          >
-            Home
-          </NavLink>
+        <div className="navbar-search-desktop">
+          <SearchBar />
+        </div>
 
-          <NavLink
-            to="/products"
-            className={({ isActive }) =>
-              isActive ? "navbar-link active" : "navbar-link"
-            }
-          >
-            Products
-          </NavLink>
-
-          {isAuthenticated && user?.role === "user" ? (
+        <nav className="navbar-actions">
+          {isUser && (
             <>
-              <NavLink
-                to="/cart"
-                className={({ isActive }) =>
-                  isActive ? "navbar-link active" : "navbar-link"
-                }
-              >
-                Cart
-              </NavLink>
-
               <NavLink
                 to="/my-orders"
                 className={({ isActive }) =>
-                  isActive ? "navbar-link active" : "navbar-link"
+                  isActive ? "navbar-action active" : "navbar-action"
                 }
               >
-                My Orders
+                Orders
+              </NavLink>
+
+              <NavLink
+                to="/cart"
+                className={({ isActive }) =>
+                  isActive ? "navbar-cart-action active" : "navbar-cart-action"
+                }
+              >
+                🛒 Cart
               </NavLink>
 
               <NavLink
                 to="/me"
                 className={({ isActive }) =>
-                  isActive ? "navbar-link active" : "navbar-link"
+                  isActive
+                    ? "navbar-profile-action active"
+                    : "navbar-profile-action"
                 }
+                aria-label="Profile"
               >
-                Profile
+                👤
               </NavLink>
 
               <button
@@ -94,7 +86,9 @@ const Navbar = () => {
                 Logout
               </button>
             </>
-          ) : (
+          )}
+
+          {!isUser && (
             <NavLink
               to="/login"
               className={({ isActive }) =>
@@ -109,38 +103,27 @@ const Navbar = () => {
         <button
           type="button"
           className="navbar-menu-button"
-          onClick={() => setIsMenuOpen((prev) => !prev)}
+          onClick={() => setIsMenuOpen((previous) => !previous)}
           aria-label="Toggle navigation menu"
+          aria-expanded={isMenuOpen}
         >
-          <span></span>
-          <span></span>
-          <span></span>
+          <span />
+          <span />
+          <span />
         </button>
+      </div>
+
+      <div className="navbar-search-mobile">
+        <SearchBar />
       </div>
 
       {isMenuOpen && (
         <nav className="mobile-menu">
-          <NavLink
-            to="/"
-            className={({ isActive }) =>
-              isActive ? "mobile-menu-link active" : "mobile-menu-link"
-            }
-            onClick={closeMenu}
-          >
+          <NavLink to="/" className="mobile-menu-link" onClick={closeMenu}>
             Home
           </NavLink>
 
-          <NavLink
-            to="/products"
-            className={({ isActive }) =>
-              isActive ? "mobile-menu-link active" : "mobile-menu-link"
-            }
-            onClick={closeMenu}
-          >
-            Products
-          </NavLink>
-
-          {isAuthenticated && user?.role === "user" ? (
+          {isUser ? (
             <>
               <NavLink
                 to="/cart"
@@ -149,9 +132,8 @@ const Navbar = () => {
                 }
                 onClick={closeMenu}
               >
-                Cart
+                🛒 Cart
               </NavLink>
-
               <NavLink
                 to="/my-orders"
                 className={({ isActive }) =>
@@ -161,7 +143,6 @@ const Navbar = () => {
               >
                 My Orders
               </NavLink>
-
               <NavLink
                 to="/me"
                 className={({ isActive }) =>
@@ -171,7 +152,6 @@ const Navbar = () => {
               >
                 Profile
               </NavLink>
-
               <button
                 type="button"
                 className="mobile-menu-logout"
@@ -183,9 +163,7 @@ const Navbar = () => {
           ) : (
             <NavLink
               to="/login"
-              className={({ isActive }) =>
-                isActive ? "mobile-menu-login active" : "mobile-menu-login"
-              }
+              className="mobile-menu-login"
               onClick={closeMenu}
             >
               Login

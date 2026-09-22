@@ -1,0 +1,62 @@
+.category-carousel-wrap {
+  position: relative;
+}
+
+.category-carousel {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 3px 14px;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #c9ddcb transparent;
+}
+
+.category-carousel::-webkit-scrollbar {
+  height: 5px;
+}
+
+.category-carousel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.category-carousel::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #c9ddcb;
+}
+
+.category-carousel-item {
+  width: 150px;
+  min-width: 150px;
+}
+
+.category-carousel-item .category-card {
+  min-height: 155px;
+  padding: 14px 9px;
+  border-radius: 16px;
+}
+
+.category-carousel-item .category-card-image-wrapper {
+  width: 72px;
+  height: 72px;
+}
+
+@media (max-width: 600px) {
+  .category-carousel {
+    gap: 10px;
+  }
+
+  .category-carousel-item {
+    width: 125px;
+    min-width: 125px;
+  }
+
+  .category-carousel-item .category-card {
+    min-height: 135px;
+  }
+
+  .category-carousel-item .category-card-image-wrapper {
+    width: 64px;
+    height: 64px;
+  }
+}

@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { getCategories, getProducts } from "../../services/productService";
 
-import CategoryCard from "../../components/user/CategoryCard";
+import CategoryCarousel from "../../components/user/CategoryCarousel";
 import ProductCard from "../../components/user/ProductCard";
 
 import type { Category, Product } from "../../types/product";
@@ -11,8 +11,6 @@ import type { Category, Product } from "../../types/product";
 import "./Home.css";
 
 const Home = () => {
-  const navigate = useNavigate();
-
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,132 +42,141 @@ const Home = () => {
     fetchHomeData();
   }, []);
 
+  const categorySections = useMemo(() => {
+    return categories
+      .map((category) => {
+        const categoryProducts = products.filter((product) => {
+          const productCategoryId =
+            typeof product.category === "string"
+              ? product.category
+              : product.category._id;
+
+          return productCategoryId === category._id;
+        });
+
+        return {
+          category,
+          products: categoryProducts.slice(0, 4),
+        };
+      })
+      .filter((section) => section.products.length > 0)
+      .slice(0, 4);
+  }, [categories, products]);
+
   return (
     <div className="home-page">
-      <section className="home-hero">
-        <div className="hero-content">
-          <span className="hero-tag">⚡ Quick & Fresh</span>
-
+      <section className="home-promo-section">
+        <div className="home-promo-content">
+          <span className="home-promo-eyebrow">⚡ QUICK & FRESH</span>
           <h1>
-            Everything You Need,
-            <span> Delivered Fast.</span>
+            Your everyday essentials,
+            <span> delivered in a few clicks.</span>
           </h1>
-
           <p>
-            Groceries, fruits, dairy, snacks and everyday essentials delivered
-            right to your doorstep.
+            Groceries, fruits, dairy, snacks and household essentials — all in
+            one place.
           </p>
 
-          <div className="hero-buttons">
-            <Link to="/products" className="hero-primary-btn">
+          <div className="home-promo-actions">
+            <Link to="/products" className="home-promo-primary">
               Shop Now →
             </Link>
-
-            <Link to="/products" className="hero-secondary-btn">
-              Explore Products
-            </Link>
+            <span className="home-promo-note">Fast • Fresh • Simple</span>
           </div>
         </div>
 
-        <div className="hero-visual">
-          <div className="hero-circle">
-            <div className="hero-cart">🛒</div>
-            <span className="floating-item item-one">🥦</span>
-            <span className="floating-item item-two">🍎</span>
-            <span className="floating-item item-three">🥛</span>
-            <span className="floating-item item-four">🍪</span>
+        <div className="home-promo-visual" aria-hidden="true">
+          <div className="promo-main-bag">🛍️</div>
+          <span className="promo-product promo-one">🥛</span>
+          <span className="promo-product promo-two">🍎</span>
+          <span className="promo-product promo-three">🥦</span>
+          <span className="promo-product promo-four">🍪</span>
+          <div className="promo-delivery-pill">⚡ Quick Delivery</div>
+        </div>
+      </section>
+
+      <section className="home-benefits">
+        <div className="home-benefit">
+          <span>⚡</span>
+          <div>
+            <strong>Fast Delivery</strong>
+            <small>Everyday essentials, quickly</small>
+          </div>
+        </div>
+        <div className="home-benefit">
+          <span>🥬</span>
+          <div>
+            <strong>Fresh Products</strong>
+            <small>Quality products for daily needs</small>
+          </div>
+        </div>
+        <div className="home-benefit">
+          <span>🔒</span>
+          <div>
+            <strong>Secure Checkout</strong>
+            <small>COD and secure online payment</small>
           </div>
         </div>
       </section>
 
-      <section className="home-features">
-        <div className="feature-card">
-          <div className="feature-icon">🚀</div>
-          <div>
-            <h3>Fast Delivery</h3>
-            <p>Quick delivery to your doorstep</p>
-          </div>
-        </div>
-
-        <div className="feature-card">
-          <div className="feature-icon">🥬</div>
-          <div>
-            <h3>Fresh Products</h3>
-            <p>Quality products for everyday needs</p>
-          </div>
-        </div>
-
-        <div className="feature-card">
-          <div className="feature-icon">🔒</div>
-          <div>
-            <h3>Secure Checkout</h3>
-            <p>Simple and safe ordering</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="home-section">
+      <section className="home-section home-category-section">
         <div className="section-heading">
           <div>
-            <span>EXPLORE</span>
-            <h2>Shop by Category</h2>
+            <span>SHOP BY</span>
+            <h2>Category</h2>
           </div>
-
-          <Link to="/products">View All →</Link>
+          <div className="section-heading">
+            <div>
+              <span>SHOP BY</span>
+              <h2>Category</h2>
+            </div>
+          </div>
         </div>
 
         {isLoading ? (
           <div className="home-loading">Loading categories...</div>
         ) : (
-          <div className="categories-grid">
-            {categories.map((category) => (
-              <CategoryCard
-                key={category._id}
-                category={category}
-                onClick={() => {
-                  navigate(`/products?category=${category._id}`);
-                }}
-              />
-            ))}
-          </div>
+          <CategoryCarousel categories={categories} />
         )}
       </section>
 
-      <section className="home-section products-section">
-        <div className="section-heading">
-          <div>
-            <span>POPULAR</span>
-            <h2>Fresh Products</h2>
-          </div>
-
-          <Link to="/products">View All →</Link>
-        </div>
-
-        {isLoading ? (
+      {isLoading ? (
+        <section className="home-section">
           <div className="home-loading">Loading products...</div>
-        ) : products.length === 0 ? (
+        </section>
+      ) : categorySections.length > 0 ? (
+        categorySections.map(({ category, products: categoryProducts }) => (
+          <section className="home-section product-section" key={category._id}>
+            <div className="section-heading">
+              <div>
+                <span>ESSENTIALS</span>
+                <h2>{category.name}</h2>
+              </div>
+              <Link to={`/category/${category._id}`}>See all →</Link>
+            </div>
+
+            <div className="products-grid">
+              {categoryProducts.map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </div>
+          </section>
+        ))
+      ) : (
+        <section className="home-section">
           <div className="home-empty">
             <h3>No products available</h3>
             <p>Products will appear here soon.</p>
           </div>
-        ) : (
-          <div className="products-grid">
-            {products.slice(0, 8).map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))}
-          </div>
-        )}
-      </section>
+        </section>
+      )}
 
-      <section className="vendor-cta">
+      <section className="home-vendor-banner">
         <div>
           <span>GROW WITH QUICKCART</span>
           <h2>Want to sell your products?</h2>
-          <p>
-            Join QuickCart as a vendor and start selling your products online.
-          </p>
+          <p>Join QuickCart as a vendor and start selling online.</p>
         </div>
-
         <Link to="/vendor/register">Become a Vendor →</Link>
       </section>
     </div>

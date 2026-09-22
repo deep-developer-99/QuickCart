@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import {
-  getProducts,
-  getCategories,
-  getProductsByCategory,
-} from "../../services/productService";
+import { getProducts, getCategories } from "../../services/productService";
 
 import type { Product, Category } from "../../types/product";
 
@@ -23,8 +19,15 @@ const Products = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const categoryId = searchParams.get("category");
+  const searchQuery = searchParams.get("search") || "";
+
+  // Keep the local filters in sync with the URL.
+  useEffect(() => {
+    setSearch(searchQuery);
+    setSelectedCategory(categoryId || "");
+  }, [searchQuery, categoryId]);
 
   // Fetch categories
   useEffect(() => {
@@ -54,12 +57,12 @@ const Products = () => {
         setIsLoading(true);
         setError("");
 
-        const response = categoryId
-          ? await getProductsByCategory(categoryId)
-          : await getProducts(
-              search.trim() || undefined,
-              selectedCategory || undefined,
-            );
+        const activeCategory = categoryId || selectedCategory || undefined;
+        const activeSearch = search.trim() || undefined;
+
+        // Use the normal products endpoint so search + category
+        // can work together as well.
+        const response = await getProducts(activeSearch, activeCategory);
 
         if (response?.success && Array.isArray(response.data)) {
           setProducts(response.data);
@@ -88,6 +91,26 @@ const Products = () => {
     setSearch(event.target.value);
   };
 
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const params = new URLSearchParams(searchParams);
+
+    if (search.trim()) {
+      params.set("search", search.trim());
+    } else {
+      params.delete("search");
+    }
+
+    if (selectedCategory) {
+      params.set("category", selectedCategory);
+    } else {
+      params.delete("category");
+    }
+
+    setSearchParams(params);
+  };
+
   const handleCategoryChange = (
     event: React.ChangeEvent<HTMLSelectElement>,
   ) => {
@@ -97,6 +120,7 @@ const Products = () => {
   const clearFilters = () => {
     setSearch("");
     setSelectedCategory("");
+    setSearchParams({});
   };
 
   return (
@@ -111,7 +135,7 @@ const Products = () => {
       </section>
 
       {/* Filters */}
-      <section className="products-filters">
+      <form className="products-filters" onSubmit={handleSearchSubmit}>
         {/* Search */}
         <div className="products-search">
           <label htmlFor="product-search">Search Products</label>
@@ -119,7 +143,7 @@ const Products = () => {
           <div className="search-input-wrapper">
             <input
               id="product-search"
-              type="text"
+              type="search"
               placeholder="Search for products..."
               value={search}
               onChange={handleSearchChange}
@@ -158,7 +182,11 @@ const Products = () => {
             Clear Filters
           </button>
         )}
-      </section>
+
+        <button type="submit" className="products-search-button">
+          Search
+        </button>
+      </form>
 
       {/* Product count */}
       {!isLoading && !error && (
