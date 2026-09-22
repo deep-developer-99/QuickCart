@@ -20,7 +20,7 @@ const OrderConfirmation = () => {
         <div className="confirmation-actions">
           <Link to="/my-orders">View My Orders</Link>
 
-          <Link to="/products" className="secondary-action">
+          <Link to="/" className="secondary-action">
             Continue Shopping
           </Link>
         </div>

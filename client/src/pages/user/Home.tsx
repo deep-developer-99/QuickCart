@@ -78,9 +78,6 @@ const Home = () => {
           </p>
 
           <div className="home-promo-actions">
-            <Link to="/products" className="home-promo-primary">
-              Shop Now →
-            </Link>
             <span className="home-promo-note">Fast • Fresh • Simple</span>
           </div>
         </div>

@@ -122,7 +122,7 @@ const ProductDetails = () => {
           <h2>Product Not Found</h2>
           <p>{error}</p>
 
-          <Link to="/products" className="back-products-button">
+          <Link to="/" className="back-products-button">
             Back to Products
           </Link>
         </div>
@@ -155,7 +155,7 @@ const ProductDetails = () => {
   return (
     <section className="product-details-page">
       <div className="product-details-container">
-        <Link to="/products" className="product-details-back">
+        <Link to="/" className="product-details-back">
           ← Back to Products
         </Link>
 

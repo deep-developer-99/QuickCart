@@ -115,7 +115,7 @@ const CartPage = () => {
 
         <p>Looks like you haven't added anything to your cart yet.</p>
 
-        <Link to="/products">Start Shopping</Link>
+        <Link to="/">Start Shopping</Link>
       </div>
     );
   }
