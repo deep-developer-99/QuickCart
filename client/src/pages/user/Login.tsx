@@ -1,12 +1,13 @@
 import axios from "axios";
-import { GoogleLogin } from "@react-oauth/google";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+
+import { signInWithGoogle } from "../../services/firebaseAuthService";
 
 import {
   sendPhoneOtp,
   verifyPhoneOtp,
-  loginGoogle,
+  loginWithFirebaseGoogle,
 } from "../../services/authService";
 
 import { setCredentials } from "../../store/slice/authSlice";
@@ -37,20 +38,15 @@ const Login = () => {
   }, [isAuthenticated, user, navigate]);
 
   // GOOGLE LOGIN
-  const handleGoogleSuccess = async (credentialResponse: {
-    credential?: string;
-  }) => {
+  const handleGoogleLogin = async () => {
     setError("");
-
-    if (!credentialResponse.credential) {
-      setError("Google login failed. Credential not received.");
-      return;
-    }
 
     try {
       setIsLoading(true);
 
-      const response = await loginGoogle(credentialResponse.credential);
+      const firebaseResult = await signInWithGoogle();
+
+      const response = await loginWithFirebaseGoogle(firebaseResult.idToken);
 
       if (response?.success && response?.data) {
         dispatch(setCredentials(response.data));
@@ -59,12 +55,14 @@ const Login = () => {
         setError(response?.message || "Google login failed.");
       }
     } catch (error: unknown) {
-      console.error("Google login error:", error);
+      console.error("Firebase Google login error:", error);
 
       if (axios.isAxiosError(error)) {
         setError(error.response?.data?.message || "Google login failed.");
       } else {
-        setError("Google login failed.");
+        setError(
+          error instanceof Error ? error.message : "Google login failed.",
+        );
       }
     } finally {
       setIsLoading(false);
@@ -180,16 +178,6 @@ const Login = () => {
         {/* GOOGLE LOGIN */}
         {!otpSent && (
           <>
-            <div className="google-login-container">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                useOneTap={false}
-                use_fedcm_for_button={true}
-                ux_mode="popup"
-              />
-            </div>
-
             <div className="login-divider">
               <span>OR</span>
             </div>

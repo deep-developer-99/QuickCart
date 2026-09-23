@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-import { OAuth2Client } from "google-auth-library";
 import { sendPhoneOtp, verifyPhoneOtp } from "./twilioService";
 
 import User from "../models/User";
@@ -36,9 +35,6 @@ const formatPhoneNumber = (phone: string): string => {
 
   return cleanedPhone;
 };
-
-// Google OAuth Client
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // VENDOR REGISTRATION
 
@@ -157,10 +153,6 @@ export const loginGoogleUser = async (
   credential: string,
 ): Promise<LoginResponse> => {
   // 1. Verify Google credential
-  const ticket = await googleClient.verifyIdToken({
-    idToken: credential,
-    audience: process.env.GOOGLE_CLIENT_ID,
-  });
 
   // 2. Get user information from Google
   const payload = ticket.getPayload();
