@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import L, { type Map as LeafletMap } from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 import {
   reverseGeocode,
@@ -15,124 +17,17 @@ interface AddressMapProps {
   isDetecting: boolean;
 }
 
-/*
- * We only use the small part of the Google Maps API that this component
- * needs. Defining these interfaces keeps the component fully typed without
- * adding untyped values or depending on @types/google.maps.
- */
-interface GoogleLatLng {
-  lat: () => number;
-  lng: () => number;
-}
-
-interface GoogleMap {
-  panTo: (position: GoogleLatLngLiteral) => void;
-  setZoom: (zoom: number) => void;
-  getCenter: () => GoogleLatLng | null;
-  addListener: (
-    eventName: "dragstart" | "dragend",
-    handler: () => void | Promise<void>,
-  ) => void;
-}
-
-interface GoogleLatLngLiteral {
+interface Coordinates {
   lat: number;
   lng: number;
 }
 
-interface GoogleMapOptions {
-  center: GoogleLatLngLiteral;
-  zoom: number;
-  mapTypeControl: boolean;
-  streetViewControl: boolean;
-  fullscreenControl: boolean;
-  clickableIcons: boolean;
-  gestureHandling: "greedy" | "cooperative" | "none" | "auto";
-}
-
-interface GoogleMapsApi {
-  maps: {
-    Map: new (element: HTMLElement, options: GoogleMapOptions) => GoogleMap;
-  };
-}
-
-interface GoogleMapsWindow extends Window {
-  google?: GoogleMapsApi;
-}
-
-const DEFAULT_CENTER: GoogleLatLngLiteral = {
+const DEFAULT_CENTER: Coordinates = {
   lat: 28.601531,
   lng: 77.433498,
 };
 
-let googleMapsLoader: Promise<GoogleMapsApi> | null = null;
-
-const loadGoogleMaps = (): Promise<GoogleMapsApi> => {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
-
-  if (!apiKey) {
-    return Promise.reject(
-      new Error(
-        "VITE_GOOGLE_MAPS_API_KEY is missing. Add your Google Maps JavaScript API key to the client .env file.",
-      ),
-    );
-  }
-
-  const googleWindow = window as GoogleMapsWindow;
-
-  if (googleWindow.google?.maps) {
-    return Promise.resolve(googleWindow.google);
-  }
-
-  if (googleMapsLoader) {
-    return googleMapsLoader;
-  }
-
-  googleMapsLoader = new Promise<GoogleMapsApi>((resolve, reject) => {
-    const existingScript = document.querySelector<HTMLScriptElement>(
-      'script[data-quickcart-google-maps="true"]',
-    );
-
-    const handleLoad = () => {
-      if (googleWindow.google?.maps) {
-        resolve(googleWindow.google);
-      } else {
-        reject(new Error("Google Maps loaded without the Maps API."));
-      }
-    };
-
-    const handleError = () => {
-      reject(new Error("Unable to load Google Maps."));
-    };
-
-    if (existingScript) {
-      existingScript.addEventListener("load", handleLoad, { once: true });
-
-      existingScript.addEventListener("error", handleError, { once: true });
-
-      return;
-    }
-
-    const script = document.createElement("script");
-
-    script.dataset.quickcartGoogleMaps = "true";
-
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
-      apiKey,
-    )}&v=weekly`;
-
-    script.async = true;
-    script.defer = true;
-
-    script.addEventListener("load", handleLoad, { once: true });
-
-    script.addEventListener("error", handleError, { once: true });
-
-    document.head.appendChild(script);
-  });
-
-  return googleMapsLoader;
-};
+const DEFAULT_ZOOM = 16;
 
 const AddressMap = ({
   latitude,
@@ -142,25 +37,17 @@ const AddressMap = ({
   isDetecting,
 }: AddressMapProps) => {
   const mapElementRef = useRef<HTMLDivElement | null>(null);
-
-  const mapRef = useRef<GoogleMap | null>(null);
-
-  const geocodeRequestRef = useRef(0);
-
-  /*
-   * Keep the latest parent callback in a ref. The Google Maps drag
-   * listener is registered only once, so without this ref it could
-   * keep calling an old callback from an earlier render.
-   */
+  const mapRef = useRef<LeafletMap | null>(null);
   const onLocationChangeRef = useRef(onLocationChange);
+  const geocodeRequestRef = useRef(0);
+  const hasInitialisedRef = useRef(false);
+
+  const [mapError, setMapError] = useState("");
+  const [isUpdatingAddress, setIsUpdatingAddress] = useState(false);
 
   useEffect(() => {
     onLocationChangeRef.current = onLocationChange;
   }, [onLocationChange]);
-
-  const [mapError, setMapError] = useState("");
-
-  const [isUpdatingAddress, setIsUpdatingAddress] = useState(false);
 
   const hasCoordinates =
     typeof latitude === "number" &&
@@ -168,129 +55,109 @@ const AddressMap = ({
     Number.isFinite(latitude) &&
     Number.isFinite(longitude);
 
-  const currentCenter: GoogleLatLngLiteral = hasCoordinates
-    ? {
-        lat: latitude as number,
-        lng: longitude as number,
-      }
+  const currentCenter: Coordinates = hasCoordinates
+    ? { lat: latitude, lng: longitude }
     : DEFAULT_CENTER;
 
-  /*
-   * Create the Google Map only once. Location changes are handled by the
-   * separate effect below, which calls panTo() on the existing map.
-   */
   useEffect(() => {
-    let cancelled = false;
+    if (!mapElementRef.current || hasInitialisedRef.current) {
+      return;
+    }
 
-    const initializeMap = async () => {
+    hasInitialisedRef.current = true;
+
+    const map = L.map(mapElementRef.current, {
+      center: [currentCenter.lat, currentCenter.lng],
+      zoom: hasCoordinates ? DEFAULT_ZOOM : 13,
+      zoomControl: false,
+      attributionControl: true,
+      zoomAnimation: true,
+      fadeAnimation: true,
+      markerZoomAnimation: true,
+    });
+
+    mapRef.current = map;
+
+    // Carto Voyager gives a clean, Google-Maps-like road/POI appearance
+    // without requiring a Google Maps API key.
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      {
+        maxZoom: 20,
+        minZoom: 3,
+        subdomains: "abcd",
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
+      },
+    ).addTo(map);
+
+    // Google-like vertical zoom controls on the top-left.
+    L.control.zoom({ position: "topright" }).addTo(map);
+
+    const handleDragStart = () => {
+      setMapError("");
+    };
+
+    const handleDragEnd = async () => {
+      const center = map.getCenter();
+      const nextLatitude = center.lat;
+      const nextLongitude = center.lng;
+      const requestId = ++geocodeRequestRef.current;
+
+      setIsUpdatingAddress(true);
+      setMapError("");
+
       try {
-        setMapError("");
+        const address = await reverseGeocode(nextLatitude, nextLongitude);
 
-        const googleMaps = await loadGoogleMaps();
-
-        if (cancelled || !mapElementRef.current) {
+        if (requestId !== geocodeRequestRef.current) {
           return;
         }
 
-        if (mapRef.current) {
-          return;
-        }
-
-        const map = new googleMaps.maps.Map(mapElementRef.current, {
-          center: DEFAULT_CENTER,
-          zoom: 12,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: true,
-          clickableIcons: true,
-          gestureHandling: "greedy",
-        });
-
-        mapRef.current = map;
-
-        const centerMarker = document.createElement("div");
-
-        centerMarker.className = "address-map-center-pin";
-
-        centerMarker.innerHTML = `
-            <span class="address-map-center-pin-icon">📍</span>
-          `;
-
-        mapElementRef.current.appendChild(centerMarker);
-
-        map.addListener("dragstart", () => {
-          setMapError("");
-        });
-
-        map.addListener("dragend", async () => {
-          const center = map.getCenter();
-
-          if (!center) {
-            return;
-          }
-
-          const nextLatitude = center.lat();
-
-          const nextLongitude = center.lng();
-
-          const requestId = ++geocodeRequestRef.current;
-
-          setIsUpdatingAddress(true);
-
-          try {
-            const address = await reverseGeocode(nextLatitude, nextLongitude);
-
-            if (cancelled || requestId !== geocodeRequestRef.current) {
-              return;
-            }
-
-            onLocationChangeRef.current({
-              latitude: nextLatitude,
-              longitude: nextLongitude,
-              accuracy: 0,
-              address,
-            });
-          } catch (error) {
-            if (cancelled) {
-              return;
-            }
-
-            console.error("Map reverse geocoding failed:", error);
-
-            setMapError("Unable to update the address for this map location.");
-          } finally {
-            if (!cancelled && requestId === geocodeRequestRef.current) {
-              setIsUpdatingAddress(false);
-            }
-          }
+        onLocationChangeRef.current({
+          latitude: nextLatitude,
+          longitude: nextLongitude,
+          accuracy: 0,
+          address,
         });
       } catch (error) {
-        if (cancelled) {
+        if (requestId !== geocodeRequestRef.current) {
           return;
         }
 
-        console.error("Google Maps initialization failed:", error);
-
-        setMapError(
-          error instanceof Error
-            ? error.message
-            : "Unable to load Google Maps.",
-        );
+        console.error("Map reverse geocoding failed:", error);
+        setMapError("Unable to update the address for this location.");
+      } finally {
+        if (requestId === geocodeRequestRef.current) {
+          setIsUpdatingAddress(false);
+        }
       }
     };
 
-    void initializeMap();
+    map.on("dragstart", handleDragStart);
+    map.on("dragend", handleDragEnd);
+
+    const handleResize = () => {
+      map.invalidateSize();
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Fix initial rendering when the map is inside a flex/grid layout.
+    window.setTimeout(handleResize, 100);
 
     return () => {
-      cancelled = true;
+      window.removeEventListener("resize", handleResize);
+      map.off("dragstart", handleDragStart);
+      map.off("dragend", handleDragEnd);
+      map.remove();
+      mapRef.current = null;
+      hasInitialisedRef.current = false;
     };
+    // Map initialization intentionally happens only once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /*
-   * Whenever Checkout receives a new location (initial GPS detection,
-   * "Go to current location", or a manually selected map location),
-   * move the existing map to that exact coordinate.
-   */
   useEffect(() => {
     const map = mapRef.current;
 
@@ -298,12 +165,31 @@ const AddressMap = ({
       return;
     }
 
-    map.panTo(currentCenter);
+    const nextCenter: [number, number] = [currentCenter.lat, currentCenter.lng];
 
-    if (hasCoordinates) {
-      map.setZoom(17);
+    const currentMapCenter = map.getCenter();
+    const movedDistance = map.distance(currentMapCenter, nextCenter);
+
+    // Parent changes (GPS detection / saved coordinates) should move the map.
+    // Tiny changes from Leaflet's own drag cycle are ignored.
+    if (movedDistance > 8) {
+      map.setView(nextCenter, hasCoordinates ? DEFAULT_ZOOM : map.getZoom(), {
+        animate: true,
+        duration: 0.45,
+      });
     }
-  }, [latitude, longitude, hasCoordinates]);
+  }, [
+    latitude,
+    longitude,
+    hasCoordinates,
+    currentCenter.lat,
+    currentCenter.lng,
+  ]);
+
+  const handleLocateButton = () => {
+    setMapError("");
+    onDetectLocation();
+  };
 
   return (
     <div className="address-map">
@@ -313,36 +199,46 @@ const AddressMap = ({
         aria-label="Delivery location map"
       />
 
-      <div className="address-map-search-hint">
-        <span>⌖</span>
+      <div className="address-map-topbar">
+        <div className="address-map-location-chip">
+          <span className="address-map-location-dot" aria-hidden="true" />
+          <span>Move map to select delivery location</span>
+        </div>
+      </div>
 
-        <span>Move the map to choose your exact delivery location</span>
+      <div className="address-map-center-marker" aria-hidden="true">
+        <div className="address-map-marker-shadow" />
+        <div className="address-map-marker-pin">
+          <span />
+        </div>
       </div>
 
       <button
         type="button"
-        className="address-map-detect-button"
-        onClick={onDetectLocation}
+        className="address-map-locate"
+        onClick={handleLocateButton}
         disabled={isDetecting}
+        aria-label="Go to current location"
+        title="Go to current location"
       >
-        {isDetecting ? "Detecting..." : "◎ Go to current location"}
+        <span className="address-map-locate-icon" aria-hidden="true">
+          ⦿
+        </span>
+        <span>{isDetecting ? "Locating..." : "Current location"}</span>
       </button>
 
       {isUpdatingAddress && (
-        <div className="address-map-updating">Updating address...</div>
+        <div className="address-map-status">Updating address...</div>
       )}
 
       {mapError && <div className="address-map-error">{mapError}</div>}
 
       {!hasCoordinates && !mapError && (
         <div className="address-map-empty">
-          <span>📍</span>
-
-          <strong>Set your delivery location</strong>
-
-          <small>
-            Detect your current location or move the map to choose a location.
-          </small>
+          <strong>Select your delivery location</strong>
+          <span>
+            Move the map so the pin is exactly where you want delivery.
+          </span>
         </div>
       )}
     </div>
