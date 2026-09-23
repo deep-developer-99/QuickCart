@@ -47,7 +47,7 @@ const SearchBar = () => {
       </span>
 
       <input
-        type="search"
+        type="text"
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder="Search for milk, bread, fruits & more"

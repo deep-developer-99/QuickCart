@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { sendPhoneOtp, verifyPhoneOtp } from "./twilioService";
+import { firebaseAdminAuth } from "../config/firebaseAdmin";
 
 import User from "../models/User";
 import Vendor from "../models/Vendor";
@@ -148,47 +149,69 @@ export const loginAdmin = async (
 };
 
 // GOOGLE USER LOGIN / REGISTRATION
-
 export const loginGoogleUser = async (
-  credential: string,
+  idToken: string,
 ): Promise<LoginResponse> => {
-  // 1. Verify Google credential
-
-  // 2. Get user information from Google
-  const payload = ticket.getPayload();
-
-  if (!payload) {
-    throw new Error("Invalid Google credential");
+  if (!idToken) {
+    throw new Error("Firebase ID token is required");
   }
 
-  const { sub: googleId, name, email, picture } = payload;
+  // Verify Firebase ID token
+  const decodedToken = await firebaseAdminAuth.verifyIdToken(idToken);
 
-  // 3. Make sure required information exists
-  if (!googleId || !name || !email) {
+  const { uid: googleId, email, name, picture } = decodedToken;
+
+  if (!googleId || !email) {
     throw new Error("Required Google user information is missing");
   }
 
-  // 4. Check whether user already exists
-  let user = await User.findOne({ googleId });
+  const normalizedEmail = email.toLowerCase().trim();
 
-  // 5. If user doesn't exist, create an account
+  // First search by Firebase Google UID
+  let user = await User.findOne({
+    googleId,
+  });
+
+  // If not found, search by email.
+  // This prevents duplicate accounts when
+  // the user already registered using phone.
+  if (!user) {
+    user = await User.findOne({
+      email: normalizedEmail,
+    });
+
+    if (user) {
+      user.googleId = googleId;
+
+      if (picture && !user.profileImage) {
+        user.profileImage = picture;
+      }
+
+      if (name && !user.name) {
+        user.name = name;
+      }
+
+      await user.save();
+    }
+  }
+
+  // Create new user
   if (!user) {
     user = await User.create({
-      name,
-      email,
+      name: name?.trim() || "QuickCart User",
+      email: normalizedEmail,
       googleId,
       profileImage: picture,
       role: "user",
     });
   }
 
-  // 6. Generate QuickCart JWT
+  // Generate QuickCart JWT
   const token = generateToken({
     id: user._id.toString(),
     role: "user",
   });
 
-  // 7. Return user information
   return {
     id: user._id.toString(),
     name: user.name,

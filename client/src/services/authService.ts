@@ -59,8 +59,11 @@ export const verifyPhoneOtp = async (data: VerifyPhoneOtpData) => {
   return response.data;
 };
 
+// Google Firebase Login
 export const loginWithFirebaseGoogle = async (idToken: string) => {
-  const response = await api.post("/auth/firebase/google", { idToken });
+  const response = await api.post("/auth/google", {
+    idToken,
+  });
 
   return response.data;
 };

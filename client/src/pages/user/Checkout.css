@@ -40,17 +40,15 @@
 .checkout-section,
 .checkout-summary {
   padding: 25px;
-
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-
-  background: white;
+  background: #fff;
 }
 
 .checkout-section-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 }
 
 .checkout-section h2,
@@ -64,20 +62,161 @@
 }
 
 .checkout-section-header button {
-  border: none;
+  border: 0;
   background: transparent;
   color: #16a34a;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
 }
 
-/* Address */
+/* Address form */
+
+.address-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  margin-top: 20px;
+  padding: 0;
+
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.address-form > .address-map {
+  grid-column: 1;
+  grid-row: 1 / span 8;
+}
+
+.address-form > input,
+.address-form > .address-form-row,
+.address-form > button[type="submit"],
+.address-form > .current-location-button,
+.address-form > .location-captured {
+  grid-column: 2;
+  margin-left: 0;
+  margin-right: 16px;
+}
+
+.address-form > input:first-of-type {
+  margin-top: 16px;
+}
+
+.address-form > input {
+  width: calc(100% - 0px);
+  padding: 12px;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  outline: none;
+
+  box-sizing: border-box;
+}
+
+.address-form > input:focus {
+  border-color: #16a34a;
+}
+
+.address-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.address-form-row input {
+  width: 100%;
+  padding: 12px;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  outline: none;
+
+  box-sizing: border-box;
+}
+
+.address-form-row input:focus {
+  border-color: #16a34a;
+}
+
+.address-form > button[type="submit"] {
+  margin-bottom: 16px;
+  padding: 13px;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: #16a34a;
+  color: #fff;
+
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* Detect current location */
+
+.current-location-button {
+  width: calc(100% - 0px);
+  min-height: 44px;
+
+  padding: 11px 14px;
+
+  border: 1px solid #86efac;
+  border-radius: 8px;
+
+  background: #f0fdf4;
+  color: #15803d;
+
+  font-size: 13px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.current-location-button:hover {
+  background: #dcfce7;
+}
+
+.current-location-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.location-captured {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  padding: 11px;
+
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+
+  background: #f0fdf4;
+}
+
+.location-captured strong {
+  color: #15803d;
+  font-size: 12px;
+}
+
+.location-captured span {
+  color: #334155;
+  font-size: 12px;
+}
+
+.location-captured small {
+  color: #64748b;
+  font-size: 11px;
+}
+
+/* Saved addresses */
 
 .address-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
-
   margin-top: 20px;
 }
 
@@ -100,7 +239,6 @@
 
 .address-card p {
   margin: 5px 0;
-
   color: #64748b;
   font-size: 13px;
 }
@@ -110,51 +248,12 @@
   font-size: 13px;
 }
 
-/* Address form */
-
-.address-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-
-  margin-top: 20px;
-  padding: 18px;
-
-  border-radius: 8px;
-  background: #f8fafc;
-}
-
-.address-form input {
-  width: 100%;
-  padding: 11px 12px;
-
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-
-  outline: none;
-}
-
-.address-form input:focus {
-  border-color: #16a34a;
-}
-
-.address-form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-}
-
-.address-form > button {
-  padding: 11px;
-
-  border: none;
-  border-radius: 6px;
-
-  background: #16a34a;
-  color: white;
-
-  font-weight: 600;
-  cursor: pointer;
+.address-location-info {
+  display: block;
+  margin-top: 6px;
+  color: #16a34a !important;
+  font-size: 11px !important;
+  font-weight: 700;
 }
 
 /* Payment */
@@ -165,7 +264,6 @@
   gap: 12px;
 
   padding: 15px;
-
   margin-bottom: 10px;
 
   border: 1px solid #e2e8f0;
@@ -176,7 +274,6 @@
 
 .payment-option p {
   margin: 5px 0 0;
-
   color: #64748b;
   font-size: 13px;
 }
@@ -210,20 +307,20 @@
   padding: 20px 0;
 
   font-size: 19px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .place-order-button {
   width: 100%;
   padding: 14px;
 
-  border: none;
+  border: 0;
   border-radius: 8px;
 
   background: #16a34a;
-  color: white;
+  color: #fff;
 
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -244,14 +341,50 @@
   justify-content: center;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 850px) {
   .checkout-layout {
     grid-template-columns: 1fr;
+  }
+
+  .address-form {
+    grid-template-columns: 1fr;
+  }
+
+  .address-form > .address-map {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .address-form > input,
+  .address-form > .address-form-row,
+  .address-form > button[type="submit"],
+  .address-form > .current-location-button,
+  .address-form > .location-captured {
+    grid-column: 1;
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .address-form > input:first-of-type {
+    margin-top: 0;
+  }
+
+  .address-form > button[type="submit"] {
+    margin-bottom: 16px;
   }
 }
 
 @media (max-width: 600px) {
   .address-form-row {
     grid-template-columns: 1fr;
+  }
+
+  .checkout-page {
+    padding: 25px 12px 50px;
+  }
+
+  .checkout-section,
+  .checkout-summary {
+    padding: 18px;
   }
 }

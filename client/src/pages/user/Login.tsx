@@ -39,6 +39,8 @@ const Login = () => {
 
   // GOOGLE LOGIN
   const handleGoogleLogin = async () => {
+    if (isLoading) return;
+
     setError("");
 
     try {
@@ -50,7 +52,10 @@ const Login = () => {
 
       if (response?.success && response?.data) {
         dispatch(setCredentials(response.data));
-        navigate("/", { replace: true });
+
+        navigate("/", {
+          replace: true,
+        });
       } else {
         setError(response?.message || "Google login failed.");
       }
@@ -67,10 +72,6 @@ const Login = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleGoogleError = () => {
-    setError("Google login was unsuccessful. Please try again.");
   };
 
   // SEND OTP
@@ -92,6 +93,7 @@ const Login = () => {
       });
 
       setIsNewUser(response?.data?.isNewUser ?? false);
+
       setOtpSent(true);
     } catch (error: unknown) {
       console.error("Send OTP error:", error);
@@ -124,7 +126,6 @@ const Login = () => {
       return;
     }
 
-    // Name is required only for first-time users
     if (isNewUser && !name.trim()) {
       setError("Please enter your name.");
       return;
@@ -141,7 +142,10 @@ const Login = () => {
 
       if (response?.success && response?.data) {
         dispatch(setCredentials(response.data));
-        navigate("/", { replace: true });
+
+        navigate("/", {
+          replace: true,
+        });
       } else {
         setError(response?.message || "Invalid OTP.");
       }
@@ -178,13 +182,26 @@ const Login = () => {
         {/* GOOGLE LOGIN */}
         {!otpSent && (
           <>
+            <button
+              type="button"
+              className="google-login-button"
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
+            >
+              <span className="google-icon">G</span>
+
+              <span>
+                {isLoading ? "Signing in..." : "Continue with Google"}
+              </span>
+            </button>
+
             <div className="login-divider">
               <span>OR</span>
             </div>
           </>
         )}
 
-        {/* PHONE NUMBER FORM */}
+        {/* PHONE LOGIN */}
         {!otpSent ? (
           <form onSubmit={handleSendOtp}>
             <label htmlFor="phone">Phone Number</label>
@@ -197,6 +214,7 @@ const Login = () => {
               value={phone}
               onChange={(event) => {
                 const value = event.target.value.replace(/\D/g, "");
+
                 setPhone(value);
               }}
               maxLength={10}
@@ -211,9 +229,7 @@ const Login = () => {
             </button>
           </form>
         ) : (
-          /* OTP FORM */
           <form onSubmit={handleVerifyOtp}>
-            {/* Show name ONLY for new users */}
             {isNewUser && (
               <>
                 <label htmlFor="name">Name</label>
@@ -239,6 +255,7 @@ const Login = () => {
               value={otp}
               onChange={(event) => {
                 const value = event.target.value.replace(/\D/g, "");
+
                 setOtp(value);
               }}
               maxLength={6}
@@ -274,6 +291,7 @@ const Login = () => {
 
         <div className="login-footer">
           <span>New to QuickCart?</span>
+
           <span>Login with Google or your phone to continue.</span>
         </div>
       </div>

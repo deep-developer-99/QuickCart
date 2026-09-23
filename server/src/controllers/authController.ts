@@ -13,7 +13,6 @@ import {
 } from "../services/authService";
 
 // Vender Registration
-
 export const registerVendorController = async (
   req: Request,
   res: Response,
@@ -37,7 +36,6 @@ export const registerVendorController = async (
 };
 
 // Vendor Login
-
 export const loginVendorController = async (
   req: Request,
   res: Response,
@@ -121,17 +119,17 @@ export const loginGoogleController = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { credential } = req.body;
+    const { idToken } = req.body;
 
-    if (!credential) {
+    if (typeof idToken !== "string" || !idToken.trim()) {
       res.status(400).json({
         success: false,
-        message: "Google credential is required",
+        message: "Firebase ID token is required",
       });
       return;
     }
 
-    const result = await loginGoogleUser(credential);
+    const result = await loginGoogleUser(idToken.trim());
 
     const isProduction = process.env.NODE_ENV === "production";
 

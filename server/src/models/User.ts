@@ -5,7 +5,7 @@ export interface IUser extends Document {
   email: string;
   phone?: string;
   profileImage?: string;
-  googleId: string;
+  googleId?: string;
   role: "user";
   createdAt: Date;
   updatedAt: Date;
@@ -33,6 +33,7 @@ const userSchema = new Schema<IUser>(
       sparse: true,
       trim: true,
     },
+
     profileImage: {
       type: String,
     },
