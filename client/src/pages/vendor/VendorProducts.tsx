@@ -36,8 +36,8 @@ const VendorProducts = () => {
   const [categories, setCategories] = useState<Category[]>([]);
 
   const [form, setForm] = useState<ProductForm>(initialForm);
-
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,6 +83,35 @@ const VendorProducts = () => {
   }, []);
 
   // ==============================
+  // Cleanup Preview URL
+  // ==============================
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview.startsWith("blob:")) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
+  // ==============================
+  // Lock Background Scroll
+  // ==============================
+
+  useEffect(() => {
+    if (!isFormOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isFormOpen]);
+
+  // ==============================
   // Handle Input Change
   // ==============================
 
@@ -120,20 +149,45 @@ const VendorProducts = () => {
       return;
     }
 
+    if (imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setError("");
   };
 
   // ==============================
-  // Reset Form
+  // Reset / Close Form
   // ==============================
 
   const resetForm = () => {
+    if (imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
     setForm(initialForm);
     setEditingProduct(null);
     setImageFile(null);
     setImagePreview("");
+  };
+
+  const closeForm = () => {
+    if (isSubmitting) {
+      return;
+    }
+
+    resetForm();
+    setIsFormOpen(false);
+    setError("");
+  };
+
+  const openAddForm = () => {
+    resetForm();
+    setError("");
+    setSuccess("");
+    setIsFormOpen(true);
   };
 
   // ==============================
@@ -146,7 +200,6 @@ const VendorProducts = () => {
     setError("");
     setSuccess("");
 
-    // Validation
     if (!form.name.trim()) {
       setError("Product name is required.");
       return;
@@ -169,6 +222,14 @@ const VendorProducts = () => {
 
     if (form.discountPrice && Number(form.discountPrice) < 0) {
       setError("Please enter a valid discount price.");
+      return;
+    }
+
+    if (
+      form.discountPrice &&
+      Number(form.discountPrice) >= Number(form.price)
+    ) {
+      setError("Discount price must be less than the original price.");
       return;
     }
 
@@ -201,25 +262,25 @@ const VendorProducts = () => {
         formData.append("image", imageFile);
       }
 
-      // Update existing product
       if (editingProduct) {
         const response = await updateProduct(editingProduct._id, formData);
 
         if (response?.success) {
           setSuccess("Product updated successfully.");
           resetForm();
+          setIsFormOpen(false);
           await fetchData();
         }
 
         return;
       }
 
-      // Create new product
       const response = await createProduct(formData);
 
       if (response?.success) {
         setSuccess("Product added successfully.");
         resetForm();
+        setIsFormOpen(false);
         await fetchData();
       }
     } catch (error) {
@@ -259,11 +320,7 @@ const VendorProducts = () => {
     setImagePreview(product.image || "");
     setError("");
     setSuccess("");
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    setIsFormOpen(true);
   };
 
   // ==============================
@@ -338,306 +395,361 @@ const VendorProducts = () => {
     <div className="vendor-products-page">
       <div className="vendor-products-container">
         {/* Header */}
+
         <div className="vendor-products-header">
           <div>
             <h1>Manage Products</h1>
-
             <p>Add, edit and manage your products.</p>
           </div>
 
           <div className="product-count">{products.length} Products</div>
         </div>
 
-        {/* Error */}
-        {error && <div className="vendor-product-error">{error}</div>}
+        {/* Messages */}
 
-        {/* Success */}
+        {error && !isFormOpen && (
+          <div className="vendor-product-error">{error}</div>
+        )}
+
         {success && <div className="vendor-product-success">{success}</div>}
 
-        {/* ==============================
-            Add / Edit Product Form
-        ============================== */}
+        {/* Main Content */}
 
-        <section className="product-form-section">
-          <div className="form-header">
-            <h2>{editingProduct ? "Edit Product" : "Add New Product"}</h2>
+        <div className="vendor-products-content">
+          {/* Left Action Panel */}
 
-            {editingProduct && (
+          <aside className="vendor-products-sidebar">
+            <div className="vendor-products-sidebar-card">
+              <h2>Products</h2>
+
+              <p>
+                Add a new product or manage the products already listed in your
+                store.
+              </p>
+
               <button
                 type="button"
-                className="cancel-button"
-                onClick={resetForm}
+                className="add-products-button"
+                onClick={openAddForm}
               >
-                Cancel
+                <span className="add-products-icon">+</span>
+                Add Products
               </button>
-            )}
-          </div>
+            </div>
+          </aside>
 
-          <form className="product-form" onSubmit={handleSubmit}>
-            {/* Product Name */}
+          {/* Product List */}
 
-            <div className="form-group">
-              <label htmlFor="name">Product Name</label>
-
-              <input
-                id="name"
-                name="name"
-                type="text"
-                placeholder="e.g. Fresh Apple"
-                value={form.name}
-                onChange={handleChange}
-              />
+          <section className="vendor-product-list-section">
+            <div className="list-header">
+              <div>
+                <h2>My Products</h2>
+                <p>View and manage all products added by your store.</p>
+              </div>
             </div>
 
-            {/* Category */}
+            {products.length === 0 ? (
+              <div className="no-products">
+                <h3>No products found</h3>
+                <p>Click &quot;Add Products&quot; to add your first product.</p>
 
-            <div className="form-group">
-              <label htmlFor="category">Category</label>
-
-              <select
-                id="category"
-                name="category"
-                value={form.category}
-                onChange={handleChange}
-              >
-                <option value="">Select Category</option>
-
-                {categories.map((category) => (
-                  <option key={category._id} value={category._id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Price */}
-
-            <div className="form-group">
-              <label htmlFor="price">Price</label>
-
-              <input
-                id="price"
-                name="price"
-                type="number"
-                min="0"
-                placeholder="e.g. 120"
-                value={form.price}
-                onChange={handleChange}
-              />
-            </div>
-
-            {/* Discount Price */}
-
-            <div className="form-group">
-              <label htmlFor="discountPrice">Discount Price</label>
-
-              <input
-                id="discountPrice"
-                name="discountPrice"
-                type="number"
-                min="0"
-                placeholder="Optional"
-                value={form.discountPrice}
-                onChange={handleChange}
-              />
-            </div>
-
-            {/* Stock */}
-
-            <div className="form-group">
-              <label htmlFor="stock">Stock</label>
-
-              <input
-                id="stock"
-                name="stock"
-                type="number"
-                min="0"
-                placeholder="e.g. 50"
-                value={form.stock}
-                onChange={handleChange}
-              />
-            </div>
-
-            {/* Image */}
-
-            <div className="form-group form-group-full">
-              <label htmlFor="image">Product Image</label>
-
-              <input
-                id="image"
-                name="image"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleImageChange}
-              />
-
-              <small>
-                JPG, JPEG, PNG or WEBP. Maximum size: 5MB.
-                {editingProduct
-                  ? " Leave empty to keep the current image."
-                  : ""}
-              </small>
-
-              {imagePreview && (
-                <div className="product-image-preview">
-                  <img src={imagePreview} alt="Product preview" />
-                </div>
-              )}
-            </div>
-
-            {/* Description */}
-
-            <div className="form-group form-group-full">
-              <label htmlFor="description">Description</label>
-
-              <textarea
-                id="description"
-                name="description"
-                rows={4}
-                placeholder="Enter product description"
-                value={form.description}
-                onChange={handleChange}
-              />
-            </div>
-
-            {/* Submit */}
-
-            <div className="form-actions">
-              <button
-                type="submit"
-                className="submit-product-button"
-                disabled={isSubmitting}
-              >
-                {isSubmitting
-                  ? "Saving..."
-                  : editingProduct
-                    ? "Update Product"
-                    : "Add Product"}
-              </button>
-
-              {editingProduct && (
                 <button
                   type="button"
-                  className="cancel-button"
-                  onClick={resetForm}
+                  className="empty-state-add-button"
+                  onClick={openAddForm}
                 >
-                  Cancel
+                  + Add Products
                 </button>
-              )}
-            </div>
-          </form>
-        </section>
+              </div>
+            ) : (
+              <div className="vendor-products-grid">
+                {products.map((product) => {
+                  const categoryName =
+                    typeof product.category === "string"
+                      ? product.category
+                      : product.category?.name;
 
-        {/* ==============================
-            Product List
-        ============================== */}
+                  const isActive = product.isActive !== false;
 
-        <section className="vendor-product-list-section">
-          <div className="list-header">
-            <h2>My Products</h2>
-          </div>
+                  return (
+                    <div
+                      className={`vendor-product-card ${
+                        !isActive ? "inactive-product" : ""
+                      }`}
+                      key={product._id}
+                    >
+                      {/* Image */}
 
-          {products.length === 0 ? (
-            <div className="no-products">
-              <h3>No products found</h3>
-
-              <p>Add your first product using the form above.</p>
-            </div>
-          ) : (
-            <div className="vendor-products-grid">
-              {products.map((product) => {
-                const categoryName =
-                  typeof product.category === "string"
-                    ? product.category
-                    : product.category?.name;
-
-                const isActive = product.isActive !== false;
-
-                return (
-                  <div
-                    className={`vendor-product-card ${
-                      !isActive ? "inactive-product" : ""
-                    }`}
-                    key={product._id}
-                  >
-                    {/* Image */}
-
-                    <div className="vendor-product-image">
-                      {product.image ? (
-                        <img src={product.image} alt={product.name} />
-                      ) : (
-                        <div className="no-image">No Image</div>
-                      )}
-
-                      <span
-                        className={`product-status ${
-                          isActive ? "active" : "inactive"
-                        }`}
-                      >
-                        {isActive ? "Active" : "Deleted"}
-                      </span>
-                    </div>
-
-                    {/* Info */}
-
-                    <div className="vendor-product-info">
-                      <h3>{product.name}</h3>
-
-                      <p className="vendor-product-category">{categoryName}</p>
-
-                      <div className="vendor-product-price">
-                        <strong>
-                          ₹{product.discountPrice ?? product.price}
-                        </strong>
-
-                        {product.discountPrice !== undefined && (
-                          <span>₹{product.price}</span>
-                        )}
-                      </div>
-
-                      <p className="vendor-product-stock">
-                        Stock: {product.stock}
-                      </p>
-
-                      {/* Actions */}
-
-                      <div className="vendor-product-actions">
-                        {isActive ? (
-                          <>
-                            <button
-                              type="button"
-                              className="edit-product-button"
-                              onClick={() => handleEdit(product)}
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              type="button"
-                              className="delete-product-button"
-                              onClick={() => handleDelete(product._id)}
-                            >
-                              Delete
-                            </button>
-                          </>
+                      <div className="vendor-product-image">
+                        {product.image ? (
+                          <img src={product.image} alt={product.name} />
                         ) : (
-                          <button
-                            type="button"
-                            className="restore-product-button"
-                            onClick={() => handleRestore(product._id)}
-                          >
-                            Restore
-                          </button>
+                          <div className="no-image">No Image</div>
                         )}
+
+                        <span
+                          className={`product-status ${
+                            isActive ? "active" : "inactive"
+                          }`}
+                        >
+                          {isActive ? "Active" : "Deleted"}
+                        </span>
+                      </div>
+
+                      {/* Info */}
+
+                      <div className="vendor-product-info">
+                        <h3>{product.name}</h3>
+
+                        <p className="vendor-product-category">
+                          {categoryName}
+                        </p>
+
+                        <div className="vendor-product-price">
+                          <strong>
+                            ₹{product.discountPrice ?? product.price}
+                          </strong>
+
+                          {product.discountPrice !== undefined && (
+                            <span>₹{product.price}</span>
+                          )}
+                        </div>
+
+                        <p className="vendor-product-stock">
+                          Stock: {product.stock}
+                        </p>
+
+                        {/* Actions */}
+
+                        <div className="vendor-product-actions">
+                          {isActive ? (
+                            <>
+                              <button
+                                type="button"
+                                className="edit-product-button"
+                                onClick={() => handleEdit(product)}
+                              >
+                                Edit
+                              </button>
+
+                              <button
+                                type="button"
+                                className="delete-product-button"
+                                onClick={() => handleDelete(product._id)}
+                              >
+                                Delete
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              className="restore-product-button"
+                              onClick={() => handleRestore(product._id)}
+                            >
+                              Restore
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
       </div>
+
+      {/* Add / Edit Product Modal */}
+
+      {isFormOpen && (
+        <div
+          className="product-form-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeForm();
+            }
+          }}
+        >
+          <section
+            className="product-form-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="product-form-title"
+          >
+            <div className="form-header">
+              <div>
+                <h2 id="product-form-title">
+                  {editingProduct ? "Edit Product" : "Add New Product"}
+                </h2>
+
+                <p>
+                  {editingProduct
+                    ? "Update the details of your product."
+                    : "Enter the details below to add a new product."}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="modal-close-button"
+                onClick={closeForm}
+                disabled={isSubmitting}
+                aria-label="Close product form"
+              >
+                ×
+              </button>
+            </div>
+
+            {error && <div className="vendor-product-error">{error}</div>}
+
+            <form className="product-form" onSubmit={handleSubmit}>
+              {/* Product Name */}
+
+              <div className="form-group">
+                <label htmlFor="name">Product Name</label>
+
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder="e.g. Fresh Apple"
+                  value={form.name}
+                  onChange={handleChange}
+                />
+              </div>
+
+              {/* Category */}
+
+              <div className="form-group">
+                <label htmlFor="category">Category</label>
+
+                <select
+                  id="category"
+                  name="category"
+                  value={form.category}
+                  onChange={handleChange}
+                >
+                  <option value="">Select Category</option>
+
+                  {categories.map((category) => (
+                    <option key={category._id} value={category._id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Price */}
+
+              <div className="form-group">
+                <label htmlFor="price">Price</label>
+
+                <input
+                  id="price"
+                  name="price"
+                  type="number"
+                  min="0"
+                  placeholder="e.g. 120"
+                  value={form.price}
+                  onChange={handleChange}
+                />
+              </div>
+
+              {/* Discount Price */}
+
+              <div className="form-group">
+                <label htmlFor="discountPrice">Discount Price</label>
+
+                <input
+                  id="discountPrice"
+                  name="discountPrice"
+                  type="number"
+                  min="0"
+                  placeholder="Optional"
+                  value={form.discountPrice}
+                  onChange={handleChange}
+                />
+              </div>
+
+              {/* Stock */}
+
+              <div className="form-group">
+                <label htmlFor="stock">Stock</label>
+
+                <input
+                  id="stock"
+                  name="stock"
+                  type="number"
+                  min="0"
+                  placeholder="e.g. 50"
+                  value={form.stock}
+                  onChange={handleChange}
+                />
+              </div>
+
+              {/* Image */}
+
+              <div className="form-group form-group-full">
+                <label htmlFor="image">Product Image</label>
+
+                <input
+                  id="image"
+                  name="image"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleImageChange}
+                />
+
+                <small>
+                  JPG, JPEG, PNG or WEBP. Maximum size: 5MB.
+                  {editingProduct
+                    ? " Leave empty to keep the current image."
+                    : ""}
+                </small>
+
+                {imagePreview && (
+                  <div className="product-image-preview">
+                    <img src={imagePreview} alt="Product preview" />
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+
+              <div className="form-group form-group-full">
+                <label htmlFor="description">Description</label>
+
+                <textarea
+                  id="description"
+                  name="description"
+                  rows={4}
+                  placeholder="Enter product description"
+                  value={form.description}
+                  onChange={handleChange}
+                />
+              </div>
+
+              {/* Submit */}
+
+              <div className="form-actions">
+                <button
+                  type="submit"
+                  className="submit-product-button"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting
+                    ? "Saving..."
+                    : editingProduct
+                      ? "Update Product"
+                      : "Add Product"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   );
 };
