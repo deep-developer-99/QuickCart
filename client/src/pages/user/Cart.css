@@ -111,17 +111,22 @@
   color: #64748b;
 }
 
-.cart-empty a {
+.cart-empty button {
   margin-top: 15px;
   padding: 12px 20px;
 
+  border: none;
   border-radius: 7px;
 
   background: #16a34a;
   color: white;
 
-  text-decoration: none;
   font-weight: 600;
+  cursor: pointer;
+}
+
+.cart-empty button:hover {
+  background: #15803d;
 }
 
 @media (max-width: 800px) {

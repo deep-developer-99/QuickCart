@@ -8,11 +8,14 @@ import SearchBar from "./SearchBar";
 import LocationSelector from "./LocationSelector";
 
 import "./Navbar.css";
+import { useCart } from "../../context/useCart";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { cart } = useCart();
+  const isCartEmpty = !cart?.items?.length;
 
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const isUser = isAuthenticated && user?.role === "user";
@@ -57,14 +60,22 @@ const Navbar = () => {
                 Orders
               </NavLink>
 
-              <NavLink
-                to="/cart"
-                className={({ isActive }) =>
-                  isActive ? "navbar-cart-action active" : "navbar-cart-action"
-                }
-              >
-                🛒 Cart
-              </NavLink>
+              {isCartEmpty ? (
+                <span className="navbar-cart-action navbar-cart-disabled">
+                  🛒 Cart
+                </span>
+              ) : (
+                <NavLink
+                  to="/cart"
+                  className={({ isActive }) =>
+                    isActive
+                      ? "navbar-cart-action active"
+                      : "navbar-cart-action"
+                  }
+                >
+                  🛒 Cart
+                </NavLink>
+              )}
 
               <NavLink
                 to="/me"

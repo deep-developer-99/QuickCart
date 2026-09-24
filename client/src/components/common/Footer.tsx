@@ -50,15 +50,11 @@ const Footer = () => {
           <Link to="/vendor/login">Vendor Login</Link>
         </div>
 
-        {isAuthenticated ? (
-          ""
-        ) : (
-          <div className="footer-section">
-            <h3>Admin</h3>
+        <div className="footer-section">
+          <h3>Admin</h3>
 
-            <Link to="/admin/login">Admin Login</Link>
-          </div>
-        )}
+          <Link to="/admin/login">Admin Login</Link>
+        </div>
 
         {/* Contact */}
         <div className="footer-section">

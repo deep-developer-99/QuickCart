@@ -99,6 +99,18 @@
   color: #ffffff;
 }
 
+.navbar-cart-disabled {
+  opacity: 0.45;
+  color: #ffffff;
+  cursor: not-allowed;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.navbar-cart-disabled:hover {
+  cursor: not-allowed;
+}
+
 .navbar-profile-action {
   width: 40px;
   padding: 0;

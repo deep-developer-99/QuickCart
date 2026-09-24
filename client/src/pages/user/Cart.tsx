@@ -1,13 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-import {
-  getCart,
-  updateCartItem,
-  removeCartItem,
-} from "../../services/cartService";
-
-import type { Cart } from "../../types/cart";
+import { useCart } from "../../context/useCart";
 
 import CartItem from "../../components/user/CartItem";
 
@@ -15,96 +8,9 @@ import "./Cart.css";
 
 const CartPage = () => {
   const navigate = useNavigate();
+  const { cart, isLoading, updateProductQuantity, removeProduct } = useCart();
 
-  const [cart, setCart] = useState<Cart | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const quantityTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-    new Map(),
-  );
-
-  const loadCart = async () => {
-    try {
-      const response = await getCart();
-      setCart(response.data);
-    } catch (error) {
-      console.error("Failed to load cart:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadCart();
-
-    return () => {
-      quantityTimers.current.forEach((timer) => clearTimeout(timer));
-      quantityTimers.current.clear();
-    };
-  }, []);
-
-  const handleQuantityChange = (productId: string, quantity: number) => {
-    if (quantity < 1) return;
-
-    setCart((currentCart) => {
-      if (!currentCart) return currentCart;
-
-      return {
-        ...currentCart,
-        items: currentCart.items.map((item) =>
-          item.product._id === productId ? { ...item, quantity } : item,
-        ),
-      };
-    });
-
-    const existingTimer = quantityTimers.current.get(productId);
-
-    if (existingTimer) {
-      clearTimeout(existingTimer);
-    }
-
-    const timer = setTimeout(async () => {
-      try {
-        await updateCartItem(productId, quantity);
-      } catch (error) {
-        console.error("Failed to update quantity:", error);
-        await loadCart();
-      } finally {
-        quantityTimers.current.delete(productId);
-      }
-    }, 300);
-
-    quantityTimers.current.set(productId, timer);
-  };
-
-  const handleRemove = async (productId: string) => {
-    const existingTimer = quantityTimers.current.get(productId);
-
-    if (existingTimer) {
-      clearTimeout(existingTimer);
-      quantityTimers.current.delete(productId);
-    }
-
-    try {
-      await removeCartItem(productId);
-
-      setCart((currentCart) => {
-        if (!currentCart) return currentCart;
-
-        return {
-          ...currentCart,
-          items: currentCart.items.filter(
-            (item) => item.product._id !== productId,
-          ),
-        };
-      });
-    } catch (error) {
-      console.error("Failed to remove item:", error);
-      await loadCart();
-    }
-  };
-
-  if (isLoading) {
+  if (isLoading && !cart) {
     return <div className="cart-message">Loading Cart.....</div>;
   }
 
@@ -115,7 +21,9 @@ const CartPage = () => {
 
         <p>Looks like you haven't added anything to your cart yet.</p>
 
-        <Link to="/">Start Shopping</Link>
+        <button type="button" onClick={() => navigate("/")}>
+          Start Shopping
+        </button>
       </div>
     );
   }
@@ -127,6 +35,22 @@ const CartPage = () => {
   );
 
   const totalItems = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+
+  const handleQuantityChange = async (productId: string, quantity: number) => {
+    try {
+      await updateProductQuantity(productId, quantity);
+    } catch (error) {
+      console.error("Failed to update quantity:", error);
+    }
+  };
+
+  const handleRemove = async (productId: string) => {
+    try {
+      await removeProduct(productId);
+    } catch (error) {
+      console.error("Failed to remove item:", error);
+    }
+  };
 
   return (
     <div className="cart-page">
