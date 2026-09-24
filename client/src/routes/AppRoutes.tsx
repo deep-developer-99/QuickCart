@@ -29,6 +29,7 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 import AdminUsers from "../pages/admin/AdminUsers";
 import AdminVendors from "../pages/admin/AdminVendors";
 import AdminProducts from "../pages/admin/AdminProducts";
+import AdminCategories from "../pages/admin/AdminCategories";
 import AdminOrders from "../pages/admin/AdminOrders";
 
 import ScrollToTop from "../components/ScrollToTop";
@@ -94,6 +95,8 @@ const AppRoutes = () => {
           <Route path="/admin/vendors" element={<AdminVendors />} />
 
           <Route path="/admin/products" element={<AdminProducts />} />
+
+          <Route path="/admin/categories" element={<AdminCategories />} />
 
           <Route path="/admin/orders" element={<AdminOrders />} />
         </Route>

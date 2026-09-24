@@ -2,6 +2,7 @@ export interface Category {
   _id: string;
   name: string;
   image?: string;
+  imagePublicId?: string;
   isActive: boolean;
 }
 

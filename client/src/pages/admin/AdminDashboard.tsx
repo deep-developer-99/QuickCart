@@ -158,6 +158,8 @@ const AdminDashboard = () => {
 
           <Link to="/admin/products">Manage Products</Link>
 
+          <Link to="/admin/categories">Manage Categories</Link>
+
           <Link to="/admin/orders">Manage Orders</Link>
         </div>
       </div>

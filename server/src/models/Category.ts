@@ -3,6 +3,7 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface ICategory extends Document {
   name: string;
   image?: string;
+  imagePublicId?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -18,6 +19,10 @@ const categorySchema = new Schema<ICategory>(
     },
 
     image: {
+      type: String,
+    },
+
+    imagePublicId: {
       type: String,
     },
 
