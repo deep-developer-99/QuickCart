@@ -37,5 +37,6 @@ export interface AuthUser {
   name: string;
   email?: string;
   phone?: string;
+  profileImage?: string;
   shopName?: string;
 }

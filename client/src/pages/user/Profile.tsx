@@ -14,6 +14,8 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -23,6 +25,7 @@ const Profile = () => {
 
     setName(user.name);
     setPhone(user.phone || "");
+    setProfileImagePreview(user.profileImage || "");
   }, [user]);
 
   if (!user) {
@@ -32,6 +35,8 @@ const Profile = () => {
   const handleEdit = () => {
     setName(user.name);
     setPhone(user.phone || "");
+    setProfileImageFile(null);
+    setProfileImagePreview(user.profileImage || "");
     setError("");
     setSuccess("");
     setIsEditing(true);
@@ -40,9 +45,34 @@ const Profile = () => {
   const handleCancel = () => {
     setName(user.name);
     setPhone(user.phone || "");
+    setProfileImageFile(null);
+    setProfileImagePreview(user.profileImage || "");
     setError("");
     setSuccess("");
     setIsEditing(false);
+  };
+
+  const handleProfileImageChange = (file: File | null) => {
+    setError("");
+
+    if (!file) {
+      setProfileImageFile(null);
+      setProfileImagePreview(user.profileImage || "");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Profile picture must be 5 MB or smaller.");
+      return;
+    }
+
+    setProfileImageFile(file);
+    setProfileImagePreview(URL.createObjectURL(file));
   };
 
   const handleSave = async () => {
@@ -73,6 +103,7 @@ const Profile = () => {
       const response = await updateProfile({
         name: trimmedName,
         phone: trimmedPhone || undefined,
+        profileImage: profileImageFile || undefined,
       });
 
       if (!response?.success || !response?.data) {
@@ -105,8 +136,31 @@ const Profile = () => {
         </div>
 
         <div className="profile-card">
-          <div className="profile-avatar">
-            {user.name.charAt(0).toUpperCase()}
+          <div className="profile-avatar-wrapper">
+            {profileImagePreview ? (
+              <img
+                src={profileImagePreview}
+                alt={user.name}
+                className="profile-avatar-image"
+              />
+            ) : (
+              <div className="profile-avatar">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+
+            {isEditing && (
+              <label className="profile-image-upload">
+                Change Photo
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  onChange={(event) =>
+                    handleProfileImageChange(event.target.files?.[0] || null)
+                  }
+                />
+              </label>
+            )}
           </div>
 
           <div className="profile-info">

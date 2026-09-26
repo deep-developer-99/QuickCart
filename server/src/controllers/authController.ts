@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
+import { uploadImageToCloudinary } from "../services/cloudinaryService";
 import User from "../models/User";
 import Vendor from "../models/Vendor";
 import Admin from "../models/Admin";
@@ -147,6 +148,8 @@ export const loginGoogleController = async (
         id: result.id,
         name: result.name,
         email: result.email,
+        phone: result.phone,
+        profileImage: result.profileImage,
         role: result.role,
       },
     });
@@ -227,7 +230,8 @@ export const verifyPhoneOtpController = async (
         id: result.id,
         name: result.name,
         email: result.email,
-        phone,
+        phone: result.phone || phone,
+        profileImage: result.profileImage,
         role: result.role,
       },
     });
@@ -388,6 +392,17 @@ export const updateProfileController = async (
       user.phone = trimmedPhone;
     } else {
       user.phone = undefined;
+    }
+
+    const profileImageFile = req.file;
+
+    if (profileImageFile) {
+      const uploadResult = await uploadImageToCloudinary(
+        profileImageFile.buffer,
+        "quickcart/profile-images",
+      );
+
+      user.profileImage = uploadResult.secure_url;
     }
 
     await user.save();

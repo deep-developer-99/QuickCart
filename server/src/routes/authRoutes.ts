@@ -12,6 +12,7 @@ import {
   updateProfileController,
 } from "../controllers/authController";
 import authMiddleware from "../middleware/authMiddleware";
+import upload from "../middleware/uploadMiddleware";
 
 const router = Router();
 
@@ -23,6 +24,11 @@ router.post("/phone/send-otp", sendPhoneOtpController);
 router.post("/phone/verify-otp", verifyPhoneOtpController);
 router.post("/logout", logoutController);
 router.get("/me", authMiddleware("user", "admin", "vendor"), getMeController);
-router.put("/profile", authMiddleware("user"), updateProfileController);
+router.put(
+  "/profile",
+  authMiddleware("user"),
+  upload.single("profileImage"),
+  updateProfileController,
+);
 
 export default router;

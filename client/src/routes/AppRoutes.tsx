@@ -17,6 +17,7 @@ import MyOrders from "../pages/user/MyOrders";
 import MyOrderDetails from "../pages/user/MyOrderDetails";
 import OrderConfirmation from "../pages/user/OrderConfirmation";
 import Profile from "../pages/user/Profile";
+import SavedAddresses from "../pages/user/SavedAddresses";
 
 import VendorLogin from "../pages/vendor/VendorLogin";
 import VendorRegister from "../pages/vendor/VendorRegister";
@@ -74,6 +75,8 @@ const AppRoutes = () => {
             <Route path="/order-confirmation" element={<OrderConfirmation />} />
 
             <Route path="/me" element={<Profile />} />
+
+            <Route path="/saved-addresses" element={<SavedAddresses />} />
           </Route>
         </Route>
 

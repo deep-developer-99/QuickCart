@@ -83,10 +83,21 @@ export const logout = async () => {
 export interface UpdateProfileData {
   name: string;
   phone?: string;
+  profileImage?: File;
 }
 
 export const updateProfile = async (data: UpdateProfileData) => {
-  const response = await api.put("/auth/profile", data);
+  const formData = new FormData();
+  formData.append("name", data.name);
 
+  if (data.phone) {
+    formData.append("phone", data.phone);
+  }
+
+  if (data.profileImage) {
+    formData.append("profileImage", data.profileImage);
+  }
+
+  const response = await api.put("/auth/profile", formData);
   return response.data;
 };

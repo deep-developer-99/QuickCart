@@ -14,6 +14,8 @@ interface LoginResponse {
   name: string;
   email: string;
   role: "user" | "vendor" | "admin";
+  profileImage?: string;
+  phone?: string;
   token: string;
 }
 
@@ -216,6 +218,8 @@ export const loginGoogleUser = async (
     id: user._id.toString(),
     name: user.name,
     email: user.email,
+    phone: user.phone,
+    profileImage: user.profileImage,
     role: user.role,
     token,
   };
@@ -277,6 +281,8 @@ export const verifyPhoneOtpService = async (
     id: user._id.toString(),
     name: user.name,
     email: user.email ?? "",
+    phone: user.phone,
+    profileImage: user.profileImage,
     role: user.role,
     token,
   };

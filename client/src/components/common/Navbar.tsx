@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { NavLink, Link, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 
 import { logout } from "../../services/authService";
 import { logoutUser } from "../../store/slice/authSlice";
@@ -12,13 +12,35 @@ import { useCart } from "../../context/useCart";
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const { cart } = useCart();
   const isCartEmpty = !cart?.items?.length;
 
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const isUser = isAuthenticated && user?.role === "user";
+
+  useEffect(() => {
+    setIsProfileOpen(false);
+    setIsMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -27,12 +49,17 @@ const Navbar = () => {
       console.error("Logout failed:", error);
     } finally {
       dispatch(logoutUser());
+      setIsProfileOpen(false);
       setIsMenuOpen(false);
       navigate("/");
     }
   };
 
   const closeMenu = () => setIsMenuOpen(false);
+  const closeProfileMenu = () => setIsProfileOpen(false);
+
+  const profileImage = user?.profileImage;
+  const profileInitial = user?.name?.charAt(0).toUpperCase() || "U";
 
   return (
     <header className="navbar">
@@ -51,15 +78,6 @@ const Navbar = () => {
         <nav className="navbar-actions">
           {isUser && (
             <>
-              <NavLink
-                to="/my-orders"
-                className={({ isActive }) =>
-                  isActive ? "navbar-action active" : "navbar-action"
-                }
-              >
-                Orders
-              </NavLink>
-
               {isCartEmpty ? (
                 <span className="navbar-cart-action navbar-cart-disabled">
                   🛒 Cart
@@ -77,25 +95,88 @@ const Navbar = () => {
                 </NavLink>
               )}
 
-              <NavLink
-                to="/me"
-                className={({ isActive }) =>
-                  isActive
-                    ? "navbar-profile-action active"
-                    : "navbar-profile-action"
-                }
-                aria-label="Profile"
-              >
-                👤
-              </NavLink>
+              <div className="navbar-profile-wrapper" ref={profileMenuRef}>
+                <button
+                  type="button"
+                  className={`navbar-profile-action${isProfileOpen ? " active" : ""}`}
+                  onClick={() => setIsProfileOpen((previous) => !previous)}
+                  aria-label="Open profile menu"
+                  aria-haspopup="menu"
+                  aria-expanded={isProfileOpen}
+                >
+                  {profileImage ? (
+                    <img
+                      src={profileImage}
+                      alt={user?.name || "Profile"}
+                      className="navbar-profile-image"
+                    />
+                  ) : (
+                    <span className="navbar-profile-initial">
+                      {profileInitial}
+                    </span>
+                  )}
+                </button>
 
-              <button
-                type="button"
-                className="navbar-logout"
-                onClick={handleLogout}
-              >
-                Logout
-              </button>
+                {isProfileOpen && (
+                  <div className="profile-dropdown" role="menu">
+                    <div className="profile-dropdown-user">
+                      {profileImage ? (
+                        <img
+                          src={profileImage}
+                          alt={user?.name || "Profile"}
+                          className="profile-dropdown-image"
+                        />
+                      ) : (
+                        <span className="profile-dropdown-initial">
+                          {profileInitial}
+                        </span>
+                      )}
+                      <div>
+                        <strong>{user?.name || "QuickCart User"}</strong>
+                        <span>{user?.email || user?.phone || "Account"}</span>
+                      </div>
+                    </div>
+
+                    <div className="profile-dropdown-links">
+                      <NavLink
+                        to="/me"
+                        onClick={closeProfileMenu}
+                        role="menuitem"
+                      >
+                        <span>👤</span>
+                        Profile
+                      </NavLink>
+                      <NavLink
+                        to="/saved-addresses"
+                        onClick={closeProfileMenu}
+                        role="menuitem"
+                      >
+                        <span>📍</span>
+                        Saved Addresses
+                      </NavLink>
+                      <NavLink
+                        to="/my-orders"
+                        onClick={closeProfileMenu}
+                        role="menuitem"
+                      >
+                        <span>📦</span>
+                        My Orders
+                      </NavLink>
+                    </div>
+
+                    <div className="profile-dropdown-footer">
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        role="menuitem"
+                      >
+                        <span>🚪</span>
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
           )}
 
@@ -146,22 +227,31 @@ const Navbar = () => {
                 🛒 Cart
               </NavLink>
               <NavLink
-                to="/my-orders"
-                className={({ isActive }) =>
-                  isActive ? "mobile-menu-link active" : "mobile-menu-link"
-                }
-                onClick={closeMenu}
-              >
-                My Orders
-              </NavLink>
-              <NavLink
                 to="/me"
                 className={({ isActive }) =>
                   isActive ? "mobile-menu-link active" : "mobile-menu-link"
                 }
                 onClick={closeMenu}
               >
-                Profile
+                👤 Profile
+              </NavLink>
+              <NavLink
+                to="/saved-addresses"
+                className={({ isActive }) =>
+                  isActive ? "mobile-menu-link active" : "mobile-menu-link"
+                }
+                onClick={closeMenu}
+              >
+                📍 Saved Addresses
+              </NavLink>
+              <NavLink
+                to="/my-orders"
+                className={({ isActive }) =>
+                  isActive ? "mobile-menu-link active" : "mobile-menu-link"
+                }
+                onClick={closeMenu}
+              >
+                📦 My Orders
               </NavLink>
               <button
                 type="button"
