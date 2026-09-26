@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 
 import { logout } from "../../services/authService";
 import { logoutUser } from "../../store/slice/authSlice";
@@ -12,7 +12,6 @@ import { useCart } from "../../context/useCart";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useAppDispatch();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -24,11 +23,8 @@ const Navbar = () => {
   const isUser = isAuthenticated && user?.role === "user";
 
   useEffect(() => {
-    setIsProfileOpen(false);
-    setIsMenuOpen(false);
-  }, [location.pathname]);
+    if (!isProfileOpen) return;
 
-  useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
       if (
         profileMenuRef.current &&
@@ -38,9 +34,18 @@ const Navbar = () => {
       }
     };
 
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsProfileOpen(false);
+    };
+
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, []);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isProfileOpen]);
 
   const handleLogout = async () => {
     try {
@@ -55,11 +60,16 @@ const Navbar = () => {
     }
   };
 
-  const closeMenu = () => setIsMenuOpen(false);
-  const closeProfileMenu = () => setIsProfileOpen(false);
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+    setIsProfileOpen(false);
+  };
 
-  const profileImage = user?.profileImage;
-  const profileInitial = user?.name?.charAt(0).toUpperCase() || "U";
+  const openAccount = (path: string) => {
+    setIsProfileOpen(false);
+    setIsMenuOpen(false);
+    navigate(path);
+  };
 
   return (
     <header className="navbar">
@@ -76,7 +86,7 @@ const Navbar = () => {
         </div>
 
         <nav className="navbar-actions">
-          {isUser && (
+          {isUser ? (
             <>
               {isCartEmpty ? (
                 <span className="navbar-cart-action navbar-cart-disabled">
@@ -98,89 +108,91 @@ const Navbar = () => {
               <div className="navbar-profile-wrapper" ref={profileMenuRef}>
                 <button
                   type="button"
-                  className={`navbar-profile-action${isProfileOpen ? " active" : ""}`}
+                  className={`navbar-profile-action${
+                    isProfileOpen ? " active" : ""
+                  }`}
                   onClick={() => setIsProfileOpen((previous) => !previous)}
-                  aria-label="Open profile menu"
-                  aria-haspopup="menu"
+                  aria-label="Open account menu"
                   aria-expanded={isProfileOpen}
+                  aria-haspopup="menu"
                 >
-                  {profileImage ? (
-                    <img
-                      src={profileImage}
-                      alt={user?.name || "Profile"}
-                      className="navbar-profile-image"
-                    />
-                  ) : (
-                    <span className="navbar-profile-initial">
-                      {profileInitial}
-                    </span>
-                  )}
+                  <span className="navbar-profile-avatar" aria-hidden="true">
+                    {user?.name?.charAt(0).toUpperCase() || "U"}
+                  </span>
                 </button>
 
                 {isProfileOpen && (
                   <div className="profile-dropdown" role="menu">
-                    <div className="profile-dropdown-user">
-                      {profileImage ? (
-                        <img
-                          src={profileImage}
-                          alt={user?.name || "Profile"}
-                          className="profile-dropdown-image"
-                        />
-                      ) : (
-                        <span className="profile-dropdown-initial">
-                          {profileInitial}
-                        </span>
-                      )}
+                    <div className="profile-dropdown-header">
+                      <div className="profile-dropdown-avatar">
+                        {user?.name?.charAt(0).toUpperCase() || "U"}
+                      </div>
                       <div>
                         <strong>{user?.name || "QuickCart User"}</strong>
-                        <span>{user?.email || user?.phone || "Account"}</span>
+                        <span>{user?.email || "My Account"}</span>
                       </div>
                     </div>
 
-                    <div className="profile-dropdown-links">
-                      <NavLink
-                        to="/me"
-                        onClick={closeProfileMenu}
-                        role="menuitem"
-                      >
-                        <span>👤</span>
-                        Profile
-                      </NavLink>
-                      <NavLink
-                        to="/saved-addresses"
-                        onClick={closeProfileMenu}
-                        role="menuitem"
-                      >
-                        <span>📍</span>
-                        Saved Addresses
-                      </NavLink>
-                      <NavLink
-                        to="/my-orders"
-                        onClick={closeProfileMenu}
-                        role="menuitem"
-                      >
-                        <span>📦</span>
-                        My Orders
-                      </NavLink>
-                    </div>
+                    <div className="profile-dropdown-divider" />
 
-                    <div className="profile-dropdown-footer">
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        role="menuitem"
-                      >
-                        <span>🚪</span>
-                        Logout
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="profile-dropdown-item"
+                      onClick={() => openAccount("/account/profile")}
+                    >
+                      <span>♙</span>
+                      <span>
+                        <strong>Profile</strong>
+                        <small>Manage your account</small>
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="profile-dropdown-item"
+                      onClick={() => openAccount("/account/addresses")}
+                    >
+                      <span>⌖</span>
+                      <span>
+                        <strong>Saved Addresses</strong>
+                        <small>Manage delivery addresses</small>
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="profile-dropdown-item"
+                      onClick={() => openAccount("/account/orders")}
+                    >
+                      <span>▤</span>
+                      <span>
+                        <strong>My Orders</strong>
+                        <small>View your orders</small>
+                      </span>
+                    </button>
+
+                    <div className="profile-dropdown-divider" />
+
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="profile-dropdown-item profile-dropdown-logout"
+                      onClick={handleLogout}
+                    >
+                      <span>↪</span>
+                      <span>
+                        <strong>Logout</strong>
+                        <small>Sign out of your account</small>
+                      </span>
+                    </button>
                   </div>
                 )}
               </div>
             </>
-          )}
-
-          {!isUser && (
+          ) : (
             <NavLink
               to="/login"
               className={({ isActive }) =>
@@ -226,33 +238,27 @@ const Navbar = () => {
               >
                 🛒 Cart
               </NavLink>
-              <NavLink
-                to="/me"
-                className={({ isActive }) =>
-                  isActive ? "mobile-menu-link active" : "mobile-menu-link"
-                }
-                onClick={closeMenu}
+              <button
+                type="button"
+                className="mobile-menu-link mobile-account-button"
+                onClick={() => openAccount("/account/profile")}
               >
-                👤 Profile
-              </NavLink>
-              <NavLink
-                to="/saved-addresses"
-                className={({ isActive }) =>
-                  isActive ? "mobile-menu-link active" : "mobile-menu-link"
-                }
-                onClick={closeMenu}
+                ♙ Profile
+              </button>
+              <button
+                type="button"
+                className="mobile-menu-link mobile-account-button"
+                onClick={() => openAccount("/account/addresses")}
               >
-                📍 Saved Addresses
-              </NavLink>
-              <NavLink
-                to="/my-orders"
-                className={({ isActive }) =>
-                  isActive ? "mobile-menu-link active" : "mobile-menu-link"
-                }
-                onClick={closeMenu}
+                ⌖ Saved Addresses
+              </button>
+              <button
+                type="button"
+                className="mobile-menu-link mobile-account-button"
+                onClick={() => openAccount("/account/orders")}
               >
-                📦 My Orders
-              </NavLink>
+                ▤ My Orders
+              </button>
               <button
                 type="button"
                 className="mobile-menu-logout"

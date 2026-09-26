@@ -35,6 +35,7 @@ const SavedAddresses = () => {
 
   const loadAddresses = async () => {
     try {
+      setIsLoading(true);
       setError("");
       const response = await getAddresses();
       setAddresses(response?.data || []);
@@ -199,13 +200,17 @@ const SavedAddresses = () => {
     <div className="saved-addresses-page">
       <div className="saved-addresses-container">
         <div className="saved-addresses-heading">
-          <div>
-            <p>QUICKCART</p>
+          <div className="saved-addresses-title-block">
+            <div className="saved-addresses-eyebrow">
+              <span className="saved-addresses-eyebrow-dot" />
+              QUICKCART
+            </div>
             <h1>Saved Addresses</h1>
-            <span>Manage the addresses you use for your deliveries.</span>
+            <p>Save your delivery locations for a faster checkout.</p>
           </div>
           <Link to="/checkout" className="saved-addresses-add-button">
-            + Add Address
+            <span className="add-button-icon">+</span>
+            Add New Address
           </Link>
         </div>
 
@@ -216,6 +221,19 @@ const SavedAddresses = () => {
 
         {isLoading ? (
           <div className="saved-addresses-empty">Loading addresses...</div>
+        ) : error ? (
+          <div className="saved-addresses-empty saved-addresses-error-state">
+            <div className="saved-addresses-empty-icon">⚠️</div>
+            <h2>Could not load your addresses</h2>
+            <p>Please check that the backend is running and try again.</p>
+            <button
+              type="button"
+              className="saved-addresses-add-button"
+              onClick={() => void loadAddresses()}
+            >
+              Try Again
+            </button>
+          </div>
         ) : addresses.length === 0 ? (
           <div className="saved-addresses-empty-card">
             <div className="saved-addresses-empty-icon">📍</div>
@@ -229,49 +247,82 @@ const SavedAddresses = () => {
             </Link>
           </div>
         ) : (
-          <div className="saved-addresses-grid">
-            {addresses.map((address) => (
-              <article className="address-card" key={address._id}>
-                <div className="address-card-top">
-                  <div className="address-card-title">
-                    <span className="address-card-icon">📍</span>
-                    <h2>{address.city || "Saved Address"}</h2>
+          <>
+            <div className="saved-addresses-summary">
+              <div>
+                <span className="summary-icon">⌖</span>
+                <span>
+                  <strong>{addresses.length}</strong> saved{" "}
+                  {addresses.length === 1 ? "address" : "addresses"}
+                </span>
+              </div>
+              <span className="summary-note">
+                Choose an address at checkout
+              </span>
+            </div>
+
+            <div className="saved-addresses-grid">
+              {addresses.map((address) => (
+                <article
+                  className={`address-card${address.isDefault ? " is-default" : ""}`}
+                  key={address._id}
+                >
+                  <div className="address-card-accent" />
+                  <div className="address-card-top">
+                    <div className="address-card-title">
+                      <span className="address-card-icon">⌖</span>
+                      <div>
+                        <div className="address-card-label">
+                          Delivery address
+                        </div>
+                        <h2>{address.city || "Saved Address"}</h2>
+                      </div>
+                    </div>
+                    {address.isDefault && (
+                      <span className="address-default-badge">✓ Default</span>
+                    )}
                   </div>
-                  {address.isDefault && (
-                    <span className="address-default-badge">Default</span>
-                  )}
-                </div>
 
-                <div className="address-card-content">
-                  <strong>{address.fullName}</strong>
-                  <span>{address.phone}</span>
-                  <p>
-                    {address.addressLine}, {address.city}, {address.state} -{" "}
-                    {address.pincode}
-                  </p>
-                </div>
+                  <div className="address-card-content">
+                    <div className="address-recipient">
+                      <strong>{address.fullName}</strong>
+                      <span>{address.phone}</span>
+                    </div>
+                    <p className="address-full-text">
+                      {address.addressLine}, {address.city}, {address.state} -{" "}
+                      {address.pincode}
+                    </p>
+                    <div className="address-location-row">
+                      <span>📍</span>
+                      <span>
+                        {address.city}, {address.state}
+                      </span>
+                    </div>
+                  </div>
 
-                <div className="address-card-actions">
-                  <button
-                    type="button"
-                    className="address-action edit"
-                    onClick={() => startEditing(address)}
-                    disabled={deletingId === address._id}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="address-action delete"
-                    onClick={() => void handleDelete(address)}
-                    disabled={deletingId === address._id}
-                  >
-                    {deletingId === address._id ? "Deleting..." : "Delete"}
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
+                  <div className="address-card-actions">
+                    <button
+                      type="button"
+                      className="address-action edit"
+                      onClick={() => startEditing(address)}
+                      disabled={deletingId === address._id}
+                    >
+                      <span>✎</span> Edit Address
+                    </button>
+                    <button
+                      type="button"
+                      className="address-action delete"
+                      onClick={() => void handleDelete(address)}
+                      disabled={deletingId === address._id}
+                    >
+                      <span>⌫</span>{" "}
+                      {deletingId === address._id ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
         )}
       </div>
 

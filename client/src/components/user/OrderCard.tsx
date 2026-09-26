@@ -102,7 +102,10 @@ const OrderCard = ({ order }: OrderCardProps) => {
           <strong>{order.paymentMethod}</strong>
         </div>
 
-        <Link to={`/my-orders/${order._id}`} className="order-details-button">
+        <Link
+          to={`/account/orders/${order._id}`}
+          className="order-details-button"
+        >
           View Details
         </Link>
       </div>

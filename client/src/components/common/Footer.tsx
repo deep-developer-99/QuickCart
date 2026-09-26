@@ -26,7 +26,7 @@ const Footer = () => {
           {isAuthenticated ? (
             <>
               <Link to="/cart">Cart</Link>
-              <Link to="/my-orders">My Orders</Link>
+              <Link to="/account/orders">My Orders</Link>
             </>
           ) : (
             ""
@@ -39,7 +39,7 @@ const Footer = () => {
 
           {isAuthenticated ? "" : <Link to="/login">Login</Link>}
 
-          {isAuthenticated ? <Link to="/me">Profile</Link> : ""}
+          {isAuthenticated ? <Link to="/account/profile">Profile</Link> : ""}
         </div>
 
         <div className="footer-section">

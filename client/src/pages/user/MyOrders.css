@@ -1,57 +1,67 @@
-.orders-page {
-  min-height: 80vh;
-  padding: 40px 20px 70px;
-  background: #f8fafc;
+.orders-section .account-section-header {
+  margin-bottom: 22px;
 }
 
-.orders-container {
-  max-width: 900px;
-  margin: auto;
-}
-
-.orders-heading {
-  margin-bottom: 30px;
-}
-
-.orders-heading p {
-  margin: 0 0 5px;
-
-  color: #16a34a;
-
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.orders-heading h1 {
-  margin: 0;
-
-  color: #0f172a;
-  font-size: 32px;
+.orders-count-badge {
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  border: 1px solid #d8e6d9;
+  border-radius: 8px;
+  background: #f4faf4;
+  color: #438c46;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .orders-list {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 15px;
 }
 
-.orders-empty,
-.orders-message {
-  min-height: 300px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  border: 1px solid #e2e8f0;
+.orders-state-card {
+  padding: 70px 24px;
+  border: 1px dashed #ccd9cd;
   border-radius: 12px;
-
-  background: white;
-
+  background: #fbfdfb;
   text-align: center;
 }
 
-.orders-empty p {
-  color: #64748b;
+.orders-state-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 15px;
+  background: #eff8ef;
+  color: #4b984d;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.orders-state-card h2 {
+  margin: 0 0 7px;
+  color: #253047;
+  font-size: 19px;
+}
+
+.orders-state-card p {
+  margin: 0;
+  color: #7c8797;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.error-state .orders-state-icon {
+  background: #fff2f2;
+  color: #dc2626;
+}
+
+@media (max-width: 620px) {
+  .orders-count-badge {
+    align-self: stretch;
+    text-align: center;
+  }
 }

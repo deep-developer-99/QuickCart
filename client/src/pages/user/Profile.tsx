@@ -14,29 +14,23 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
-  const [profileImagePreview, setProfileImagePreview] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
     if (!user) return;
-
     setName(user.name);
     setPhone(user.phone || "");
-    setProfileImagePreview(user.profileImage || "");
   }, [user]);
 
   if (!user) {
-    return <div className="profile-message">Loading profile...</div>;
+    return <div className="account-section-message">Loading profile...</div>;
   }
 
   const handleEdit = () => {
     setName(user.name);
     setPhone(user.phone || "");
-    setProfileImageFile(null);
-    setProfileImagePreview(user.profileImage || "");
     setError("");
     setSuccess("");
     setIsEditing(true);
@@ -45,34 +39,9 @@ const Profile = () => {
   const handleCancel = () => {
     setName(user.name);
     setPhone(user.phone || "");
-    setProfileImageFile(null);
-    setProfileImagePreview(user.profileImage || "");
     setError("");
     setSuccess("");
     setIsEditing(false);
-  };
-
-  const handleProfileImageChange = (file: File | null) => {
-    setError("");
-
-    if (!file) {
-      setProfileImageFile(null);
-      setProfileImagePreview(user.profileImage || "");
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      setError("Please select a valid image file.");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Profile picture must be 5 MB or smaller.");
-      return;
-    }
-
-    setProfileImageFile(file);
-    setProfileImagePreview(URL.createObjectURL(file));
   };
 
   const handleSave = async () => {
@@ -99,11 +68,9 @@ const Profile = () => {
       }
 
       setIsSaving(true);
-
       const response = await updateProfile({
         name: trimmedName,
         phone: trimmedPhone || undefined,
-        profileImage: profileImageFile || undefined,
       });
 
       if (!response?.success || !response?.data) {
@@ -114,135 +81,127 @@ const Profile = () => {
       dispatch(setCredentials(response.data));
       setSuccess("Profile updated successfully.");
       setIsEditing(false);
-    } catch (error: unknown) {
-      console.error("Update profile error:", error);
-
-      if (axios.isAxiosError(error)) {
-        setError(error.response?.data?.message || "Failed to update profile.");
-      } else {
-        setError("Failed to update profile.");
-      }
+    } catch (requestError: unknown) {
+      console.error("Update profile error:", requestError);
+      setError(
+        axios.isAxiosError(requestError)
+          ? requestError.response?.data?.message || "Failed to update profile."
+          : "Failed to update profile.",
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
+  const initial = user.name.charAt(0).toUpperCase();
+
   return (
-    <div className="profile-page">
-      <div className="profile-container">
-        <div className="profile-heading">
-          <p>QUICKCART</p>
+    <section className="account-section profile-section">
+      <div className="account-section-header">
+        <div>
+          <p className="account-eyebrow">MY ACCOUNT</p>
           <h1>My Profile</h1>
+          <p className="account-section-subtitle">
+            View and manage your personal QuickCart information.
+          </p>
         </div>
 
-        <div className="profile-card">
-          <div className="profile-avatar-wrapper">
-            {profileImagePreview ? (
-              <img
-                src={profileImagePreview}
-                alt={user.name}
-                className="profile-avatar-image"
-              />
-            ) : (
-              <div className="profile-avatar">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-            )}
+        {!isEditing && (
+          <button
+            type="button"
+            className="account-outline-button"
+            onClick={handleEdit}
+          >
+            ✎ Edit Profile
+          </button>
+        )}
+      </div>
 
-            {isEditing && (
-              <label className="profile-image-upload">
-                Change Photo
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/jpg"
-                  onChange={(event) =>
-                    handleProfileImageChange(event.target.files?.[0] || null)
-                  }
-                />
-              </label>
-            )}
+      {error && <div className="profile-alert error">{error}</div>}
+      {success && <div className="profile-alert success">{success}</div>}
+
+      <div className="profile-information-card">
+        <div className="profile-information-heading">
+          <div>
+            <h2>Personal Information</h2>
+            <p>Your account details are shown below.</p>
+          </div>
+          <span className="profile-account-badge">USER ACCOUNT</span>
+        </div>
+
+        <div className="profile-information-body">
+          <div className="profile-picture-column">
+            <div className="profile-large-avatar">{initial}</div>
+            <span>Profile Picture</span>
           </div>
 
-          <div className="profile-info">
-            {error && <div className="profile-alert error">{error}</div>}
-
-            {success && <div className="profile-alert success">{success}</div>}
-
-            <div className="profile-field">
-              <span>Name</span>
+          <div className="profile-fields-grid">
+            <div className="profile-detail-field">
+              <span>Full Name</span>
               {isEditing ? (
                 <input
-                  type="text"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  placeholder="Enter your name"
                   maxLength={60}
+                  placeholder="Enter your name"
                 />
               ) : (
                 <strong>{user.name}</strong>
               )}
             </div>
 
-            <div className="profile-field">
-              <span>Email</span>
+            <div className="profile-detail-field">
+              <span>Email Address</span>
               <strong>{user.email || "Not provided"}</strong>
+              <small>Email cannot be changed here.</small>
             </div>
 
-            <div className="profile-field">
-              <span>Phone</span>
+            <div className="profile-detail-field">
+              <span>Phone Number</span>
               {isEditing ? (
                 <input
                   type="tel"
                   value={phone}
                   onChange={(event) => setPhone(event.target.value)}
-                  placeholder="Enter your phone number"
                   maxLength={15}
+                  placeholder="Enter your phone number"
                 />
               ) : (
                 <strong>{user.phone || "Not provided"}</strong>
               )}
             </div>
 
-            <div className="profile-field">
+            <div className="profile-detail-field">
               <span>Account Type</span>
-              <strong>User</strong>
-            </div>
-
-            <div className="profile-actions">
-              {isEditing ? (
-                <>
-                  <button
-                    type="button"
-                    className="profile-button secondary"
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="button"
-                    className="profile-button primary"
-                    onClick={handleSave}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? "Saving..." : "Save Changes"}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  className="profile-button primary"
-                  onClick={handleEdit}
-                >
-                  Edit Profile
-                </button>
-              )}
+              <strong className="account-type-value">
+                <i /> User
+              </strong>
             </div>
           </div>
         </div>
+
+        {isEditing && (
+          <div className="profile-edit-actions">
+            <button
+              type="button"
+              className="profile-cancel-button"
+              onClick={handleCancel}
+              disabled={isSaving}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="profile-save-button"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        )}
       </div>
-    </div>
+    </section>
   );
 };
 

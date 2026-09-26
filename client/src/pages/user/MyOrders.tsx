@@ -1,60 +1,74 @@
-import { useState, useEffect } from "react";
-
+import { useEffect, useState } from "react";
 import { getMyOrders } from "../../services/orderService";
-
 import type { Order } from "../../types/order";
-
 import OrderCard from "../../components/user/OrderCard";
-
 import "./MyOrders.css";
 
 const MyOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const loadOrders = async () => {
       try {
+        setError("");
         const response = await getMyOrders();
-
         setOrders(response.data || []);
-      } catch (error) {
-        console.error("Failed to load orders:", error);
+      } catch (requestError) {
+        console.error("Failed to load orders:", requestError);
+        setError("Failed to load your orders. Please try again.");
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadOrders();
+    void loadOrders();
   }, []);
 
-  if (isLoading) {
-    return <div className="orders-message">Loading orders...</div>;
-  }
-
   return (
-    <div className="orders-page">
-      <div className="orders-container">
-        <div className="orders-heading">
-          <p>QUICKCART</p>
+    <section className="account-section orders-section">
+      <div className="account-section-header">
+        <div>
+          <p className="account-eyebrow">QUICKCART</p>
           <h1>My Orders</h1>
+          <p className="account-section-subtitle">
+            Track your recent purchases and view complete order details.
+          </p>
         </div>
-
-        {orders.length === 0 ? (
-          <div className="orders-empty">
-            <h2>No Orders Yet</h2>
-
-            <p>Your placed orders will appear here.</p>
-          </div>
-        ) : (
-          <div className="orders-list">
-            {orders.map((order) => (
-              <OrderCard key={order._id} order={order} />
-            ))}
+        {!isLoading && !error && (
+          <div className="orders-count-badge">
+            {orders.length} {orders.length === 1 ? "Order" : "Orders"}
           </div>
         )}
       </div>
-    </div>
+
+      {isLoading ? (
+        <div className="orders-state-card">
+          <div className="orders-state-icon">⏳</div>
+          <h2>Loading your orders</h2>
+          <p>Please wait while we fetch your order history.</p>
+        </div>
+      ) : error ? (
+        <div className="orders-state-card error-state">
+          <div className="orders-state-icon">!</div>
+          <h2>Couldn't load orders</h2>
+          <p>{error}</p>
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="orders-state-card">
+          <div className="orders-state-icon">▤</div>
+          <h2>No Orders Yet</h2>
+          <p>Your placed orders will appear here.</p>
+        </div>
+      ) : (
+        <div className="orders-list">
+          {orders.map((order) => (
+            <OrderCard key={order._id} order={order} />
+          ))}
+        </div>
+      )}
+    </section>
   );
 };
 
