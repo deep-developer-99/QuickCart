@@ -32,6 +32,7 @@ const SavedAddresses = () => {
   const [form, setForm] = useState<CreateAddressData>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const loadAddresses = async () => {
     try {
@@ -56,6 +57,7 @@ const SavedAddresses = () => {
   }, []);
 
   const startEditing = (address: Address) => {
+    setOpenMenuId(null);
     setError("");
     setSuccess("");
     setEditingAddress(address);
@@ -162,6 +164,7 @@ const SavedAddresses = () => {
   };
 
   const handleDelete = async (address: Address) => {
+    setOpenMenuId(null);
     const shouldDelete = window.confirm(
       `Delete the address for ${address.fullName}? This action cannot be undone.`,
     );
@@ -199,18 +202,10 @@ const SavedAddresses = () => {
   return (
     <div className="saved-addresses-page">
       <div className="saved-addresses-container">
-        <div className="saved-addresses-heading">
-          <div className="saved-addresses-title-block">
-            <div className="saved-addresses-eyebrow">
-              <span className="saved-addresses-eyebrow-dot" />
-              QUICKCART
-            </div>
-            <h1>Saved Addresses</h1>
-            <p>Save your delivery locations for a faster checkout.</p>
-          </div>
-          <Link to="/checkout" className="saved-addresses-add-button">
-            <span className="add-button-icon">+</span>
-            Add New Address
+        <div className="blinkit-addresses-header">
+          <h1>My addresses</h1>
+          <Link to="/checkout" className="blinkit-add-address-link">
+            <span>+</span> Add new address
           </Link>
         </div>
 
@@ -247,82 +242,65 @@ const SavedAddresses = () => {
             </Link>
           </div>
         ) : (
-          <>
-            <div className="saved-addresses-summary">
-              <div>
-                <span className="summary-icon">⌖</span>
-                <span>
-                  <strong>{addresses.length}</strong> saved{" "}
-                  {addresses.length === 1 ? "address" : "addresses"}
-                </span>
-              </div>
-              <span className="summary-note">
-                Choose an address at checkout
-              </span>
-            </div>
-
-            <div className="saved-addresses-grid">
-              {addresses.map((address) => (
-                <article
-                  className={`address-card${address.isDefault ? " is-default" : ""}`}
-                  key={address._id}
+          <div className="blinkit-address-list">
+            {addresses.map((address) => (
+              <article className="blinkit-address-row" key={address._id}>
+                <div
+                  className={`blinkit-address-icon ${address.isDefault ? "default" : ""}`}
                 >
-                  <div className="address-card-accent" />
-                  <div className="address-card-top">
-                    <div className="address-card-title">
-                      <span className="address-card-icon">⌖</span>
-                      <div>
-                        <div className="address-card-label">
-                          Delivery address
-                        </div>
-                        <h2>{address.city || "Saved Address"}</h2>
-                      </div>
-                    </div>
+                  {address.city?.toLowerCase().includes("home") ? "⌂" : "⌖"}
+                </div>
+
+                <div className="blinkit-address-details">
+                  <div className="blinkit-address-title-line">
+                    <h2>{address.city || "Saved Address"}</h2>
                     {address.isDefault && (
-                      <span className="address-default-badge">✓ Default</span>
+                      <span className="blinkit-default-badge">Default</span>
                     )}
                   </div>
+                  <p>
+                    {address.addressLine}, {address.city}, {address.state} -{" "}
+                    {address.pincode}
+                  </p>
+                </div>
 
-                  <div className="address-card-content">
-                    <div className="address-recipient">
-                      <strong>{address.fullName}</strong>
-                      <span>{address.phone}</span>
-                    </div>
-                    <p className="address-full-text">
-                      {address.addressLine}, {address.city}, {address.state} -{" "}
-                      {address.pincode}
-                    </p>
-                    <div className="address-location-row">
-                      <span>📍</span>
-                      <span>
-                        {address.city}, {address.state}
-                      </span>
-                    </div>
-                  </div>
+                <div className="blinkit-address-menu-wrap">
+                  <button
+                    type="button"
+                    className="blinkit-address-menu-button"
+                    aria-label={`Actions for ${address.city || "saved address"}`}
+                    aria-expanded={openMenuId === address._id}
+                    onClick={() =>
+                      setOpenMenuId((current) =>
+                        current === address._id ? null : address._id,
+                      )
+                    }
+                    disabled={deletingId === address._id}
+                  >
+                    ⋮
+                  </button>
 
-                  <div className="address-card-actions">
-                    <button
-                      type="button"
-                      className="address-action edit"
-                      onClick={() => startEditing(address)}
-                      disabled={deletingId === address._id}
-                    >
-                      <span>✎</span> Edit Address
-                    </button>
-                    <button
-                      type="button"
-                      className="address-action delete"
-                      onClick={() => void handleDelete(address)}
-                      disabled={deletingId === address._id}
-                    >
-                      <span>⌫</span>{" "}
-                      {deletingId === address._id ? "Deleting..." : "Delete"}
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </>
+                  {openMenuId === address._id && (
+                    <div className="blinkit-address-menu">
+                      <button
+                        type="button"
+                        onClick={() => startEditing(address)}
+                      >
+                        <span>✎</span> Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="danger"
+                        onClick={() => void handleDelete(address)}
+                      >
+                        <span>⌫</span> Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
         )}
       </div>
 
