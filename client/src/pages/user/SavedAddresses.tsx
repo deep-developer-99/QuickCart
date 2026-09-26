@@ -7,6 +7,11 @@ import {
   getAddresses,
   updateAddress,
 } from "../../services/addressService";
+import {
+  detectCurrentLocation,
+  type DetectedLocation,
+} from "../../services/locationService";
+import AddressMap from "../../components/common/AddressMap";
 import type { Address, CreateAddressData } from "../../types/address";
 
 import "./SavedAddresses.css";
@@ -31,6 +36,7 @@ const SavedAddresses = () => {
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [form, setForm] = useState<CreateAddressData>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
@@ -78,6 +84,7 @@ const SavedAddresses = () => {
     if (isSaving) return;
     setEditingAddress(null);
     setForm(emptyForm);
+    setIsDetectingLocation(false);
     setError("");
   };
 
@@ -86,6 +93,38 @@ const SavedAddresses = () => {
     value: string | boolean,
   ) => {
     setForm((previous) => ({ ...previous, [field]: value }));
+  };
+
+  const handleMapLocationChange = (location: DetectedLocation) => {
+    setError("");
+    setForm((previous) => ({
+      ...previous,
+      addressLine: location.address.addressLine || previous.addressLine,
+      city: location.address.city || previous.city,
+      state: location.address.state || previous.state,
+      pincode: location.address.pincode || previous.pincode,
+      latitude: location.latitude,
+      longitude: location.longitude,
+    }));
+  };
+
+  const handleDetectLocation = async () => {
+    try {
+      setIsDetectingLocation(true);
+      setError("");
+
+      const detected = await detectCurrentLocation();
+      handleMapLocationChange(detected);
+    } catch (locationError: unknown) {
+      console.error("Detect location error:", locationError);
+      setError(
+        locationError instanceof Error
+          ? locationError.message
+          : "Unable to detect your current location.",
+      );
+    } finally {
+      setIsDetectingLocation(false);
+    }
   };
 
   const handleSave = async () => {
@@ -248,7 +287,7 @@ const SavedAddresses = () => {
                 <div
                   className={`blinkit-address-icon ${address.isDefault ? "default" : ""}`}
                 >
-                  {address.city?.toLowerCase().includes("home") ? "⌂" : "⌖"}
+                  {address.isDefault ? "⌂" : "⌖"}
                 </div>
 
                 <div className="blinkit-address-details">
@@ -305,128 +344,173 @@ const SavedAddresses = () => {
       </div>
 
       {editingAddress && (
-        <div className="address-modal-backdrop" onMouseDown={closeEditor}>
+        <div className="address-editor-backdrop" onMouseDown={closeEditor}>
           <div
-            className="address-modal"
+            className="address-editor-modal"
             onMouseDown={(event) => event.stopPropagation()}
           >
-            <div className="address-modal-header">
-              <div>
-                <p>QUICKCART</p>
-                <h2>Edit Address</h2>
+            <div className="address-editor-map-panel">
+              <div className="address-editor-search">
+                <span>⌕</span>
+                <span>
+                  {form.city
+                    ? `${form.city}${form.pincode ? `, ${form.pincode}` : ""}`
+                    : "Move map to select location"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForm((previous) => ({ ...previous }));
+                  }}
+                  aria-label="Clear location text"
+                >
+                  ×
+                </button>
               </div>
-              <button
-                type="button"
-                className="address-modal-close"
-                onClick={closeEditor}
-                aria-label="Close edit address dialog"
-              >
-                ×
-              </button>
+
+              <AddressMap
+                latitude={form.latitude}
+                longitude={form.longitude}
+                onDetectLocation={() => void handleDetectLocation()}
+                onLocationChange={handleMapLocationChange}
+                isDetecting={isDetectingLocation}
+              />
+
+              <div className="address-editor-delivery-card">
+                <strong>Delivering your order to</strong>
+                <div className="address-editor-delivery-location">
+                  <span className="address-editor-delivery-pin">●</span>
+                  <div>
+                    <strong>{form.city || "Selected location"}</strong>
+                    <span>
+                      {form.state ||
+                        "Move the map to choose your delivery area"}
+                      {form.pincode ? `, ${form.pincode}` : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {error && (
-              <div className="saved-addresses-alert error">{error}</div>
-            )}
+            <div className="address-editor-form-panel">
+              <div className="address-editor-header">
+                <h2>Enter complete address</h2>
+                <button
+                  type="button"
+                  className="address-editor-close"
+                  onClick={closeEditor}
+                  aria-label="Close edit address dialog"
+                >
+                  ×
+                </button>
+              </div>
 
-            <div className="address-form-grid">
-              <label>
-                Full Name
-                <input
-                  value={form.fullName}
-                  onChange={(event) =>
-                    handleChange("fullName", event.target.value)
-                  }
-                  placeholder="Enter full name"
-                />
-              </label>
+              {error && (
+                <div className="saved-addresses-alert error">{error}</div>
+              )}
 
-              <label>
-                Phone Number
-                <input
-                  value={form.phone}
-                  onChange={(event) =>
-                    handleChange("phone", event.target.value)
-                  }
-                  placeholder="Enter phone number"
-                  inputMode="tel"
-                />
-              </label>
+              <div className="address-editor-form-scroll">
+                <div className="address-editor-section-label">
+                  Edit address details
+                </div>
 
-              <label className="address-form-full">
-                Address
-                <textarea
-                  value={form.addressLine}
-                  onChange={(event) =>
-                    handleChange("addressLine", event.target.value)
-                  }
-                  placeholder="House / flat / street"
-                  rows={3}
-                />
-              </label>
+                <label className="address-editor-field">
+                  <span>Flat / House no / Building name *</span>
+                  <input
+                    value={form.addressLine}
+                    onChange={(event) =>
+                      handleChange("addressLine", event.target.value)
+                    }
+                    placeholder="D-square, Haldiram"
+                  />
+                </label>
 
-              <label>
-                City
-                <input
-                  value={form.city}
-                  onChange={(event) => handleChange("city", event.target.value)}
-                  placeholder="City"
-                />
-              </label>
+                <label className="address-editor-field">
+                  <span>Area / Sector / Locality *</span>
+                  <input
+                    value={form.city}
+                    onChange={(event) =>
+                      handleChange("city", event.target.value)
+                    }
+                    placeholder="Khora Colony, Sector 62A, Noida"
+                  />
+                </label>
 
-              <label>
-                State
-                <input
-                  value={form.state}
-                  onChange={(event) =>
-                    handleChange("state", event.target.value)
-                  }
-                  placeholder="State"
-                />
-              </label>
+                <div className="address-editor-two-columns">
+                  <label className="address-editor-field">
+                    <span>State *</span>
+                    <input
+                      value={form.state}
+                      onChange={(event) =>
+                        handleChange("state", event.target.value)
+                      }
+                      placeholder="Uttar Pradesh"
+                    />
+                  </label>
 
-              <label>
-                Pincode
-                <input
-                  value={form.pincode}
-                  onChange={(event) =>
-                    handleChange("pincode", event.target.value)
-                  }
-                  placeholder="6-digit pincode"
-                  inputMode="numeric"
-                  maxLength={6}
-                />
-              </label>
+                  <label className="address-editor-field">
+                    <span>Pincode *</span>
+                    <input
+                      value={form.pincode}
+                      onChange={(event) =>
+                        handleChange("pincode", event.target.value)
+                      }
+                      placeholder="201301"
+                      inputMode="numeric"
+                      maxLength={6}
+                    />
+                  </label>
+                </div>
 
-              <label className="address-default-checkbox">
-                <input
-                  type="checkbox"
-                  checked={Boolean(form.isDefault)}
-                  onChange={(event) =>
-                    handleChange("isDefault", event.target.checked)
-                  }
-                />
-                Set as default address
-              </label>
-            </div>
+                <div className="address-editor-details-title">
+                  Enter your details for seamless delivery
+                </div>
 
-            <div className="address-modal-actions">
-              <button
-                type="button"
-                className="address-modal-button secondary"
-                onClick={closeEditor}
-                disabled={isSaving}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="address-modal-button primary"
-                onClick={() => void handleSave()}
-                disabled={isSaving}
-              >
-                {isSaving ? "Saving..." : "Save Address"}
-              </button>
+                <label className="address-editor-field">
+                  <span>Your name *</span>
+                  <input
+                    value={form.fullName}
+                    onChange={(event) =>
+                      handleChange("fullName", event.target.value)
+                    }
+                    placeholder="Deepanshu Rawat"
+                  />
+                </label>
+
+                <label className="address-editor-field">
+                  <span>Your phone number *</span>
+                  <input
+                    value={form.phone}
+                    onChange={(event) =>
+                      handleChange("phone", event.target.value)
+                    }
+                    placeholder="9625226196"
+                    inputMode="tel"
+                  />
+                </label>
+
+                <label className="address-editor-default">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.isDefault)}
+                    onChange={(event) =>
+                      handleChange("isDefault", event.target.checked)
+                    }
+                  />
+                  <span>Set as default address</span>
+                </label>
+              </div>
+
+              <div className="address-editor-save-area">
+                <button
+                  type="button"
+                  className="address-editor-save-button"
+                  onClick={() => void handleSave()}
+                  disabled={isSaving}
+                >
+                  {isSaving ? "Saving address..." : "Save Address"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
