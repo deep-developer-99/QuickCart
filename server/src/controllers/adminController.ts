@@ -212,7 +212,10 @@ export const getAdminDashboardController = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const dashboard = await getAdminDashboard();
+    const requestedDays = Number(req.query.days);
+    const days = Number.isFinite(requestedDays) ? requestedDays : 30;
+
+    const dashboard = await getAdminDashboard(days);
 
     res.status(200).json({
       success: true,
