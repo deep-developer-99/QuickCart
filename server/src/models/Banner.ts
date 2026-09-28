@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from "mongoose";
 export type BannerRedirectType = "category" | "product" | "url";
 
 export interface IBanner extends Document {
-  title: string;
+  title?: string;
   subtitle?: string;
   image: string;
   imagePublicId?: string;
@@ -26,10 +26,11 @@ const bannerSchema = new Schema<IBanner>(
   {
     title: {
       type: String,
-      required: true,
       trim: true,
       maxlength: 120,
+      default: "QuickCart Banner",
     },
+
     subtitle: {
       type: String,
       trim: true,

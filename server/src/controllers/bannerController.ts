@@ -106,16 +106,11 @@ export const createBannerController = async (
       return;
     }
 
-    const title = String(req.body.title || "").trim();
-    const subtitle = String(req.body.subtitle || "").trim();
-    const buttonText = String(req.body.buttonText || "").trim();
     const redirectType = getRedirectType(req.body.redirectType);
     const redirectValue = String(req.body.redirectValue || "").trim();
     const order = parseOrder(req.body.order);
-    const backgroundColor = String(
-      req.body.backgroundColor || "#e9f6e7",
-    ).trim();
-    const textColor = String(req.body.textColor || "#172033").trim();
+    const backgroundColor = "#e9f6e7";
+    const textColor = "#172033";
     const isActive = parseBoolean(req.body.isActive, true);
     const startDate = parseBannerDate(req.body.startDate);
     const endDate = parseBannerDate(req.body.endDate);
@@ -129,9 +124,7 @@ export const createBannerController = async (
 
     try {
       const banner = await createBanner({
-        title,
-        subtitle,
-        buttonText,
+        title: `QuickCart Banner ${order || ""}`.trim(),
         redirectType,
         redirectValue,
         order,
@@ -181,16 +174,11 @@ export const updateBannerController = async (
     const { id } = req.params as { id: string };
     const currentBanner = await getBannerById(id);
 
-    const title = String(req.body.title || "").trim();
-    const subtitle = String(req.body.subtitle || "").trim();
-    const buttonText = String(req.body.buttonText || "").trim();
     const redirectType = getRedirectType(req.body.redirectType);
     const redirectValue = String(req.body.redirectValue || "").trim();
     const order = parseOrder(req.body.order);
-    const backgroundColor = String(
-      req.body.backgroundColor || "#e9f6e7",
-    ).trim();
-    const textColor = String(req.body.textColor || "#172033").trim();
+    const backgroundColor = "#e9f6e7";
+    const textColor = "#172033";
     const isActive = parseBoolean(req.body.isActive, true);
     const startDate = parseBannerDate(req.body.startDate);
     const endDate = parseBannerDate(req.body.endDate);
@@ -211,9 +199,6 @@ export const updateBannerController = async (
 
     try {
       const banner = await updateBanner(id, {
-        title,
-        subtitle,
-        buttonText,
         redirectType,
         redirectValue,
         order,

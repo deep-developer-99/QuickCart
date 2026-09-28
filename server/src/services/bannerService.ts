@@ -2,7 +2,7 @@ import Banner from "../models/Banner";
 import type { BannerRedirectType } from "../models/Banner";
 
 export interface BannerInput {
-  title: string;
+  title?: string;
   subtitle?: string;
   buttonText?: string;
   redirectType: BannerRedirectType;
@@ -25,23 +25,8 @@ const normalizeOptionalString = (value: unknown) => {
 };
 
 const validateBannerData = (data: BannerInput) => {
-  const title = data.title.trim();
-  const colorPattern = /^#[0-9a-fA-F]{6}$/;
-
-  if (!title) {
-    throw new Error("Banner title is required");
-  }
-
   if (!data.image) {
     throw new Error("Banner image is required");
-  }
-
-  if (!colorPattern.test(data.backgroundColor || "")) {
-    throw new Error("Background color must be a valid 6-digit hex color");
-  }
-
-  if (!colorPattern.test(data.textColor || "")) {
-    throw new Error("Text color must be a valid 6-digit hex color");
   }
 
   if (!["category", "product", "url"].includes(data.redirectType)) {
@@ -66,7 +51,7 @@ const validateBannerData = (data: BannerInput) => {
 };
 
 const buildBannerData = (data: BannerInput) => ({
-  title: data.title.trim(),
+  title: normalizeOptionalString(data.title) || "QuickCart Banner",
   subtitle: normalizeOptionalString(data.subtitle),
   buttonText: normalizeOptionalString(data.buttonText),
   redirectType: data.redirectType,
@@ -131,7 +116,9 @@ export const updateBanner = async (bannerId: string, data: BannerInput) => {
 
   validateBannerData(data);
 
-  currentBanner.title = data.title.trim();
+  if (data.title?.trim()) {
+    currentBanner.title = data.title.trim();
+  }
   currentBanner.subtitle = normalizeOptionalString(data.subtitle);
   currentBanner.buttonText = normalizeOptionalString(data.buttonText);
   currentBanner.redirectType = data.redirectType;
