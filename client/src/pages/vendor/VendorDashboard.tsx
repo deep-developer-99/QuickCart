@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -10,6 +10,7 @@ import { useAppDispatch } from "../../hooks/reduxHooks";
 import SalesChart from "../../components/vendor/SalesChart";
 import type {
   VendorDashboardData,
+  VendorSalesMetric,
   VendorSalesOverviewResponse,
   VendorSalesPeriod,
 } from "../../types/vendorDashboard";
@@ -21,8 +22,10 @@ const VendorDashboard = () => {
   const dispatch = useAppDispatch();
 
   const [dashboard, setDashboard] = useState<VendorDashboardData | null>(null);
-  const [sales, setSales] = useState<VendorSalesOverviewResponse["sales"]>([]);
-  const [salesPeriod, setSalesPeriod] = useState<VendorSalesPeriod>("7d");
+  const [salesOverview, setSalesOverview] =
+    useState<VendorSalesOverviewResponse | null>(null);
+  const [salesPeriod, setSalesPeriod] = useState<VendorSalesPeriod>("30d");
+  const [salesMetric, setSalesMetric] = useState<VendorSalesMetric>("sales");
   const [isLoading, setIsLoading] = useState(true);
   const [isSalesLoading, setIsSalesLoading] = useState(true);
   const [error, setError] = useState("");
@@ -56,7 +59,7 @@ const VendorDashboard = () => {
       }
     };
 
-    fetchDashboard();
+    void fetchDashboard();
   }, []);
 
   useEffect(() => {
@@ -68,22 +71,36 @@ const VendorDashboard = () => {
         const response = await getVendorSalesOverview(salesPeriod);
 
         if (response?.success) {
-          setSales(response.data?.sales ?? []);
+          setSalesOverview(response.data ?? null);
         } else {
-          setSales([]);
-          setSalesError("Failed to load sales overview.");
+          setSalesOverview(null);
+          setSalesError("Failed to load performance overview.");
         }
       } catch (error) {
-        console.error("Vendor sales overview error:", error);
-        setSales([]);
-        setSalesError("Sales overview is currently unavailable.");
+        console.error("Vendor performance overview error:", error);
+        setSalesOverview(null);
+        setSalesError("Performance overview is currently unavailable.");
       } finally {
         setIsSalesLoading(false);
       }
     };
 
-    fetchSalesOverview();
+    void fetchSalesOverview();
   }, [salesPeriod]);
+
+  const chartData = useMemo(() => {
+    if (!salesOverview) return [];
+
+    return salesOverview.data.map((item) => ({
+      date: item.date,
+      value: item[salesMetric],
+    }));
+  }, [salesOverview, salesMetric]);
+
+  const chartTotal = useMemo(
+    () => chartData.reduce((total, item) => total + item.value, 0),
+    [chartData],
+  );
 
   const handleLogout = async () => {
     try {
@@ -104,14 +121,23 @@ const VendorDashboard = () => {
     );
   }
 
+  const metricLabel =
+    salesMetric === "sales"
+      ? "Total Sales"
+      : salesMetric === "itemsSold"
+        ? "Items Sold"
+        : "Orders";
+
   return (
     <div className="vendor-dashboard-page">
       <div className="vendor-dashboard-container">
         <div className="vendor-dashboard-header">
           <div>
-            <p className="vendor-dashboard-eyebrow">QUICKCART VENDOR PANEL</p>
+            <span className="vendor-dashboard-eyebrow">
+              QUICKCART VENDOR PANEL
+            </span>
             <h1>Vendor Dashboard</h1>
-            <p>Manage your products, orders and sales from here.</p>
+            <p>Monitor your store performance and manage your business.</p>
           </div>
 
           <button
@@ -127,62 +153,122 @@ const VendorDashboard = () => {
 
         <div className="vendor-stats-grid">
           <div className="vendor-stat-card">
-            <div className="vendor-stat-icon">📦</div>
+            <div className="vendor-stat-icon vendor-products-icon">📦</div>
             <div>
               <p>Total Products</p>
               <h2>{dashboard?.totalProducts ?? 0}</h2>
+              <span>Your active catalogue</span>
             </div>
           </div>
 
           <div className="vendor-stat-card">
-            <div className="vendor-stat-icon">🛒</div>
+            <div className="vendor-stat-icon vendor-orders-icon">🛒</div>
             <div>
               <p>Total Orders</p>
               <h2>{dashboard?.totalOrders ?? 0}</h2>
+              <span>Orders received</span>
             </div>
           </div>
 
           <div className="vendor-stat-card">
-            <div className="vendor-stat-icon">📊</div>
+            <div className="vendor-stat-icon vendor-items-icon">📊</div>
             <div>
               <p>Items Sold</p>
               <h2>{dashboard?.totalItemsSold ?? 0}</h2>
+              <span>Units sold</span>
             </div>
           </div>
 
-          <div className="vendor-stat-card">
-            <div className="vendor-stat-icon">💰</div>
+          <div className="vendor-stat-card vendor-sales-card">
+            <div className="vendor-stat-icon vendor-sales-icon">💰</div>
             <div>
               <p>Total Sales</p>
               <h2>₹{(dashboard?.totalSales ?? 0).toLocaleString("en-IN")}</h2>
+              <span>Overall revenue</span>
             </div>
           </div>
         </div>
 
-        <div className="vendor-dashboard-main-grid">
-          <div>
-            <SalesChart
-              data={sales}
-              period={salesPeriod}
-              onPeriodChange={setSalesPeriod}
-              isLoading={isSalesLoading}
-            />
-            {salesError && <p className="vendor-sales-error">{salesError}</p>}
-          </div>
-
-          <div className="vendor-quick-actions-card">
+        <section className="vendor-chart-section">
+          <div className="vendor-chart-header">
             <div>
-              <p className="vendor-card-label">QUICK ACTIONS</p>
-              <h2>Manage your store</h2>
-              <p>Jump directly to the sections you use most.</p>
+              <span className="vendor-chart-eyebrow">ANALYTICS</span>
+              <h2>Store Performance</h2>
+              <p>Track your sales, orders and items sold over time.</p>
             </div>
 
-            <div className="vendor-dashboard-actions">
-              <Link to="/vendor/products">Manage Products</Link>
-              <Link to="/vendor/orders">View Orders</Link>
+            <div className="vendor-chart-controls">
+              <label>
+                <span>Metric</span>
+                <select
+                  value={salesMetric}
+                  onChange={(event) =>
+                    setSalesMetric(event.target.value as VendorSalesMetric)
+                  }
+                >
+                  <option value="sales">Total Sales</option>
+                  <option value="itemsSold">Items Sold</option>
+                  <option value="orders">Orders</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Period</span>
+                <select
+                  value={salesPeriod}
+                  onChange={(event) =>
+                    setSalesPeriod(event.target.value as VendorSalesPeriod)
+                  }
+                >
+                  <option value="7d">Last 7 Days</option>
+                  <option value="30d">Last 30 Days</option>
+                  <option value="90d">Last 90 Days</option>
+                </select>
+              </label>
             </div>
           </div>
-        </div>
+
+          <div className="vendor-chart-summary">
+            <div>
+              <span>{metricLabel}</span>
+              <strong>
+                {salesMetric === "sales"
+                  ? `₹${chartTotal.toLocaleString("en-IN")}`
+                  : chartTotal.toLocaleString("en-IN")}
+              </strong>
+            </div>
+            <span className="vendor-chart-period">
+              Last {salesPeriod === "7d" ? 7 : salesPeriod === "30d" ? 30 : 90}{" "}
+              days
+            </span>
+          </div>
+
+          <SalesChart
+            data={chartData}
+            metric={salesMetric}
+            isLoading={isSalesLoading}
+          />
+
+          {salesError && <p className="vendor-sales-error">{salesError}</p>}
+        </section>
+
+        <section className="vendor-actions-section">
+          <div>
+            <span className="vendor-chart-eyebrow">MANAGEMENT</span>
+            <h2>Quick Actions</h2>
+          </div>
+
+          <div className="vendor-dashboard-actions">
+            <Link to="/vendor/products">
+              <span>📦</span>
+              Manage Products
+            </Link>
+            <Link to="/vendor/orders">
+              <span>🛒</span>
+              Manage Orders
+            </Link>
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -8,15 +8,14 @@ import {
   YAxis,
 } from "recharts";
 import type {
-  VendorSalesPeriod,
+  VendorSalesMetric,
   VendorSalesPoint,
 } from "../../types/vendorDashboard";
 import "./SalesChart.css";
 
 interface SalesChartProps {
-  data: VendorSalesPoint[];
-  period: VendorSalesPeriod;
-  onPeriodChange: (period: VendorSalesPeriod) => void;
+  data: Array<Pick<VendorSalesPoint, "date"> & { value: number }>;
+  metric: VendorSalesMetric;
   isLoading?: boolean;
 }
 
@@ -40,35 +39,39 @@ const SalesTooltip = ({
   active,
   payload,
   label,
+  metric,
 }: {
   active?: boolean;
   payload?: Array<{ value?: number }>;
   label?: string;
+  metric: VendorSalesMetric;
 }) => {
-  if (!active || !payload?.length) {
-    return null;
-  }
+  if (!active || !payload?.length) return null;
+
+  const value = Number(payload[0]?.value ?? 0);
+  const formattedValue =
+    metric === "sales" ? formatCurrency(value) : value.toLocaleString("en-IN");
+
+  const labelText =
+    metric === "sales"
+      ? "Sales"
+      : metric === "itemsSold"
+        ? "Items Sold"
+        : "Orders";
 
   return (
     <div className="vendor-sales-tooltip">
       <p>{label ? formatDate(label) : ""}</p>
-      <strong>{formatCurrency(Number(payload[0]?.value ?? 0))}</strong>
+      <strong>
+        {formattedValue} {labelText}
+      </strong>
     </div>
   );
 };
 
-const SalesChart = ({
-  data,
-  period,
-  onPeriodChange,
-  isLoading = false,
-}: SalesChartProps) => {
-  // Keep every data point in the line, but show fewer x-axis labels for
-  // the 30-day view so the dates never overlap.
+const SalesChart = ({ data, metric, isLoading = false }: SalesChartProps) => {
   const xAxisTicks = (() => {
-    if (period !== "30d" || data.length <= 7) {
-      return data.map((item) => item.date);
-    }
+    if (data.length <= 7) return data.map((item) => item.date);
 
     const maxLabels = 7;
     const step = Math.ceil((data.length - 1) / (maxLabels - 1));
@@ -78,47 +81,35 @@ const SalesChart = ({
       indexes.add(index);
     }
 
-    // Always keep the last date visible.
     indexes.add(data.length - 1);
 
     return [...indexes].sort((a, b) => a - b).map((index) => data[index].date);
   })();
 
+  const metricLabel =
+    metric === "sales"
+      ? "Sales"
+      : metric === "itemsSold"
+        ? "Items Sold"
+        : "Orders";
+
   return (
-    <section className="vendor-sales-chart-card">
-      <div className="vendor-sales-chart-header">
-        <div>
-          <h2>Sales Overview</h2>
-          <p>Track your vendor sales over time.</p>
-        </div>
-
-        <select
-          value={period}
-          onChange={(event) =>
-            onPeriodChange(event.target.value as VendorSalesPeriod)
-          }
-          aria-label="Sales chart period"
-        >
-          <option value="7d">Last 7 Days</option>
-          <option value="30d">Last 30 Days</option>
-        </select>
-      </div>
-
+    <div className="vendor-sales-chart-card">
       {isLoading ? (
-        <div className="vendor-sales-chart-state">Loading sales...</div>
+        <div className="vendor-sales-chart-state">Loading performance...</div>
       ) : data.length === 0 ? (
         <div className="vendor-sales-chart-state">
-          No sales data available for this period.
+          No {metricLabel.toLowerCase()} data available for this period.
         </div>
       ) : (
         <div className="vendor-sales-chart-wrapper">
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={data}
-              margin={{ top: 12, right: 18, left: 12, bottom: 12 }}
+              margin={{ top: 15, right: 20, left: 10, bottom: 10 }}
             >
               <CartesianGrid
-                strokeDasharray="3 3"
+                strokeDasharray="4 4"
                 vertical={false}
                 className="vendor-chart-grid"
               />
@@ -130,42 +121,34 @@ const SalesChart = ({
                 tickLine={false}
                 axisLine={false}
                 className="vendor-chart-x-axis"
-                minTickGap={16}
+                minTickGap={20}
               />
 
               <YAxis
                 tickFormatter={(value: number) =>
-                  `₹${Number(value).toLocaleString("en-IN")}`
+                  metric === "sales"
+                    ? `₹${Number(value).toLocaleString("en-IN")}`
+                    : Number(value).toLocaleString("en-IN")
                 }
                 tickLine={false}
                 axisLine={false}
-                width={72}
+                width={metric === "sales" ? 75 : 55}
                 className="vendor-chart-y-axis"
                 allowDecimals={false}
               />
 
               <Tooltip
-                content={<SalesTooltip />}
+                content={<SalesTooltip metric={metric} />}
                 cursor={{ stroke: "#dce8dd", strokeWidth: 1 }}
               />
 
               <Line
                 type="monotone"
-                dataKey="sales"
-                stroke="#4d9f50"
+                dataKey="value"
+                stroke="#5fa653"
                 strokeWidth={3}
-                dot={{
-                  r: 4,
-                  fill: "#ffffff",
-                  stroke: "#4d9f50",
-                  strokeWidth: 2,
-                }}
-                activeDot={{
-                  r: 6,
-                  fill: "#4d9f50",
-                  stroke: "#ffffff",
-                  strokeWidth: 2,
-                }}
+                dot={false}
+                activeDot={{ r: 6 }}
                 isAnimationActive
                 animationDuration={500}
               />
@@ -173,7 +156,7 @@ const SalesChart = ({
           </ResponsiveContainer>
         </div>
       )}
-    </section>
+    </div>
   );
 };
 

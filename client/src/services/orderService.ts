@@ -56,7 +56,9 @@ export const getVendorDashboard = async () => {
   return response.data;
 };
 
-export const getVendorSalesOverview = async (period: "7d" | "30d" = "7d") => {
+export const getVendorSalesOverview = async (
+  period: "7d" | "30d" | "90d" = "30d",
+) => {
   const response = await api.get("/orders/vendor/sales-overview", {
     params: { period },
   });

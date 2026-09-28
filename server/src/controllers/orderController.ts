@@ -366,15 +366,18 @@ export const getVendorSalesOverviewController = async (
     }
 
     const rawPeriod = req.query.period;
-    const period = rawPeriod === "30d" ? "30d" : "7d";
+    const period =
+      rawPeriod === "90d" ? "90d" : rawPeriod === "7d" ? "7d" : "30d";
 
-    const sales = await getVendorSalesOverview(req.user.id, period);
+    const data = await getVendorSalesOverview(req.user.id, period);
 
     res.status(200).json({
       success: true,
       data: {
         period,
-        sales,
+        data,
+        // Keep the old property for backward compatibility.
+        sales: data,
       },
     });
   } catch (error) {

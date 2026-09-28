@@ -319,25 +319,27 @@ export const getVendorDashboard = async (vendorId: string) => {
   };
 };
 
-export type VendorSalesPeriod = "7d" | "30d";
+export type VendorSalesPeriod = "7d" | "30d" | "90d";
 
 interface VendorSalesPoint {
   date: string;
   sales: number;
+  itemsSold: number;
+  orders: number;
 }
 
 export const getVendorSalesOverview = async (
   vendorId: string,
-  period: VendorSalesPeriod = "7d",
+  period: VendorSalesPeriod = "30d",
 ): Promise<VendorSalesPoint[]> => {
   const vendorObjectId = new Types.ObjectId(vendorId);
-  const days = period === "30d" ? 30 : 7;
+  const days = period === "90d" ? 90 : period === "7d" ? 7 : 30;
 
   const startDate = new Date();
   startDate.setHours(0, 0, 0, 0);
   startDate.setDate(startDate.getDate() - (days - 1));
 
-  const sales = await Order.aggregate<VendorSalesPoint>([
+  const overview = await Order.aggregate<VendorSalesPoint>([
     {
       $match: {
         createdAt: { $gte: startDate },
@@ -366,6 +368,12 @@ export const getVendorSalesOverview = async (
             $multiply: ["$items.price", "$items.quantity"],
           },
         },
+        itemsSold: {
+          $sum: "$items.quantity",
+        },
+        orderIds: {
+          $addToSet: "$_id",
+        },
       },
     },
     {
@@ -373,6 +381,8 @@ export const getVendorSalesOverview = async (
         _id: 0,
         date: "$_id",
         sales: 1,
+        itemsSold: 1,
+        orders: { $size: "$orderIds" },
       },
     },
     {
@@ -382,7 +392,9 @@ export const getVendorSalesOverview = async (
     },
   ]);
 
-  const salesMap = new Map(sales.map((item) => [item.date, item.sales]));
+  // Normalize the accidental spacing in the aggregation field if necessary.
+  const overviewByDate = new Map(overview.map((item) => [item.date, item]));
+
   const result: VendorSalesPoint[] = [];
 
   for (let index = 0; index < days; index += 1) {
@@ -396,9 +408,13 @@ export const getVendorSalesOverview = async (
       day: "2-digit",
     }).format(date);
 
+    const point = overviewByDate.get(dateKey);
+
     result.push({
       date: dateKey,
-      sales: Number(salesMap.get(dateKey) ?? 0),
+      sales: Number(point?.sales ?? 0),
+      itemsSold: Number(point?.itemsSold ?? 0),
+      orders: Number(point?.orders ?? 0),
     });
   }
 

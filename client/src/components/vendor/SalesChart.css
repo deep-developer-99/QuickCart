@@ -1,51 +1,11 @@
 .vendor-sales-chart-card {
-  padding: 24px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
-}
-
-.vendor-sales-chart-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 16px;
-}
-
-.vendor-sales-chart-header h2 {
-  margin: 0 0 5px;
-  color: #172033;
-  font-size: 20px;
-}
-
-.vendor-sales-chart-header p {
-  margin: 0;
-  color: #64748b;
-  font-size: 13px;
-}
-
-.vendor-sales-chart-header select {
-  min-width: 130px;
-  padding: 9px 12px;
-  border: 1px solid #dbe3ea;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #334155;
-  font-size: 13px;
-  cursor: pointer;
-  outline: none;
-}
-
-.vendor-sales-chart-header select:focus {
-  border-color: #4d9f50;
-  box-shadow: 0 0 0 3px rgba(77, 159, 80, 0.12);
+  width: 100%;
 }
 
 .vendor-sales-chart-wrapper {
   width: 100%;
-  height: 300px;
+  height: 380px;
+  margin-top: 5px;
 }
 
 .vendor-chart-grid line {
@@ -79,7 +39,7 @@
 }
 
 .vendor-sales-chart-state {
-  min-height: 300px;
+  min-height: 380px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -88,19 +48,11 @@
 }
 
 @media (max-width: 600px) {
-  .vendor-sales-chart-card {
-    padding: 18px;
-  }
-
-  .vendor-sales-chart-header {
-    flex-direction: column;
-  }
-
-  .vendor-sales-chart-header select {
-    width: 100%;
-  }
-
   .vendor-sales-chart-wrapper {
-    height: 260px;
+    height: 300px;
+  }
+
+  .vendor-sales-chart-state {
+    min-height: 300px;
   }
 }
