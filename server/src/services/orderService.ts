@@ -318,3 +318,89 @@ export const getVendorDashboard = async (vendorId: string) => {
     totalSales: orderStats[0]?.totalSales ?? 0,
   };
 };
+
+export type VendorSalesPeriod = "7d" | "30d";
+
+interface VendorSalesPoint {
+  date: string;
+  sales: number;
+}
+
+export const getVendorSalesOverview = async (
+  vendorId: string,
+  period: VendorSalesPeriod = "7d",
+): Promise<VendorSalesPoint[]> => {
+  const vendorObjectId = new Types.ObjectId(vendorId);
+  const days = period === "30d" ? 30 : 7;
+
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
+  startDate.setDate(startDate.getDate() - (days - 1));
+
+  const sales = await Order.aggregate<VendorSalesPoint>([
+    {
+      $match: {
+        createdAt: { $gte: startDate },
+        "items.vendor": vendorObjectId,
+      },
+    },
+    {
+      $unwind: "$items",
+    },
+    {
+      $match: {
+        "items.vendor": vendorObjectId,
+      },
+    },
+    {
+      $group: {
+        _id: {
+          $dateToString: {
+            format: "%Y-%m-%d",
+            date: "$createdAt",
+            timezone: "Asia/Kolkata",
+          },
+        },
+        sales: {
+          $sum: {
+            $multiply: ["$items.price", "$items.quantity"],
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        date: "$_id",
+        sales: 1,
+      },
+    },
+    {
+      $sort: {
+        date: 1,
+      },
+    },
+  ]);
+
+  const salesMap = new Map(sales.map((item) => [item.date, item.sales]));
+  const result: VendorSalesPoint[] = [];
+
+  for (let index = 0; index < days; index += 1) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + index);
+
+    const dateKey = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+
+    result.push({
+      date: dateKey,
+      sales: Number(salesMap.get(dateKey) ?? 0),
+    });
+  }
+
+  return result;
+};

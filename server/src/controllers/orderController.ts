@@ -11,6 +11,7 @@ import {
   getVendorOrders,
   updateVendorOrderStatus,
   getVendorDashboard,
+  getVendorSalesOverview,
 } from "../services/orderService";
 import {
   createRazorpayOrder,
@@ -350,6 +351,40 @@ export const getVendorDashboardController = async (
         error instanceof Error
           ? error.message
           : "Failed to fetch vendor dashboard",
+    });
+  }
+};
+
+export const getVendorSalesOverviewController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+
+    const rawPeriod = req.query.period;
+    const period = rawPeriod === "30d" ? "30d" : "7d";
+
+    const sales = await getVendorSalesOverview(req.user.id, period);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        period,
+        sales,
+      },
+    });
+  } catch (error) {
+    console.error("Get vendor sales overview error:", error);
+    res.status(500).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch vendor sales overview",
     });
   }
 };

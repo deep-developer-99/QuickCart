@@ -9,6 +9,7 @@ import {
   getVendorOrdersController,
   updateVendorOrderStatusController,
   getVendorDashboardController,
+  getVendorSalesOverviewController,
 } from "../controllers/orderController";
 
 import authMiddleware from "../middleware/authMiddleware";
@@ -37,6 +38,13 @@ router.get(
   "/vendor/dashboard",
   authMiddleware("vendor"),
   getVendorDashboardController,
+  getVendorSalesOverviewController,
+);
+
+router.get(
+  "/vendor/sales-overview",
+  authMiddleware("vendor"),
+  getVendorSalesOverviewController,
 );
 
 router.get("/vendor", authMiddleware("vendor"), getVendorOrdersController);
