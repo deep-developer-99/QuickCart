@@ -45,43 +45,37 @@
 
 .vendor-sales-chart-wrapper {
   width: 100%;
-  overflow-x: auto;
-}
-
-.vendor-sales-chart {
-  display: block;
-  width: 100%;
-  min-width: 600px;
   height: 300px;
 }
 
-.vendor-chart-grid-line {
+.vendor-chart-grid line {
   stroke: #edf1f5;
-  stroke-width: 1;
 }
 
-.vendor-chart-axis-label,
-.vendor-chart-date-label {
+.vendor-chart-x-axis text,
+.vendor-chart-y-axis text {
   fill: #94a3b8;
   font-size: 11px;
 }
 
-.vendor-chart-area {
-  fill: url(#vendorSalesArea);
+.vendor-sales-tooltip {
+  min-width: 125px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 
-.vendor-chart-line {
-  fill: none;
-  stroke: #4d9f50;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.vendor-sales-tooltip p {
+  margin: 0 0 4px;
+  color: #64748b;
+  font-size: 12px;
 }
 
-.vendor-chart-point {
-  fill: #ffffff;
-  stroke: #4d9f50;
-  stroke-width: 3;
+.vendor-sales-tooltip strong {
+  color: #172033;
+  font-size: 14px;
 }
 
 .vendor-sales-chart-state {
@@ -104,5 +98,9 @@
 
   .vendor-sales-chart-header select {
     width: 100%;
+  }
+
+  .vendor-sales-chart-wrapper {
+    height: 260px;
   }
 }
