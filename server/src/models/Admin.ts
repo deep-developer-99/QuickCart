@@ -6,6 +6,7 @@ export interface IAdmin extends Document {
   password: string;
   role: "admin";
   isActive: boolean;
+  fcmTokens: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +42,11 @@ const adminSchema = new Schema<IAdmin>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+
+    fcmTokens: {
+      type: [String],
+      default: [],
     },
   },
   {

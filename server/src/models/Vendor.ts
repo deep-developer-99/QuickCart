@@ -11,6 +11,7 @@ export interface IVendor extends Document {
   isActive: boolean;
   status: "pending" | "approved" | "rejected";
   role: "vendor";
+  fcmTokens: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,6 +74,11 @@ const vendorSchema = new Schema<IVendor>(
       type: String,
       enum: ["pending", "approved", "rejected"],
       default: "pending",
+    },
+
+    fcmTokens: {
+      type: [String],
+      default: [],
     },
   },
   {

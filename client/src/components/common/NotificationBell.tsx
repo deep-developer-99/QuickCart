@@ -6,17 +6,25 @@ import {
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from "../../services/notificationService";
+import {
+  registerFirebaseMessaging,
+  subscribeToForegroundMessages,
+} from "../../services/firebaseMessagingService";
+import { playNotificationSound } from "../../utils/notificationSound";
+import { updateTabNotificationBadge } from "../../utils/notificationBadge";
 import type { Notification } from "../../types/notification";
+import type { MessagePayload } from "firebase/messaging";
 import "./NotificationBell.css";
 
 const NotificationBell = () => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [toast, setToast] = useState<Notification | null>(null);
+
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
 
   const unreadCount = useMemo(
     () => notifications.filter((notification) => !notification.isRead).length,
@@ -24,15 +32,29 @@ const NotificationBell = () => {
   );
 
   useEffect(() => {
+    updateTabNotificationBadge(unreadCount);
+  }, [unreadCount]);
+
+  useEffect(() => {
+    // Notification system is only for Admin and Vendor
     if (!user || (user.role !== "admin" && user.role !== "vendor")) {
       return;
     }
 
     let isMounted = true;
+    let unsubscribeForeground: (() => void) | undefined;
+
+    /*
+     * IMPORTANT:
+     * After the above check TypeScript can safely understand
+     * that user.role is "admin" | "vendor".
+     */
+    const notificationRole: "admin" | "vendor" = user.role;
 
     const loadNotifications = async () => {
       try {
         const data = await getNotifications();
+
         if (isMounted) {
           setNotifications(data);
         }
@@ -41,52 +63,107 @@ const NotificationBell = () => {
       }
     };
 
-    loadNotifications();
+    const convertFirebasePayload = (
+      payload: MessagePayload,
+    ): Notification | null => {
+      const data = payload.data ?? {};
 
-    if (!apiUrl) {
-      console.error("VITE_API_URL is missing");
-      return () => {
-        isMounted = false;
+      const notificationId = data.notificationId;
+
+      const type = data.type as Notification["type"] | undefined;
+
+      if (!notificationId || !type) {
+        return null;
+      }
+
+      return {
+        _id: notificationId,
+
+        recipient: user.id,
+
+        // FIX:
+        // Do not use user.role directly because UserRole
+        // may also contain "user".
+        recipientRole: notificationRole,
+
+        type,
+
+        title: data.title || payload.notification?.title || "QuickCart",
+
+        message:
+          data.message ||
+          payload.notification?.body ||
+          "You have a new notification.",
+
+        relatedId: data.relatedId || undefined,
+
+        isRead: false,
+
+        createdAt: data.createdAt || new Date().toISOString(),
+
+        updatedAt: data.createdAt || new Date().toISOString(),
       };
-    }
+    };
 
-    const eventSource = new EventSource(`${apiUrl}/notifications/stream`, {
-      withCredentials: true,
-    });
-
-    const handleNotification = (event: MessageEvent<string>) => {
+    const setupFirebase = async () => {
       try {
-        const notification = JSON.parse(event.data) as Notification;
+        const { messaging } = await registerFirebaseMessaging();
 
-        if (!isMounted) return;
+        if (!messaging || !isMounted) {
+          return;
+        }
 
-        setNotifications((previous) => [
-          notification,
-          ...previous.filter((item) => item._id !== notification._id),
-        ]);
-        setToast(notification);
+        unsubscribeForeground = subscribeToForegroundMessages(
+          messaging,
+          (payload) => {
+            const notification = convertFirebasePayload(payload);
 
-        window.setTimeout(() => {
-          setToast((current) =>
-            current?._id === notification._id ? null : current,
-          );
-        }, 5000);
+            if (!notification || !isMounted) {
+              return;
+            }
+
+            setNotifications((previous) => [
+              notification,
+              ...previous.filter((item) => item._id !== notification._id),
+            ]);
+
+            setToast(notification);
+
+            // Play notification sound
+            playNotificationSound();
+
+            // Hide toast after 5 seconds
+            window.setTimeout(() => {
+              setToast((current) =>
+                current?._id === notification._id ? null : current,
+              );
+            }, 5000);
+          },
+        );
       } catch (error) {
-        console.error("Invalid notification event:", error);
+        console.error("Firebase notification setup failed:", error);
       }
     };
 
-    eventSource.addEventListener("notification", handleNotification);
+    void loadNotifications();
+    void setupFirebase();
 
-    eventSource.onerror = () => {
-      // EventSource automatically retries the connection.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadNotifications();
+      }
     };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       isMounted = false;
-      eventSource.close();
+
+      unsubscribeForeground?.();
+
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [apiUrl, user]);
+  }, [user]);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -99,7 +176,10 @@ const NotificationBell = () => {
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
   }, []);
 
   if (!user || (user.role !== "admin" && user.role !== "vendor")) {
@@ -110,9 +190,15 @@ const NotificationBell = () => {
     try {
       if (!notification.isRead) {
         await markNotificationAsRead(notification._id);
+
         setNotifications((previous) =>
           previous.map((item) =>
-            item._id === notification._id ? { ...item, isRead: true } : item,
+            item._id === notification._id
+              ? {
+                  ...item,
+                  isRead: true,
+                }
+              : item,
           ),
         );
       }
@@ -124,7 +210,9 @@ const NotificationBell = () => {
 
     if (notification.type === "NEW_ORDER") {
       navigate("/vendor/orders");
-    } else if (notification.type === "NEW_VENDOR") {
+    }
+
+    if (notification.type === "NEW_VENDOR") {
       navigate("/admin/vendors");
     }
   };
@@ -132,6 +220,7 @@ const NotificationBell = () => {
   const handleMarkAllRead = async () => {
     try {
       await markAllNotificationsAsRead();
+
       setNotifications((previous) =>
         previous.map((notification) => ({
           ...notification,
@@ -153,6 +242,7 @@ const NotificationBell = () => {
           onClick={() => setIsOpen((previous) => !previous)}
         >
           <span className="notification-bell-icon">🔔</span>
+
           {unreadCount > 0 && (
             <span className="notification-badge">
               {unreadCount > 99 ? "99+" : unreadCount}
@@ -165,6 +255,7 @@ const NotificationBell = () => {
             <div className="notification-header">
               <div>
                 <h3>Notifications</h3>
+
                 <span>{unreadCount} unread</span>
               </div>
 
@@ -179,6 +270,7 @@ const NotificationBell = () => {
               {notifications.length === 0 ? (
                 <div className="notification-empty">
                   <span>🔕</span>
+
                   <p>No notifications yet.</p>
                 </div>
               ) : (
@@ -194,13 +286,17 @@ const NotificationBell = () => {
                     <span className="notification-item-icon">
                       {notification.type === "NEW_ORDER" ? "🛒" : "🏪"}
                     </span>
+
                     <span className="notification-item-content">
                       <strong>{notification.title}</strong>
+
                       <span>{notification.message}</span>
+
                       <small>
                         {new Date(notification.createdAt).toLocaleString()}
                       </small>
                     </span>
+
                     {!notification.isRead && (
                       <span className="notification-unread-dot" />
                     )}
@@ -221,8 +317,10 @@ const NotificationBell = () => {
           <span className="notification-toast-icon">
             {toast.type === "NEW_ORDER" ? "🛒" : "🏪"}
           </span>
+
           <span>
             <strong>{toast.title}</strong>
+
             <small>{toast.message}</small>
           </span>
         </button>

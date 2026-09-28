@@ -5,10 +5,25 @@ import {
   markAllNotificationsReadController,
   markNotificationReadController,
   notificationStreamController,
+  registerFcmTokenController,
+  removeFcmTokenController,
 } from "../controllers/notificationController";
 
 const router = Router();
 
+router.post(
+  "/fcm-token",
+  authMiddleware("admin", "vendor"),
+  registerFcmTokenController,
+);
+
+router.delete(
+  "/fcm-token",
+  authMiddleware("admin", "vendor"),
+  removeFcmTokenController,
+);
+
+// Kept for backward compatibility with the existing SSE implementation.
 router.get(
   "/stream",
   authMiddleware("admin", "vendor"),

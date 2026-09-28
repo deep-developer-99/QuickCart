@@ -1,5 +1,6 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import { getMessaging } from "firebase-admin/messaging";
 
 const projectId = process.env.FIREBASE_PROJECT_ID;
 const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
@@ -21,5 +22,6 @@ const firebaseAdminApp =
       });
 
 export const firebaseAdminAuth = getAuth(firebaseAdminApp);
+export const firebaseAdminMessaging = getMessaging(firebaseAdminApp);
 
 export default firebaseAdminApp;
