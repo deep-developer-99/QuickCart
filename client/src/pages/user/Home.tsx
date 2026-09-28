@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { getCategories, getProducts } from "../../services/productService";
+import { getActiveBanners } from "../../services/bannerService";
 
 import CategoryCarousel from "../../components/user/CategoryCarousel";
+import HomeBanner from "../../components/user/HomeBanner";
 import ProductCard from "../../components/user/ProductCard";
 
+import type { Banner } from "../../types/banner";
 import type { Category, Product } from "../../types/product";
 
 import "./Home.css";
@@ -13,17 +16,22 @@ import "./Home.css";
 const Home = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [bannerError, setBannerError] = useState("");
 
   useEffect(() => {
     const fetchHomeData = async () => {
       try {
         setIsLoading(true);
+        setBannerError("");
 
-        const [categoryResponse, productResponse] = await Promise.all([
-          getCategories(),
-          getProducts(),
-        ]);
+        const [categoryResponse, productResponse, bannerResponse] =
+          await Promise.all([
+            getCategories(),
+            getProducts(),
+            getActiveBanners(),
+          ]);
 
         if (categoryResponse?.success) {
           setCategories(categoryResponse.data || []);
@@ -32,14 +40,21 @@ const Home = () => {
         if (productResponse?.success) {
           setProducts(productResponse.data || []);
         }
+
+        if (bannerResponse?.success) {
+          setBanners(bannerResponse.data || []);
+        } else {
+          setBannerError("Unable to load promotional banners.");
+        }
       } catch (error) {
         console.error("Failed to load home page:", error);
+        setBannerError("Unable to load promotional banners.");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchHomeData();
+    void fetchHomeData();
   }, []);
 
   const categorySections = useMemo(() => {
@@ -65,56 +80,13 @@ const Home = () => {
 
   return (
     <div className="home-page">
-      <section className="home-promo-section">
-        <div className="home-promo-content">
-          <span className="home-promo-eyebrow">⚡ QUICK & FRESH</span>
-          <h1>
-            Your everyday essentials,
-            <span> delivered in a few clicks.</span>
-          </h1>
-          <p>
-            Groceries, fruits, dairy, snacks and household essentials — all in
-            one place.
-          </p>
+      <HomeBanner banners={banners} />
 
-          <div className="home-promo-actions">
-            <span className="home-promo-note">Fast • Fresh • Simple</span>
-          </div>
-        </div>
-
-        <div className="home-promo-visual" aria-hidden="true">
-          <div className="promo-main-bag">🛍️</div>
-          <span className="promo-product promo-one">🥛</span>
-          <span className="promo-product promo-two">🍎</span>
-          <span className="promo-product promo-three">🥦</span>
-          <span className="promo-product promo-four">🍪</span>
-          <div className="promo-delivery-pill">⚡ Quick Delivery</div>
-        </div>
-      </section>
-
-      <section className="home-benefits">
-        <div className="home-benefit">
-          <span>⚡</span>
-          <div>
-            <strong>Fast Delivery</strong>
-            <small>Everyday essentials, quickly</small>
-          </div>
-        </div>
-        <div className="home-benefit">
-          <span>🥬</span>
-          <div>
-            <strong>Fresh Products</strong>
-            <small>Quality products for daily needs</small>
-          </div>
-        </div>
-        <div className="home-benefit">
-          <span>🔒</span>
-          <div>
-            <strong>Secure Checkout</strong>
-            <small>COD and secure online payment</small>
-          </div>
-        </div>
-      </section>
+      {bannerError && (
+        <p className="home-banner-status" role="status">
+          {bannerError}
+        </p>
+      )}
 
       <section className="home-section home-category-section">
         <div className="section-heading">
@@ -122,12 +94,7 @@ const Home = () => {
             <span>SHOP BY</span>
             <h2>Category</h2>
           </div>
-          <div className="section-heading">
-            <div>
-              <span>SHOP BY</span>
-              <h2>Category</h2>
-            </div>
-          </div>
+          <Link to="/search">View all →</Link>
         </div>
 
         {isLoading ? (

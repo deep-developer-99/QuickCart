@@ -1,0 +1,362 @@
+.home-banner {
+  width: min(1360px, calc(100% - 40px));
+  height: 380px;
+  margin: 20px auto 0;
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #e9f6e7;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+}
+
+.home-banner-image-button {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+  opacity: 1;
+}
+
+.home-banner-image-button.is-visible {
+  z-index: 2;
+  opacity: 1;
+}
+
+.home-banner-image-button.is-hidden {
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.home-banner-image-button:focus-visible {
+  outline: 3px solid #4d9f50;
+  outline-offset: -3px;
+}
+
+.home-banner-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1);
+  transition: transform 0.8s ease;
+}
+
+.home-banner-image-incoming {
+  z-index: 2;
+  animation: homeBannerCrossFadeIn 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.home-banner-image-outgoing {
+  z-index: 1;
+  animation: homeBannerCrossFadeOut 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.home-banner-content {
+  position: absolute;
+  left: 6%;
+  top: 50%;
+  z-index: 2;
+  width: min(52%, 670px);
+  transform: translateY(-50%);
+}
+
+.home-banner-eyebrow {
+  display: inline-block;
+  color: #4b9348;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 1.7px;
+}
+
+.home-banner h1 {
+  margin: 10px 0 13px;
+  max-width: 650px;
+  font-size: clamp(32px, 4vw, 54px);
+  line-height: 1.04;
+  letter-spacing: -1.8px;
+  font-weight: 850;
+}
+
+.home-banner p {
+  max-width: 590px;
+  margin: 0;
+  opacity: 0.76;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.home-banner-content button {
+  min-height: 44px;
+  margin-top: 23px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: none;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #172033;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.1);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.home-banner-content button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.14);
+}
+
+.home-banner-fallback-art {
+  width: 320px;
+  height: 240px;
+  position: absolute;
+  right: 8%;
+  top: 50%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+}
+
+.home-banner-fallback-art > div {
+  width: 145px;
+  height: 145px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 7px solid rgba(255, 255, 255, 0.8);
+  border-radius: 42% 42% 32% 32%;
+  background: #ffffff;
+  font-size: 70px;
+  box-shadow: 0 18px 35px rgba(15, 23, 42, 0.12);
+}
+
+.home-banner-fallback-art > span {
+  width: 55px;
+  height: 55px;
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  background: #ffffff;
+  font-size: 27px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+}
+
+.home-banner-fallback-art > span:nth-child(1) {
+  left: 22px;
+  top: 12px;
+}
+
+.home-banner-fallback-art > span:nth-child(2) {
+  right: 20px;
+  top: 24px;
+}
+
+.home-banner-fallback-art > span:nth-child(3) {
+  right: 18px;
+  bottom: 8px;
+}
+
+.home-banner-fallback-art > span:nth-child(4) {
+  left: 20px;
+  bottom: 5px;
+}
+
+.home-banner-arrow {
+  width: 34px;
+  height: 34px;
+  position: absolute;
+  top: 50%;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  color: #334155;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transform: translateY(-50%);
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.1);
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.home-banner-arrow:hover:not(:disabled) {
+  background: #ffffff;
+  transform: translateY(-50%) scale(1.04);
+}
+
+.home-banner-arrow:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.home-banner-arrow-left {
+  left: 15px;
+}
+
+.home-banner-arrow-right {
+  right: 15px;
+}
+
+.home-banner-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 13px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transform: translateX(-50%);
+}
+
+.home-banner-dots button {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(23, 32, 51, 0.35);
+  cursor: pointer;
+  transition:
+    width 0.3s ease,
+    background 0.3s ease,
+    transform 0.2s ease;
+}
+
+.home-banner-dots button:hover:not(:disabled) {
+  transform: scale(1.15);
+}
+
+.home-banner-dots button.active {
+  width: 22px;
+  border-radius: 999px;
+  background: #4d9f50;
+}
+
+.home-banner-dots button:disabled {
+  cursor: default;
+}
+
+@keyframes homeBannerCrossFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(1.018);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes homeBannerCrossFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.008);
+  }
+}
+
+@media (max-width: 900px) {
+  .home-banner {
+    width: min(100% - 30px, 760px);
+    height: 330px;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-banner {
+    width: calc(100% - 24px);
+    height: 300px;
+    border-radius: 16px;
+  }
+
+  .home-banner-content {
+    left: 24px;
+    right: 24px;
+    width: auto;
+  }
+
+  .home-banner h1 {
+    font-size: 32px;
+    letter-spacing: -1px;
+  }
+
+  .home-banner p {
+    font-size: 13px;
+  }
+
+  .home-banner-fallback-art {
+    right: 0;
+    opacity: 0.45;
+    transform: translateY(-50%) scale(0.78);
+  }
+}
+
+@media (max-width: 480px) {
+  .home-banner {
+    width: calc(100% - 20px);
+    height: 240px;
+  }
+
+  .home-banner-content {
+    left: 18px;
+    right: 18px;
+  }
+
+  .home-banner h1 {
+    font-size: 26px;
+  }
+
+  .home-banner p {
+    display: none;
+  }
+
+  .home-banner-fallback-art {
+    opacity: 0.25;
+    transform: translateY(-50%) scale(0.62);
+  }
+
+  .home-banner-arrow {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-banner-image-incoming,
+  .home-banner-image-outgoing {
+    animation-duration: 1ms;
+  }
+
+  .home-banner-image {
+    transition: none;
+  }
+}

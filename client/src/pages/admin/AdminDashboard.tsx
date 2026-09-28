@@ -314,6 +314,9 @@ const AdminDashboard = () => {
             <Link to="/admin/categories">
               <span>🗂️</span>Manage Categories
             </Link>
+            <Link to="/admin/banners">
+              <span>🖼️</span>Manage Banners
+            </Link>
             <Link to="/admin/orders">
               <span>🛒</span>Manage Orders
             </Link>
