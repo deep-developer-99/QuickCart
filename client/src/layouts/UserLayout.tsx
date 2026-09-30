@@ -5,10 +5,10 @@ import Footer from "../components/common/Footer";
 
 const UserLayout = () => {
   return (
-    <div>
+    <div className="user-layout">
       <Navbar />
 
-      <main>
+      <main className="user-layout-main">
         <Outlet />
       </main>
 

@@ -7,6 +7,7 @@ import { getActiveBanners } from "../../services/bannerService";
 import CategoryCarousel from "../../components/user/CategoryCarousel";
 import HomeBanner from "../../components/user/HomeBanner";
 import ProductCard from "../../components/user/ProductCard";
+import HomeShimmer from "../../components/user/HomeShimmer";
 
 import type { Banner } from "../../types/banner";
 import type { Category, Product } from "../../types/product";
@@ -78,6 +79,10 @@ const Home = () => {
       .slice(0, 4);
   }, [categories, products]);
 
+  if (isLoading) {
+    return <HomeShimmer />;
+  }
+
   return (
     <div className="home-page">
       <HomeBanner banners={banners} />
@@ -97,18 +102,10 @@ const Home = () => {
           <Link to="/search">View all →</Link>
         </div>
 
-        {isLoading ? (
-          <div className="home-loading">Loading categories...</div>
-        ) : (
-          <CategoryCarousel categories={categories} />
-        )}
+        <CategoryCarousel categories={categories} />
       </section>
 
-      {isLoading ? (
-        <section className="home-section">
-          <div className="home-loading">Loading products...</div>
-        </section>
-      ) : categorySections.length > 0 ? (
+      {categorySections.length > 0 ? (
         categorySections.map(({ category, products: categoryProducts }) => (
           <section className="home-section product-section" key={category._id}>
             <div className="section-heading">

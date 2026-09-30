@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 
 import Home from "../pages/user/Home";
+import HomeShimmer from "../components/user/HomeShimmer";
 import { useAppSelector } from "../hooks/reduxHooks";
 
 const HomeRoute = () => {
@@ -9,7 +10,7 @@ const HomeRoute = () => {
   );
 
   if (isLoading) {
-    return <div>Loading.......</div>;
+    return <HomeShimmer />;
   }
 
   if (isAuthenticated && user) {
