@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { Link, useNavigate } from "react-router-dom";
 
 import api from "../../services/api";
-import { logout } from "../../services/authService";
 import { getVendorSalesOverview } from "../../services/orderService";
-import { logoutUser } from "../../store/slice/authSlice";
-import { useAppDispatch } from "../../hooks/reduxHooks";
 import SalesChart from "../../components/vendor/SalesChart";
 import type {
   VendorDashboardData,
@@ -18,9 +14,6 @@ import type {
 import "./VendorDashboard.css";
 
 const VendorDashboard = () => {
-  const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-
   const [dashboard, setDashboard] = useState<VendorDashboardData | null>(null);
   const [salesOverview, setSalesOverview] =
     useState<VendorSalesOverviewResponse | null>(null);
@@ -102,17 +95,6 @@ const VendorDashboard = () => {
     [chartData],
   );
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      dispatch(logoutUser());
-      navigate("/vendor/login", { replace: true });
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="vendor-dashboard-page">
@@ -139,14 +121,6 @@ const VendorDashboard = () => {
             <h1>Vendor Dashboard</h1>
             <p>Monitor your store performance and manage your business.</p>
           </div>
-
-          <button
-            type="button"
-            className="vendor-logout-button"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
         </div>
 
         {error && <div className="vendor-dashboard-error">{error}</div>}
@@ -250,24 +224,6 @@ const VendorDashboard = () => {
           />
 
           {salesError && <p className="vendor-sales-error">{salesError}</p>}
-        </section>
-
-        <section className="vendor-actions-section">
-          <div>
-            <span className="vendor-chart-eyebrow">MANAGEMENT</span>
-            <h2>Quick Actions</h2>
-          </div>
-
-          <div className="vendor-dashboard-actions">
-            <Link to="/vendor/products">
-              <span>📦</span>
-              Manage Products
-            </Link>
-            <Link to="/vendor/orders">
-              <span>🛒</span>
-              Manage Orders
-            </Link>
-          </div>
         </section>
       </div>
     </div>

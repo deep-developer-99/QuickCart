@@ -2,6 +2,7 @@ import { Navigate, Outlet } from "react-router-dom";
 
 import { useAppSelector } from "../hooks/reduxHooks";
 import NotificationBell from "../components/common/NotificationBell";
+import VendorSidebar from "../components/vendor/VendorSidebar";
 
 interface ProtectedRouteProps {
   allowedRole: "user" | "vendor" | "admin";
@@ -39,11 +40,21 @@ const ProtectedRoute = ({ allowedRole }: ProtectedRouteProps) => {
     return <Navigate to={getRoleHome(user.role)} replace />;
   }
 
+  if (allowedRole === "vendor") {
+    return (
+      <div className="vendor-protected-shell">
+        <VendorSidebar />
+        <main className="vendor-protected-content">
+          <NotificationBell />
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <>
-      {(allowedRole === "vendor" || allowedRole === "admin") && (
-        <NotificationBell />
-      )}
+      {allowedRole === "admin" && <NotificationBell />}
       <Outlet />
     </>
   );
