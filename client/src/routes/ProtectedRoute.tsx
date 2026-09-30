@@ -3,6 +3,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAppSelector } from "../hooks/reduxHooks";
 import NotificationBell from "../components/common/NotificationBell";
 import VendorSidebar from "../components/vendor/VendorSidebar";
+import AdminSidebar from "../components/admin/AdminSidebar";
 
 interface ProtectedRouteProps {
   allowedRole: "user" | "vendor" | "admin";
@@ -52,12 +53,19 @@ const ProtectedRoute = ({ allowedRole }: ProtectedRouteProps) => {
     );
   }
 
-  return (
-    <>
-      {allowedRole === "admin" && <NotificationBell />}
-      <Outlet />
-    </>
-  );
+  if (allowedRole === "admin") {
+    return (
+      <div className="admin-protected-shell">
+        <AdminSidebar />
+        <main className="admin-protected-content">
+          <NotificationBell />
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
+
+  return <Outlet />;
 };
 
 export default ProtectedRoute;

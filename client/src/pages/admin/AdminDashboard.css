@@ -1,3 +1,14 @@
+.admin-protected-shell {
+  min-height: 100vh;
+  background: #f6f8f7;
+}
+
+.admin-protected-content {
+  min-width: 0;
+  min-height: 100vh;
+  margin-left: 255px;
+}
+
 .admin-dashboard-page {
   min-height: 75vh;
   padding: 40px 20px 60px;
@@ -38,23 +49,6 @@
   margin: 0;
   color: #64748b;
   font-size: 15px;
-}
-
-.admin-logout-button {
-  padding: 11px 22px;
-  border: none;
-  border-radius: 8px;
-  background: #dc2626;
-  color: white;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.admin-logout-button:hover {
-  background: #b91c1c;
-  transform: translateY(-1px);
 }
 
 .admin-dashboard-error {
@@ -143,8 +137,7 @@
   grid-column: span 2;
 }
 
-.admin-chart-section,
-.admin-actions-section {
+.admin-chart-section {
   padding: 25px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -164,12 +157,6 @@
 }
 
 .admin-chart-header h2,
-.admin-actions-section h2 {
-  margin: 0 0 5px;
-  color: #172033;
-  font-size: 22px;
-}
-
 .admin-chart-header p {
   margin: 0;
   color: #64748b;
@@ -259,34 +246,6 @@
   font-size: 14px;
 }
 
-.admin-dashboard-actions {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.admin-dashboard-actions a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 11px 14px;
-  border-radius: 9px;
-  background: #4d9f50;
-  color: white;
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-  transition: 0.2s ease;
-}
-
-.admin-dashboard-actions a:hover {
-  background: #3f8b43;
-  transform: translateY(-1px);
-}
-
 .admin-dashboard-loading {
   min-height: 400px;
   display: flex;
@@ -302,10 +261,6 @@
 
   .sales-card {
     grid-column: span 1;
-  }
-
-  .admin-dashboard-actions {
-    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -340,16 +295,11 @@
     font-size: 28px;
   }
 
-  .admin-logout-button {
-    width: 100%;
-  }
-
   .admin-stats-grid {
     grid-template-columns: 1fr;
   }
 
-  .admin-chart-section,
-  .admin-actions-section {
+  .admin-chart-section {
     padding: 18px;
   }
 
@@ -365,8 +315,16 @@
     align-items: flex-start;
     flex-direction: column;
   }
+}
 
-  .admin-dashboard-actions {
-    grid-template-columns: 1fr;
+@media (max-width: 900px) {
+  .admin-protected-content {
+    margin-left: 220px;
+  }
+}
+
+@media (max-width: 700px) {
+  .admin-protected-content {
+    margin-left: 0;
   }
 }

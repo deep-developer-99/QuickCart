@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { Link, useNavigate } from "react-router-dom";
 import {
   CartesianGrid,
   Line,
@@ -12,10 +11,6 @@ import {
 } from "recharts";
 
 import api from "../../services/api";
-import { logout } from "../../services/authService";
-import { logoutUser } from "../../store/slice/authSlice";
-import { useAppDispatch } from "../../hooks/reduxHooks";
-
 import "./AdminDashboard.css";
 
 interface TrendData {
@@ -38,9 +33,6 @@ interface AdminDashboardData {
 type ChartMetric = "sales" | "users";
 
 const AdminDashboard = () => {
-  const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-
   const [dashboard, setDashboard] = useState<AdminDashboardData | null>(null);
   const [chartMetric, setChartMetric] = useState<ChartMetric>("sales");
   const [selectedDays, setSelectedDays] = useState(30);
@@ -98,17 +90,6 @@ const AdminDashboard = () => {
     [chartData],
   );
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      dispatch(logoutUser());
-      navigate("/admin/login", { replace: true });
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="admin-dashboard-page">
@@ -129,14 +110,6 @@ const AdminDashboard = () => {
               place.
             </p>
           </div>
-
-          <button
-            type="button"
-            className="admin-logout-button"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
         </div>
 
         {error && <div className="admin-dashboard-error">{error}</div>}
@@ -292,34 +265,6 @@ const AdminDashboard = () => {
                 No data available for the selected period.
               </div>
             )}
-          </div>
-        </section>
-
-        <section className="admin-actions-section">
-          <div>
-            <span className="chart-eyebrow">MANAGEMENT</span>
-            <h2>Quick Actions</h2>
-          </div>
-
-          <div className="admin-dashboard-actions">
-            <Link to="/admin/users">
-              <span>👥</span>Manage Users
-            </Link>
-            <Link to="/admin/vendors">
-              <span>🏪</span>Manage Vendors
-            </Link>
-            <Link to="/admin/products">
-              <span>📦</span>Manage Products
-            </Link>
-            <Link to="/admin/categories">
-              <span>🗂️</span>Manage Categories
-            </Link>
-            <Link to="/admin/banners">
-              <span>🖼️</span>Manage Banners
-            </Link>
-            <Link to="/admin/orders">
-              <span>🛒</span>Manage Orders
-            </Link>
           </div>
         </section>
       </div>
