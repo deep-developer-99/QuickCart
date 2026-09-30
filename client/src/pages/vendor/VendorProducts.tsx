@@ -402,7 +402,16 @@ const VendorProducts = () => {
             <p>Add, edit and manage your products.</p>
           </div>
 
-          <div className="product-count">{products.length} Products</div>
+          <div className="vendor-products-header-actions">
+            <button
+              type="button"
+              className="add-products-button"
+              onClick={openAddForm}
+            >
+              <span className="add-products-icon">+</span>
+              Add Products
+            </button>
+          </div>
         </div>
 
         {/* Messages */}
@@ -416,38 +425,9 @@ const VendorProducts = () => {
         {/* Main Content */}
 
         <div className="vendor-products-content">
-          {/* Left Action Panel */}
-
-          <aside className="vendor-products-sidebar">
-            <div className="vendor-products-sidebar-card">
-              <h2>Products</h2>
-
-              <p>
-                Add a new product or manage the products already listed in your
-                store.
-              </p>
-
-              <button
-                type="button"
-                className="add-products-button"
-                onClick={openAddForm}
-              >
-                <span className="add-products-icon">+</span>
-                Add Products
-              </button>
-            </div>
-          </aside>
-
           {/* Product List */}
 
           <section className="vendor-product-list-section">
-            <div className="list-header">
-              <div>
-                <h2>My Products</h2>
-                <p>View and manage all products added by your store.</p>
-              </div>
-            </div>
-
             {products.length === 0 ? (
               <div className="no-products">
                 <h3>No products found</h3>
