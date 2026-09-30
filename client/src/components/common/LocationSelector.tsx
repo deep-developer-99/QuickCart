@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { getAddresses } from "../../services/addressService";
 import {
+  clearSavedCurrentLocation,
   detectCurrentLocation,
   getSavedCurrentLocation,
   saveCurrentLocation,
@@ -14,17 +15,51 @@ import type { Address } from "../../types/address";
 
 import "./LocationSelector.css";
 
+const SELECTED_LOCATION_KEY_PREFIX = "quickcart_selected_location_";
+
+const getSelectedLocationKey = (userId: string) =>
+  `${SELECTED_LOCATION_KEY_PREFIX}${userId}`;
+
+const getStoredSelectedLocation = (userId: string): DetectedLocation | null => {
+  try {
+    const stored = localStorage.getItem(getSelectedLocationKey(userId));
+
+    return stored ? (JSON.parse(stored) as DetectedLocation) : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveSelectedLocation = (userId: string, location: DetectedLocation) => {
+  try {
+    localStorage.setItem(
+      getSelectedLocationKey(userId),
+      JSON.stringify(location),
+    );
+  } catch {
+    // Keep the current location in React state even if storage is unavailable.
+  }
+};
+
+const clearSelectedLocation = (userId: string) => {
+  try {
+    localStorage.removeItem(getSelectedLocationKey(userId));
+  } catch {
+    // Ignore storage errors during logout.
+  }
+};
+
 const LocationSelector = () => {
-  const user = useAppSelector((state) => state.auth.user);
+  const { user, isLoading } = useAppSelector((state) => state.auth);
 
   const [addresses, setAddresses] = useState<Address[]>([]);
 
   const [currentLocation, setCurrentLocation] =
-    useState<DetectedLocation | null>(() =>
-      user?.role === "user" ? getSavedCurrentLocation() : null,
-    );
+    useState<DetectedLocation | null>(null);
 
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+
+  const previousUserIdRef = useRef<string | null>(null);
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -35,21 +70,35 @@ const LocationSelector = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
     let mounted = true;
 
-    // Guest users must never see a previously persisted location.
     if (!user || user.role !== "user") {
       setAddresses([]);
       setSelectedAddress(null);
       setCurrentLocation(null);
 
-      // Remove any old location persisted by an earlier guest session.
-      // The guest's newly detected location is kept only in React state.
-      localStorage.removeItem("quickcart_current_location");
+      // Guest sessions must not reuse a location selected by a previous user.
+      if (previousUserIdRef.current) {
+        clearSelectedLocation(previousUserIdRef.current);
+        clearSavedCurrentLocation();
+        previousUserIdRef.current = null;
+      }
 
       return () => {
         mounted = false;
       };
+    }
+
+    previousUserIdRef.current = user.id;
+
+    const storedLocation = getStoredSelectedLocation(user.id);
+
+    if (storedLocation) {
+      setCurrentLocation(storedLocation);
     }
 
     const loadAddresses = async () => {
@@ -64,8 +113,27 @@ const LocationSelector = () => {
 
         setAddresses(list);
 
+        const storedAddressId = storedLocation?.address?.displayName
+          ? list.find(
+              (address) =>
+                [
+                  address.addressLine,
+                  address.city,
+                  address.state,
+                  address.pincode,
+                ]
+                  .filter(Boolean)
+                  .join(", ") === storedLocation.address.displayName,
+            )?._id
+          : undefined;
+
         setSelectedAddress(
-          list.find((address) => address.isDefault) || list[0] || null,
+          (storedAddressId
+            ? list.find((address) => address._id === storedAddressId)
+            : undefined) ||
+            list.find((address) => address.isDefault) ||
+            list[0] ||
+            null,
         );
       } catch (error) {
         console.error("Failed to load saved addresses:", error);
@@ -77,18 +145,23 @@ const LocationSelector = () => {
     return () => {
       mounted = false;
     };
-  }, [user]);
+  }, [isLoading, user]);
 
-  // Automatically detect the current location when the navbar loads.
-  // The browser will ask for permission only when permission has not
-  // already been granted. No click is required after permission is allowed.
   useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
     let mounted = true;
 
     const autoDetectLocation = async () => {
+      // A manually selected/persisted location has priority on refresh.
+      if (user?.role === "user" && getStoredSelectedLocation(user.id)) {
+        return;
+      }
+
       try {
         setIsGettingLocation(true);
-        setLocationMessage("");
 
         const detected = await detectCurrentLocation();
 
@@ -98,20 +171,17 @@ const LocationSelector = () => {
 
         setCurrentLocation(detected);
 
-        // Only logged-in users' detected locations are persisted.
-        // Guest users get the location in memory for the current visit only.
         if (user?.role === "user") {
+          // For a logged-in user, the first detected location becomes the
+          // selected location until they manually change it.
+          saveSelectedLocation(user.id, detected);
           saveCurrentLocation(detected);
         }
+        // For guests we intentionally do NOT call saveCurrentLocation().
+        // Their detected location lives only in React state.
       } catch (error) {
-        if (!mounted) {
-          return;
-        }
-
+        // Do not show an automatic error popup on page load.
         console.error("Automatic current location error:", error);
-
-        // Do not show an error popup automatically on page load.
-        // The user can still use "Detect my location" manually.
       } finally {
         if (mounted) {
           setIsGettingLocation(false);
@@ -124,7 +194,7 @@ const LocationSelector = () => {
     return () => {
       mounted = false;
     };
-  }, [user?.role]);
+  }, [isLoading, user?.id, user?.role]);
 
   useEffect(() => {
     const handleLocationChanged = () => {
@@ -176,7 +246,10 @@ const LocationSelector = () => {
       setCurrentLocation(detected);
 
       if (user?.role === "user") {
+        // Manual detection intentionally overrides any saved address.
+        saveSelectedLocation(user.id, detected);
         saveCurrentLocation(detected);
+        setSelectedAddress(null);
       }
 
       setLocationMessage("Current location detected.");
@@ -219,9 +292,14 @@ const LocationSelector = () => {
       },
     };
 
-    saveCurrentLocation(savedLocation);
-
     setCurrentLocation(savedLocation);
+
+    if (user?.role === "user") {
+      // Manual saved-address selection becomes the selected location and
+      // survives page refresh until this user logs out.
+      saveSelectedLocation(user.id, savedLocation);
+      saveCurrentLocation(savedLocation);
+    }
 
     setIsOpen(false);
   };

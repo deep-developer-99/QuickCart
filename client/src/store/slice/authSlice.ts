@@ -25,6 +25,10 @@ const authSlice = createSlice({
     },
 
     logoutUser: (state) => {
+      if (state.user?.role === "user") {
+        localStorage.removeItem(`quickcart_selected_address_${state.user.id}`);
+      }
+
       state.user = null;
       state.isAuthenticated = false;
       state.isLoading = false;
