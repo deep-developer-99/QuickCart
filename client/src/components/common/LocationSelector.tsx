@@ -20,7 +20,9 @@ const LocationSelector = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
 
   const [currentLocation, setCurrentLocation] =
-    useState<DetectedLocation | null>(getSavedCurrentLocation());
+    useState<DetectedLocation | null>(() =>
+      user?.role === "user" ? getSavedCurrentLocation() : null,
+    );
 
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
 
@@ -33,13 +35,22 @@ const LocationSelector = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
+    // Guest users must never see a previously persisted location.
     if (!user || user.role !== "user") {
       setAddresses([]);
       setSelectedAddress(null);
-      return;
-    }
+      setCurrentLocation(null);
 
-    let mounted = true;
+      // Remove any old location persisted by an earlier guest session.
+      // The guest's newly detected location is kept only in React state.
+      localStorage.removeItem("quickcart_current_location");
+
+      return () => {
+        mounted = false;
+      };
+    }
 
     const loadAddresses = async () => {
       try {
@@ -67,6 +78,53 @@ const LocationSelector = () => {
       mounted = false;
     };
   }, [user]);
+
+  // Automatically detect the current location when the navbar loads.
+  // The browser will ask for permission only when permission has not
+  // already been granted. No click is required after permission is allowed.
+  useEffect(() => {
+    let mounted = true;
+
+    const autoDetectLocation = async () => {
+      try {
+        setIsGettingLocation(true);
+        setLocationMessage("");
+
+        const detected = await detectCurrentLocation();
+
+        if (!mounted) {
+          return;
+        }
+
+        setCurrentLocation(detected);
+
+        // Only logged-in users' detected locations are persisted.
+        // Guest users get the location in memory for the current visit only.
+        if (user?.role === "user") {
+          saveCurrentLocation(detected);
+        }
+      } catch (error) {
+        if (!mounted) {
+          return;
+        }
+
+        console.error("Automatic current location error:", error);
+
+        // Do not show an error popup automatically on page load.
+        // The user can still use "Detect my location" manually.
+      } finally {
+        if (mounted) {
+          setIsGettingLocation(false);
+        }
+      }
+    };
+
+    autoDetectLocation();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.role]);
 
   useEffect(() => {
     const handleLocationChanged = () => {
@@ -104,10 +162,6 @@ const LocationSelector = () => {
   }, []);
 
   const handleOpen = () => {
-    if (!user || user.role !== "user") {
-      return;
-    }
-
     setLocationMessage("");
     setIsOpen(true);
   };
@@ -119,9 +173,11 @@ const LocationSelector = () => {
 
       const detected = await detectCurrentLocation();
 
-      saveCurrentLocation(detected);
-
       setCurrentLocation(detected);
+
+      if (user?.role === "user") {
+        saveCurrentLocation(detected);
+      }
 
       setLocationMessage("Current location detected.");
 
