@@ -23,8 +23,15 @@ const authMiddleware = (...allowedRoles: Role[]) => {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      // 1. Get JWT from cookie
-      const token = req.cookies.token;
+      // 1. Get JWT from cookie (web) or Authorization header (React Native/mobile)
+      const cookieToken = req.cookies.token;
+
+      const authHeader = req.headers.authorization;
+      const bearerToken = authHeader?.startsWith("Bearer ")
+        ? authHeader.substring(7).trim()
+        : undefined;
+
+      const token = cookieToken || bearerToken;
 
       if (!token) {
         res.status(401).json({

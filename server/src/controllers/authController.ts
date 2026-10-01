@@ -234,6 +234,9 @@ export const verifyPhoneOtpController = async (
         profileImage: result.profileImage,
         role: result.role,
       },
+      // React Native uses this token in the Authorization header.
+      // The cookie above is kept for the existing web application.
+      token: result.token,
     });
   } catch (error) {
     console.error("Verify OTP error:", error);
