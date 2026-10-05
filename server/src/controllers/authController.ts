@@ -152,6 +152,7 @@ export const loginGoogleController = async (
         profileImage: result.profileImage,
         role: result.role,
       },
+      token: result.token,
     });
   } catch (error) {
     console.error("Google login error:", error);
