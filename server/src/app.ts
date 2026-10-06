@@ -10,6 +10,7 @@ import cartRoutes from "./routes/cartRoutes";
 import orderRoutes from "./routes/orderRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import bannerRoutes from "./routes/bannerRoutes";
+import wishlistRoutes from "./routes/wishlistRoutes";
 
 const app = express();
 
@@ -33,5 +34,6 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/banners", bannerRoutes);
+app.use("/api/wishlist", wishlistRoutes);
 
 export default app;
