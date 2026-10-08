@@ -10,6 +10,7 @@ import {
   updateVendorOrderStatusController,
   getVendorDashboardController,
   getVendorSalesOverviewController,
+  createBuyNowOrderController,
 } from "../controllers/orderController";
 
 import authMiddleware from "../middleware/authMiddleware";
@@ -18,6 +19,7 @@ const router = Router();
 
 // User payment/order routes
 router.post("/", authMiddleware("user"), createOrderController);
+router.post("/buy-now", authMiddleware("user"), createBuyNowOrderController);
 
 router.post(
   "/razorpay/create-order",

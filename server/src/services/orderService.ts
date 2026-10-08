@@ -13,6 +13,15 @@ interface CreateOrderData {
   razorpayOrderId?: string;
 }
 
+interface CreateBuyNowOrderData {
+  productId: string;
+  quantity: number;
+  addressId: string;
+  paymentMethod: "COD" | "RAZORPAY";
+  paymentId?: string;
+  razorpayOrderId?: string;
+}
+
 export const createOrder = async (userId: string, data: CreateOrderData) => {
   const { addressId, paymentMethod, paymentId, razorpayOrderId } = data;
 
@@ -139,6 +148,142 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
       );
     } catch (notificationError) {
       console.error("New order notification error:", notificationError);
+    }
+
+    return order;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
+// Create Order By Buy Now
+export const createBuyNowOrder = async (
+  userId: string,
+  data: CreateBuyNowOrderData,
+) => {
+  const {
+    productId,
+    quantity,
+    addressId,
+    paymentMethod,
+    paymentId,
+    razorpayOrderId,
+  } = data;
+
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw new Error("Quantity must be at least 1");
+  }
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    // 1. Check address belongs to this user
+    const address = await Address.findOne({
+      _id: addressId,
+      user: userId,
+    }).session(session);
+
+    if (!address) {
+      throw new Error("Address not found");
+    }
+
+    // 2. Get the selected product
+    const product = await Product.findOne({
+      _id: productId,
+      isActive: true,
+    }).session(session);
+
+    if (!product) {
+      throw new Error("Product not found or is no longer available");
+    }
+
+    // 3. Check stock
+    if (product.stock < quantity) {
+      throw new Error(`Insufficient stock for ${product.name}`);
+    }
+
+    // 4. Calculate price
+    const discountedPrice = product.discountPrice ?? product.price;
+
+    const totalAmount = discountedPrice * quantity;
+
+    // 5. Reduce stock safely
+    const updatedProduct = await Product.findOneAndUpdate(
+      {
+        _id: productId,
+        isActive: true,
+        stock: {
+          $gte: quantity,
+        },
+      },
+      {
+        $inc: {
+          stock: -quantity,
+        },
+      },
+      {
+        new: true,
+        session,
+      },
+    );
+
+    if (!updatedProduct) {
+      throw new Error(
+        "Stock changed while placing the order. Please try again.",
+      );
+    }
+
+    // 6. Create order
+    const orderItems = [
+      {
+        product: product._id,
+        vendor: product.vendor,
+        name: product.name,
+        image: product.image,
+        price: product.price,
+        discountedPrice,
+        quantity,
+      },
+    ];
+
+    const [order] = await Order.create(
+      [
+        {
+          user: new Types.ObjectId(userId),
+          items: orderItems,
+          address: new Types.ObjectId(addressId),
+          paymentMethod,
+          paymentId,
+          razorpayOrderId,
+          totalAmount,
+          status: "Placed",
+        },
+      ],
+      {
+        session,
+      },
+    );
+
+    // IMPORTANT:
+    // Buy Now does NOT modify or clear the user's cart.
+
+    // 7. Commit transaction
+    await session.commitTransaction();
+
+    // 8. Notify vendor
+    try {
+      await notifyVendorsAboutNewOrder(
+        [product.vendor.toString()],
+        order._id.toString(),
+        quantity,
+      );
+    } catch (notificationError) {
+      console.error("Buy Now notification error:", notificationError);
     }
 
     return order;

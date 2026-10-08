@@ -6,6 +6,7 @@ import { AuthenticatedRequest } from "../middleware/authMiddleware";
 import { calculateCheckout } from "../services/checkoutService";
 import {
   createOrder,
+  createBuyNowOrder,
   getMyOrders,
   getOrderById,
   getVendorOrders,
@@ -67,6 +68,83 @@ export const createOrderController = async (
       success: false,
       message:
         error instanceof Error ? error.message : "Failed to create order",
+    });
+  }
+};
+
+export const createBuyNowOrderController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+      return;
+    }
+
+    const { productId, quantity, addressId, paymentMethod } = req.body;
+
+    // Validate required fields
+    if (!productId) {
+      res.status(400).json({
+        success: false,
+        message: "Product ID is required",
+      });
+      return;
+    }
+
+    if (!quantity || !Number.isInteger(quantity) || quantity < 1) {
+      res.status(400).json({
+        success: false,
+        message: "Quantity must be at least 1",
+      });
+      return;
+    }
+
+    if (!addressId) {
+      res.status(400).json({
+        success: false,
+        message: "Address ID is required",
+      });
+      return;
+    }
+
+    // For now this endpoint handles COD.
+    // Razorpay Buy Now will be handled separately.
+    if (paymentMethod !== "COD") {
+      res.status(400).json({
+        success: false,
+        message:
+          "Online payments for Buy Now must be completed through the Razorpay Buy Now flow",
+      });
+      return;
+    }
+
+    const order = await createBuyNowOrder(req.user.id, {
+      productId,
+      quantity,
+      addressId,
+      paymentMethod: "COD",
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Buy Now order placed successfully",
+      data: {
+        order,
+      },
+    });
+  } catch (error) {
+    console.error("Create Buy Now order error:", error);
+
+    res.status(400).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to place Buy Now order",
     });
   }
 };
