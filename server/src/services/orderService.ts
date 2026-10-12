@@ -8,27 +8,53 @@ import { notifyVendorsAboutNewOrder } from "./notificationService";
 
 interface CreateOrderData {
   addressId: string;
-  paymentMethod: "COD" | "RAZORPAY";
+  paymentMethod: "COD" | "RAZORPAY" | "PAYTM";
   paymentId?: string;
   razorpayOrderId?: string;
+  paytmOrderId?: string;
+  paymentAttemptId?: string;
 }
 
 interface CreateBuyNowOrderData {
   productId: string;
   quantity: number;
   addressId: string;
-  paymentMethod: "COD" | "RAZORPAY";
+  paymentMethod: "COD" | "RAZORPAY" | "PAYTM";
   paymentId?: string;
   razorpayOrderId?: string;
+  paytmOrderId?: string;
+  paymentAttemptId?: string;
 }
 
 export const createOrder = async (userId: string, data: CreateOrderData) => {
-  const { addressId, paymentMethod, paymentId, razorpayOrderId } = data;
+  const {
+    addressId,
+    paymentMethod,
+    paymentId,
+    razorpayOrderId,
+    paytmOrderId,
+    paymentAttemptId,
+  } = data;
+
+  if (paymentAttemptId) {
+    const existingOrder = await Order.findOne({ paymentAttemptId });
+    if (existingOrder) return existingOrder;
+  }
 
   const session = await mongoose.startSession();
 
   try {
     session.startTransaction();
+
+    if (paymentAttemptId) {
+      const existingOrder = await Order.findOne({ paymentAttemptId }).session(
+        session,
+      );
+      if (existingOrder) {
+        await session.commitTransaction();
+        return existingOrder;
+      }
+    }
 
     // 1. Get user's cart
     const cart = await Cart.findOne({
@@ -83,6 +109,11 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
       });
     }
 
+    // Mobile Paytm checkout uses the mobile app shipping rule; web COD/Razorpay behavior remains unchanged.
+    const shippingAmount =
+      paymentMethod === "PAYTM" && totalAmount < 500 ? 40 : 0;
+    totalAmount += shippingAmount;
+
     // 4. Reduce stock safely
     for (const cartItem of cart.items) {
       const updatedProduct = await Product.findOneAndUpdate(
@@ -121,6 +152,11 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
           paymentMethod,
           paymentId,
           razorpayOrderId,
+          paytmOrderId,
+          paymentAttemptId: paymentAttemptId
+            ? new Types.ObjectId(paymentAttemptId)
+            : undefined,
+          shippingAmount,
           totalAmount,
           status: "Placed",
         },
@@ -151,8 +187,12 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
     }
 
     return order;
-  } catch (error) {
+  } catch (error: any) {
     await session.abortTransaction();
+    if (paymentAttemptId && error?.code === 11000) {
+      const existingOrder = await Order.findOne({ paymentAttemptId });
+      if (existingOrder) return existingOrder;
+    }
     throw error;
   } finally {
     await session.endSession();
@@ -171,7 +211,14 @@ export const createBuyNowOrder = async (
     paymentMethod,
     paymentId,
     razorpayOrderId,
+    paytmOrderId,
+    paymentAttemptId,
   } = data;
+
+  if (paymentAttemptId) {
+    const existingOrder = await Order.findOne({ paymentAttemptId });
+    if (existingOrder) return existingOrder;
+  }
 
   if (!Number.isInteger(quantity) || quantity < 1) {
     throw new Error("Quantity must be at least 1");
@@ -181,6 +228,16 @@ export const createBuyNowOrder = async (
 
   try {
     session.startTransaction();
+
+    if (paymentAttemptId) {
+      const existingOrder = await Order.findOne({ paymentAttemptId }).session(
+        session,
+      );
+      if (existingOrder) {
+        await session.commitTransaction();
+        return existingOrder;
+      }
+    }
 
     // 1. Check address belongs to this user
     const address = await Address.findOne({
@@ -210,7 +267,9 @@ export const createBuyNowOrder = async (
     // 4. Calculate price
     const discountedPrice = product.discountPrice ?? product.price;
 
-    const totalAmount = discountedPrice * quantity;
+    const subtotal = discountedPrice * quantity;
+    const shippingAmount = paymentMethod === "PAYTM" && subtotal < 500 ? 40 : 0;
+    const totalAmount = subtotal + shippingAmount;
 
     // 5. Reduce stock safely
     const updatedProduct = await Product.findOneAndUpdate(
@@ -260,6 +319,11 @@ export const createBuyNowOrder = async (
           paymentMethod,
           paymentId,
           razorpayOrderId,
+          paytmOrderId,
+          paymentAttemptId: paymentAttemptId
+            ? new Types.ObjectId(paymentAttemptId)
+            : undefined,
+          shippingAmount,
           totalAmount,
           status: "Placed",
         },
@@ -287,8 +351,12 @@ export const createBuyNowOrder = async (
     }
 
     return order;
-  } catch (error) {
+  } catch (error: any) {
     await session.abortTransaction();
+    if (paymentAttemptId && error?.code === 11000) {
+      const existingOrder = await Order.findOne({ paymentAttemptId });
+      if (existingOrder) return existingOrder;
+    }
     throw error;
   } finally {
     await session.endSession();

@@ -14,9 +14,13 @@ export interface IOrder extends Document {
   user: Types.ObjectId;
   items: IOrderItem[];
   address: Types.ObjectId;
-  paymentMethod: "COD" | "RAZORPAY";
+  paymentMethod: "COD" | "RAZORPAY" | "PAYTM";
+  paymentStatus: "PENDING" | "PAID" | "FAILED";
   paymentId?: string;
   razorpayOrderId?: string;
+  paytmOrderId?: string;
+  paymentAttemptId?: Types.ObjectId;
+  shippingAmount?: number;
   totalAmount: number;
   status: "Placed" | "Accepted" | "Out for Delivery" | "Delivered";
   createdAt: Date;
@@ -92,8 +96,17 @@ const orderSchema = new Schema<IOrder>(
 
     paymentMethod: {
       type: String,
-      enum: ["COD", "RAZORPAY"],
+      enum: ["COD", "RAZORPAY", "PAYTM"],
       required: true,
+    },
+
+    paymentStatus: {
+      type: String,
+      enum: ["PENDING", "PAID", "FAILED"],
+      default: function (this: IOrder) {
+        return this.paymentMethod === "COD" ? "PENDING" : "PAID";
+      },
+      index: true,
     },
 
     paymentId: {
@@ -103,6 +116,17 @@ const orderSchema = new Schema<IOrder>(
     razorpayOrderId: {
       type: String,
     },
+
+    paytmOrderId: { type: String, index: true },
+
+    paymentAttemptId: {
+      type: Schema.Types.ObjectId,
+      ref: "PaymentAttempt",
+      unique: true,
+      sparse: true,
+    },
+
+    shippingAmount: { type: Number, default: 0, min: 0 },
 
     totalAmount: {
       type: Number,
