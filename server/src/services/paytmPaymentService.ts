@@ -122,6 +122,29 @@ const postPaytm = async (
     }
     const responseSignature = envelope.head?.signature;
     const signedResponseBody = extractRawJsonProperty(rawResponse, "body");
+
+    const rawBodyValid = Boolean(
+      responseSignature &&
+      signedResponseBody &&
+      verifyPaytmSignature(signedResponseBody, merchantKey, responseSignature),
+    );
+
+    const normalizedBodyValid = Boolean(
+      responseSignature &&
+      verifyPaytmSignature(
+        JSON.stringify(envelope.body),
+        merchantKey,
+        responseSignature,
+      ),
+    );
+
+    console.warn("[Paytm signature diagnostic]", {
+      hasSignature: Boolean(responseSignature),
+      rawBodyAvailable: Boolean(signedResponseBody),
+      rawBodyValid,
+      normalizedBodyValid,
+      bodyKeys: Object.keys(envelope.body ?? {}),
+    });
     if (
       !responseSignature ||
       !signedResponseBody ||
