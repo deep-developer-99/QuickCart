@@ -138,6 +138,16 @@ const postPaytm = async (
       ),
     );
 
+    const resultInfo = envelope.body?.resultInfo;
+
+    console.warn("[Paytm response summary]", {
+      httpStatus: response.status,
+      resultStatus: resultInfo?.resultStatus ?? null,
+      resultCode: resultInfo?.resultCode ?? null,
+      resultMessage: resultInfo?.resultMsg ?? null,
+      hasTxnToken: Boolean(envelope.body?.txnToken),
+    });
+
     console.warn("[Paytm signature diagnostic]", {
       hasSignature: Boolean(responseSignature),
       rawBodyAvailable: Boolean(signedResponseBody),
