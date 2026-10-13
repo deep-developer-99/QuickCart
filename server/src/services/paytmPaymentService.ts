@@ -153,8 +153,7 @@ const postPaytm = async (
       resultCode: resultInfo?.resultCode ?? null,
       resultMessage: resultInfo?.resultMsg ?? null,
       hasTxnToken: Boolean(envelope.body?.txnToken ?? envelope.body?.txn_token),
-      hasSignature: Boolean(responseSignature),
-      bodyKeys: Object.keys(envelope.body ?? {}),
+      extraParamsMap: envelope.body?.extraParamsMap ?? null,
     });
 
     // A provider-declared failure may not contain head.signature. Preserve
