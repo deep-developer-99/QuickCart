@@ -31,9 +31,11 @@ const getConfig = () => {
       "Paytm configuration is incomplete. Set PAYTM_ENV, PAYTM_MID, PAYTM_MERCHANT_KEY, PAYTM_WEBSITE_NAME and PAYTM_CALLBACK_URL.",
     );
   }
+
   if (!isStaging && environment !== "production") {
     throw new Error("PAYTM_ENV must be staging or production");
   }
+
   if (Buffer.byteLength(merchantKey, "utf8") !== 16) {
     throw new Error(
       "PAYTM_MERCHANT_KEY must be the 16-byte key issued for the selected Paytm environment",
@@ -58,32 +60,41 @@ const extractRawJsonProperty = (
 ): string | undefined => {
   const match = new RegExp(`"${property}"\\s*:`).exec(raw);
   if (!match) return undefined;
+
   let start = match.index + match[0].length;
   while (start < raw.length && /\s/.test(raw[start])) start += 1;
+
   if (raw[start] !== "{" && raw[start] !== "[") return undefined;
+
   const open = raw[start];
   const close = open === "{" ? "}" : "]";
   let depth = 0;
   let inString = false;
   let escaped = false;
+
   for (let index = start; index < raw.length; index += 1) {
     const character = raw[index];
+
     if (inString) {
       if (escaped) escaped = false;
       else if (character === "\\") escaped = true;
       else if (character === '"') inString = false;
       continue;
     }
+
     if (character === '"') {
       inString = true;
       continue;
     }
+
     if (character === open) depth += 1;
+
     if (character === close) {
       depth -= 1;
       if (depth === 0) return raw.slice(start, index + 1);
     }
   }
+
   return undefined;
 };
 
@@ -93,11 +104,14 @@ const postPaytm = async (
   headExtras: Record<string, string> = {},
 ): Promise<PaytmApiEnvelope> => {
   const { merchantKey } = getConfig();
-  // Keep this exact JSON string for signing and sending.
+
+  // Sign the same JSON body that is sent to Paytm.
   const bodyJson = JSON.stringify(body);
   const signature = generatePaytmSignature(bodyJson, merchantKey);
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);
+
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -108,20 +122,53 @@ const postPaytm = async (
       body: JSON.stringify({ body, head: { ...headExtras, signature } }),
       signal: controller.signal,
     });
+
     const rawResponse = await response.text();
-    if (!response.ok)
+
+    if (!response.ok) {
       throw new Error(`Paytm API returned HTTP ${response.status}`);
+    }
+
     let envelope: PaytmApiEnvelope;
+
     try {
       envelope = JSON.parse(rawResponse) as PaytmApiEnvelope;
     } catch {
       throw new Error("Paytm returned an invalid response");
     }
+
     if (!envelope?.body || typeof envelope.body !== "object") {
       throw new Error("Paytm response did not contain a body");
     }
+
     const responseSignature = envelope.head?.signature;
     const signedResponseBody = extractRawJsonProperty(rawResponse, "body");
+    const resultInfo = envelope.body?.resultInfo;
+
+    // Log safe response metadata only. Do not log merchant keys, signatures,
+    // customer data, or the complete response payload.
+    console.warn("[Paytm response summary]", {
+      httpStatus: response.status,
+      resultStatus: resultInfo?.resultStatus ?? null,
+      resultCode: resultInfo?.resultCode ?? null,
+      resultMessage: resultInfo?.resultMsg ?? null,
+      hasTxnToken: Boolean(envelope.body?.txnToken ?? envelope.body?.txn_token),
+      hasSignature: Boolean(responseSignature),
+      bodyKeys: Object.keys(envelope.body ?? {}),
+    });
+
+    // A provider-declared failure may not contain head.signature. Preserve
+    // that original failure instead of masking it with a signature error.
+    if (
+      !responseSignature &&
+      resultInfo?.resultStatus &&
+      resultInfo.resultStatus !== "S"
+    ) {
+      throw new Error(
+        `Paytm API failed: code=${String(resultInfo.resultCode ?? "unknown")}, ` +
+          `message=${String(resultInfo.resultMsg ?? "unknown")}`,
+      );
+    }
 
     const rawBodyValid = Boolean(
       responseSignature &&
@@ -138,16 +185,6 @@ const postPaytm = async (
       ),
     );
 
-    const resultInfo = envelope.body?.resultInfo;
-
-    console.warn("[Paytm response summary]", {
-      httpStatus: response.status,
-      resultStatus: resultInfo?.resultStatus ?? null,
-      resultCode: resultInfo?.resultCode ?? null,
-      resultMessage: resultInfo?.resultMsg ?? null,
-      hasTxnToken: Boolean(envelope.body?.txnToken),
-    });
-
     console.warn("[Paytm signature diagnostic]", {
       hasSignature: Boolean(responseSignature),
       rawBodyAvailable: Boolean(signedResponseBody),
@@ -155,6 +192,8 @@ const postPaytm = async (
       normalizedBodyValid,
       bodyKeys: Object.keys(envelope.body ?? {}),
     });
+
+    // Never accept an unsigned or invalidly signed response as successful.
     if (
       !responseSignature ||
       !signedResponseBody ||
@@ -162,6 +201,7 @@ const postPaytm = async (
     ) {
       throw new Error("Paytm response signature verification failed");
     }
+
     return envelope;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
@@ -169,6 +209,7 @@ const postPaytm = async (
         "Paytm request timed out. Check payment status before retrying.",
       );
     }
+
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -184,12 +225,16 @@ export const createPaytmTransaction = async (args: {
   email?: string;
   firstName?: string;
 }) => {
-  if (!Number.isFinite(args.amount) || args.amount <= 0)
+  if (!Number.isFinite(args.amount) || args.amount <= 0) {
     throw new Error("Invalid Paytm payment amount");
-  if (!/^[A-Za-z0-9@._-]{1,50}$/.test(args.orderId))
+  }
+
+  if (!/^[A-Za-z0-9@._-]{1,50}$/.test(args.orderId)) {
     throw new Error("Invalid Paytm order ID format");
+  }
 
   const config = getConfig();
+
   const callbackUrl = config.callbackTemplate.includes(":orderId")
     ? config.callbackTemplate.replace(
         ":orderId",
@@ -199,6 +244,7 @@ export const createPaytmTransaction = async (args: {
         "#OrderId#",
         encodeURIComponent(args.orderId),
       );
+
   const body: Record<string, unknown> = {
     requestType: "Payment",
     mid: config.mid,
@@ -218,8 +264,10 @@ export const createPaytmTransaction = async (args: {
 
   const url = `${config.baseUrl}/theia/api/v1/initiateTransaction?mid=${encodeURIComponent(config.mid)}&orderId=${encodeURIComponent(args.orderId)}`;
   const response = await postPaytm(url, body, { channelId: "WAP" });
+
   const result = response.body?.resultInfo ?? {};
   const token = response.body?.txnToken ?? response.body?.txn_token;
+
   if (result.resultStatus !== "S" || !token) {
     throw new Error(
       `Paytm could not initiate the transaction${result.resultMsg ? `: ${String(result.resultMsg)}` : ""}`,
@@ -242,34 +290,43 @@ export const fetchPaytmTransactionStatus = async (
   const config = getConfig();
   const body = { mid: config.mid, orderId };
   const url = `${config.baseUrl}/merchant-status/api/v1/getPaymentStatus?mid=${encodeURIComponent(config.mid)}&orderId=${encodeURIComponent(orderId)}`;
+
   const response = await postPaytm(url, body);
   const result = response.body?.resultInfo ?? {};
+
   const rawStatus = String(
     response.body?.txnStatus ?? response.body?.STATUS ?? "",
   ).toUpperCase();
+
   const returnedOrderId = String(
     response.body?.orderId ?? response.body?.ORDERID ?? "",
   );
+
   const amountValue =
     response.body?.txnAmount ??
     response.body?.TXNAMOUNT ??
     response.body?.amount;
   const amount = amountValue === undefined ? undefined : Number(amountValue);
+
   const transactionId =
     response.body?.txnId ??
     response.body?.TXNID ??
     response.body?.bankTxnId ??
     response.body?.BANKTXNID;
+
   const returnedMid = response.body?.mid ?? response.body?.MID;
   const currency = response.body?.currency ?? response.body?.CURRENCY;
 
   let status: PaytmTransactionStatus["status"] = "pending";
-  if (rawStatus === "TXN_SUCCESS") status = "paid";
-  else if (["TXN_FAILURE", "TXN_CANCELLED"].includes(rawStatus))
-    status = "failed";
-  // NO_RECORD_FOUND and unknown statuses remain pending: never fail a payment
-  // merely because Paytm has not propagated it to the status endpoint yet.
 
+  if (rawStatus === "TXN_SUCCESS") {
+    status = "paid";
+  } else if (["TXN_FAILURE", "TXN_CANCELLED"].includes(rawStatus)) {
+    status = "failed";
+  }
+
+  // NO_RECORD_FOUND and unknown statuses remain pending because Paytm may
+  // not have propagated the transaction to the status endpoint yet.
   return {
     status,
     orderId: returnedOrderId,
