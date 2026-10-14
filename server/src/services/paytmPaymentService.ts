@@ -223,6 +223,13 @@ export const createPaytmTransaction = async (args: {
   mobile?: string;
   email?: string;
   firstName?: string;
+  paymentMethod:
+    | "UPI_GPAY"
+    | "UPI_PHONEPE"
+    | "UPI_PAYTM"
+    | "UPI_OTHER"
+    | "CARD"
+    | "WALLET";
 }) => {
   if (!Number.isFinite(args.amount) || args.amount <= 0) {
     throw new Error("Invalid Paytm payment amount");
@@ -244,8 +251,28 @@ export const createPaytmTransaction = async (args: {
         encodeURIComponent(args.orderId),
       );
 
+  // Paytm's Initiate Transaction API filters available payment sources.
+  // Google Pay/PhonePe/Paytm selections enable UPI intent; Paytm chooses
+  // the compatible installed UPI app within its supported SDK flow.
+  const enablePaymentMode: Array<{ mode: string; channels?: string[] }> =
+    (() => {
+      switch (args.paymentMethod) {
+        case "UPI_GPAY":
+        case "UPI_PHONEPE":
+        case "UPI_PAYTM":
+          return [{ mode: "UPI", channels: ["UPIPUSH"] }];
+        case "UPI_OTHER":
+          return [{ mode: "UPI" }];
+        case "CARD":
+          return [{ mode: "CREDIT_CARD" }, { mode: "DEBIT_CARD" }];
+        case "WALLET":
+          return [{ mode: "BALANCE" }, { mode: "PPBL" }];
+      }
+    })();
+
   const body: Record<string, unknown> = {
     requestType: "Payment",
+    enablePaymentMode,
     mid: config.mid,
     websiteName: config.website,
     orderId: args.orderId,

@@ -84,12 +84,37 @@ export const createPaytmSessionController = async (
       checkoutMode = "cart",
       productId,
       quantity = 1,
+      paymentMethod,
     } = req.body as {
       addressId?: string;
       checkoutMode?: "cart" | "buyNow";
       productId?: string;
       quantity?: number;
+      paymentMethod?:
+        | "UPI_GPAY"
+        | "UPI_PHONEPE"
+        | "UPI_PAYTM"
+        | "UPI_OTHER"
+        | "CARD"
+        | "WALLET";
     };
+
+    const supportedPaymentMethods = [
+      "UPI_GPAY",
+      "UPI_PHONEPE",
+      "UPI_PAYTM",
+      "UPI_OTHER",
+      "CARD",
+      "WALLET",
+    ] as const;
+
+    if (!paymentMethod || !supportedPaymentMethods.includes(paymentMethod)) {
+      res.status(400).json({
+        success: false,
+        message: "A valid online payment method is required",
+      });
+      return;
+    }
 
     if (!addressId || !Types.ObjectId.isValid(addressId)) {
       res
@@ -209,6 +234,7 @@ export const createPaytmSessionController = async (
           .join(", "),
         mobile: address.phone,
         firstName: address.fullName,
+        paymentMethod,
       });
 
       attempt.txnToken = session.txnToken;
