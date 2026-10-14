@@ -2,17 +2,19 @@ import mongoose, { Types } from "mongoose";
 import Address from "../models/Address";
 import Cart from "../models/Cart";
 import Order from "../models/Order";
-import PaymentAttempt, { IPaymentAttemptItem } from "../models/PaymentAttempt";
+import CashfreePaymentAttempt, {
+  ICashfreePaymentAttemptItem,
+} from "../models/CashfreePaymentAttempt";
 import Product from "../models/Product";
 import { notifyVendorsAboutNewOrder } from "./notificationService";
 
-export type PaytmFinalizationResult =
+export type CashfreeFinalizationResult =
   | { status: "fulfilled"; order: any }
   | { status: "needs_review"; order?: undefined };
 
 const sameCartAsSnapshot = (
   cartItems: Array<{ product: Types.ObjectId; quantity: number }>,
-  snapshot: IPaymentAttemptItem[],
+  snapshot: ICashfreePaymentAttemptItem[],
 ) => {
   if (cartItems.length !== snapshot.length) return false;
   const left = cartItems
@@ -25,14 +27,14 @@ const sameCartAsSnapshot = (
 };
 
 /**
- * Finalizes a Paytm-paid checkout from the immutable server-side payment
- * snapshot. Payment status is fetched from Paytm before this function runs.
+ * Finalizes a Cashfree-paid checkout from the immutable server-side payment
+ * snapshot. Payment status is fetched from Cashfree before this function runs.
  * Order creation, stock decrements and attempt fulfillment are transactional.
  */
-export const finalizePaidPaytmAttempt = async (
+export const finalizePaidCashfreeAttempt = async (
   paymentAttemptId: string,
   transactionId?: string,
-): Promise<PaytmFinalizationResult> => {
+): Promise<CashfreeFinalizationResult> => {
   if (!Types.ObjectId.isValid(paymentAttemptId))
     throw new Error("Invalid payment attempt ID");
 
@@ -44,11 +46,11 @@ export const finalizePaidPaytmAttempt = async (
     session.startTransaction();
 
     const attempt =
-      await PaymentAttempt.findById(attemptObjectId).session(session);
+      await CashfreePaymentAttempt.findById(attemptObjectId).session(session);
     if (!attempt) throw new Error("Payment attempt not found");
 
     const existingOrder = await Order.findOne({
-      paymentAttemptId: attemptObjectId,
+      cashfreePaymentAttemptId: attemptObjectId,
     }).session(session);
     if (existingOrder) {
       attempt.status = "paid";
@@ -64,7 +66,7 @@ export const finalizePaidPaytmAttempt = async (
       attempt.status = "paid";
       attempt.fulfillmentStatus = "needs_review";
       attempt.paymentId = transactionId || attempt.paymentId;
-      attempt.lastProviderStatus = "TXN_SUCCESS";
+      attempt.lastProviderStatus = "SUCCESS";
       await attempt.save({ session });
       await session.commitTransaction();
       return { status: "needs_review" };
@@ -83,7 +85,7 @@ export const finalizePaidPaytmAttempt = async (
       attempt.status = "paid";
       attempt.fulfillmentStatus = "needs_review";
       attempt.paymentId = transactionId || attempt.paymentId;
-      attempt.lastProviderStatus = "TXN_SUCCESS";
+      attempt.lastProviderStatus = "SUCCESS";
       await attempt.save({ session });
       await session.commitTransaction();
       return { status: "needs_review" };
@@ -97,14 +99,14 @@ export const finalizePaidPaytmAttempt = async (
       attempt.status = "paid";
       attempt.fulfillmentStatus = "needs_review";
       attempt.paymentId = transactionId || attempt.paymentId;
-      attempt.lastProviderStatus = "TXN_SUCCESS";
+      attempt.lastProviderStatus = "SUCCESS";
       await attempt.save({ session });
       await session.commitTransaction();
       return { status: "needs_review" };
     }
 
     // Validate all products before changing any stock. Prices are the values
-    // captured when the Paytm transaction was initiated; current price changes
+    // captured when the Cashfree transaction was initiated; current price changes
     // must not alter the amount the customer already paid.
     for (const item of attempt.itemsSnapshot) {
       const product = await Product.findOne({
@@ -115,7 +117,7 @@ export const finalizePaidPaytmAttempt = async (
         attempt.status = "paid";
         attempt.fulfillmentStatus = "needs_review";
         attempt.paymentId = transactionId || attempt.paymentId;
-        attempt.lastProviderStatus = "TXN_SUCCESS";
+        attempt.lastProviderStatus = "SUCCESS";
         await attempt.save({ session });
         await session.commitTransaction();
         return { status: "needs_review" };
@@ -130,7 +132,7 @@ export const finalizePaidPaytmAttempt = async (
       );
       if (!updatedProduct) {
         // Throw to abort any earlier stock decrements in this transaction.
-        throw new Error("Stock changed while finalizing a paid Paytm order");
+        throw new Error("Stock changed while finalizing a paid Cashfree order");
       }
     }
 
@@ -148,11 +150,11 @@ export const finalizePaidPaytmAttempt = async (
             quantity: item.quantity,
           })),
           address: attempt.address,
-          paymentMethod: "PAYTM",
+          paymentMethod: "CASHFREE",
           paymentStatus: "PAID",
           paymentId: transactionId,
-          paytmOrderId: attempt.paytmOrderId,
-          paymentAttemptId: attempt._id,
+          cashfreeOrderId: attempt.cashfreeOrderId,
+          cashfreePaymentAttemptId: attempt._id,
           shippingAmount: attempt.shippingAmount,
           totalAmount: attempt.amount,
           status: "Placed",
@@ -164,11 +166,11 @@ export const finalizePaidPaytmAttempt = async (
     attempt.status = "paid";
     attempt.fulfillmentStatus = "fulfilled";
     attempt.paymentId = transactionId || attempt.paymentId;
-    attempt.lastProviderStatus = "TXN_SUCCESS";
+    attempt.lastProviderStatus = "SUCCESS";
     attempt.order = order._id as Types.ObjectId;
     await attempt.save({ session });
 
-    // Do not clear a cart that the customer changed while the Paytm app was open.
+    // Do not clear a cart that the customer changed while the Cashfree app was open.
     if (attempt.checkoutMode === "cart") {
       const cart = await Cart.findOne({ user: attempt.user }).session(session);
       if (cart && sameCartAsSnapshot(cart.items, attempt.itemsSnapshot)) {
@@ -183,29 +185,29 @@ export const finalizePaidPaytmAttempt = async (
     if (session.inTransaction()) await session.abortTransaction();
     if (error?.code === 11000) {
       const existingOrder = await Order.findOne({
-        paymentAttemptId: attemptObjectId,
+        cashfreePaymentAttemptId: attemptObjectId,
       });
       if (existingOrder) {
-        await PaymentAttempt.findByIdAndUpdate(attemptObjectId, {
+        await CashfreePaymentAttempt.findByIdAndUpdate(attemptObjectId, {
           $set: {
             status: "paid",
             fulfillmentStatus: "fulfilled",
             paymentId: transactionId,
             order: existingOrder._id,
-            lastProviderStatus: "TXN_SUCCESS",
+            lastProviderStatus: "SUCCESS",
           },
         });
         return { status: "fulfilled", order: existingOrder };
       }
     }
-    // If Paytm has confirmed payment but stock raced during finalization, keep
+    // If Cashfree has confirmed payment but stock raced during finalization, keep
     // the paid attempt visible for manual resolution/refund rather than losing it.
-    await PaymentAttempt.findByIdAndUpdate(attemptObjectId, {
+    await CashfreePaymentAttempt.findByIdAndUpdate(attemptObjectId, {
       $set: {
         status: "paid",
         fulfillmentStatus: "needs_review",
         paymentId: transactionId,
-        lastProviderStatus: "TXN_SUCCESS",
+        lastProviderStatus: "SUCCESS",
       },
     });
     throw error;
@@ -225,7 +227,7 @@ export const finalizePaidPaytmAttempt = async (
       ),
     );
   } catch (notificationError) {
-    console.error("Paytm order notification error:", notificationError);
+    console.error("Cashfree order notification error:", notificationError);
   }
 
   return { status: "fulfilled", order: createdOrder };

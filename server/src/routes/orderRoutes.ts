@@ -15,29 +15,31 @@ import {
 
 import authMiddleware from "../middleware/authMiddleware";
 import {
-  createPaytmSessionController,
-  verifyPaytmPaymentController,
-  getPaytmPaymentStatusController,
-} from "../controllers/paytmPaymentController";
+  createCashfreeSessionController,
+  verifyCashfreePaymentController,
+  getCashfreePaymentStatusController,
+} from "../controllers/cashfreePaymentController";
 
 const router = Router();
 
-// User payment/order routes
+// Cashfree payment routes for the React Native application
 router.post(
-  "/paytm/session",
+  "/cashfree/session",
   authMiddleware("user"),
-  createPaytmSessionController,
+  createCashfreeSessionController,
 );
 router.post(
-  "/paytm/verify",
+  "/cashfree/verify",
   authMiddleware("user"),
-  verifyPaytmPaymentController,
+  verifyCashfreePaymentController,
 );
 router.get(
-  "/paytm/:paymentId/status",
+  "/cashfree/:paymentId/status",
   authMiddleware("user"),
-  getPaytmPaymentStatusController,
+  getCashfreePaymentStatusController,
 );
+
+// User payment/order routes
 router.post("/", authMiddleware("user"), createOrderController);
 router.post("/buy-now", authMiddleware("user"), createBuyNowOrderController);
 

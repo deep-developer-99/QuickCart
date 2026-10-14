@@ -14,11 +14,13 @@ export interface IOrder extends Document {
   user: Types.ObjectId;
   items: IOrderItem[];
   address: Types.ObjectId;
-  paymentMethod: "COD" | "RAZORPAY" | "PAYTM";
+  paymentMethod: "COD" | "RAZORPAY" | "PAYTM" | "CASHFREE";
   paymentStatus: "PENDING" | "PAID" | "FAILED";
   paymentId?: string;
   razorpayOrderId?: string;
   paytmOrderId?: string;
+  cashfreeOrderId?: string;
+  cashfreePaymentAttemptId?: Types.ObjectId;
   paymentAttemptId?: Types.ObjectId;
   shippingAmount?: number;
   totalAmount: number;
@@ -96,7 +98,7 @@ const orderSchema = new Schema<IOrder>(
 
     paymentMethod: {
       type: String,
-      enum: ["COD", "RAZORPAY", "PAYTM"],
+      enum: ["COD", "RAZORPAY", "PAYTM", "CASHFREE"],
       required: true,
     },
 
@@ -118,6 +120,13 @@ const orderSchema = new Schema<IOrder>(
     },
 
     paytmOrderId: { type: String, index: true },
+    cashfreeOrderId: { type: String, index: true },
+    cashfreePaymentAttemptId: {
+      type: Schema.Types.ObjectId,
+      ref: "CashfreePaymentAttempt",
+      unique: true,
+      sparse: true,
+    },
 
     paymentAttemptId: {
       type: Schema.Types.ObjectId,
