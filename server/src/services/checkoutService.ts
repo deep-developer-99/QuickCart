@@ -41,8 +41,14 @@ export const calculateCheckout = async (userId: string) => {
     });
   }
 
+  const subtotal = totalAmount;
+  const shippingAmount = subtotal <= 99 ? 40 : 0;
+  const finalTotal = subtotal + shippingAmount;
+
   return {
     items,
-    totalAmount,
+    subtotal,
+    shippingAmount,
+    totalAmount: finalTotal,
   };
 };

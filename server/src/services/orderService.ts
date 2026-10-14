@@ -109,10 +109,11 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
       });
     }
 
-    // Mobile Paytm checkout uses the mobile app shipping rule; web COD/Razorpay behavior remains unchanged.
-    const shippingAmount =
-      paymentMethod === "PAYTM" && totalAmount < 100 ? 40 : 0;
-    totalAmount += shippingAmount;
+    // Shipping policy: ₹40 for subtotal <= ₹99; free shipping above ₹99.
+    // Apply consistently to COD and online payment methods.
+    const subtotal = totalAmount;
+    const shippingAmount = subtotal <= 99 ? 40 : 0;
+    totalAmount = subtotal + shippingAmount;
 
     // 4. Reduce stock safely
     for (const cartItem of cart.items) {
@@ -268,7 +269,8 @@ export const createBuyNowOrder = async (
     const discountedPrice = product.discountPrice ?? product.price;
 
     const subtotal = discountedPrice * quantity;
-    const shippingAmount = paymentMethod === "PAYTM" && subtotal < 100 ? 40 : 0;
+    // Shipping policy: ₹40 for subtotal <= ₹99; free shipping above ₹99.
+    const shippingAmount = subtotal <= 99 ? 40 : 0;
     const totalAmount = subtotal + shippingAmount;
 
     // 5. Reduce stock safely
