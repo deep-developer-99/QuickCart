@@ -111,7 +111,7 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
 
     // Mobile Paytm checkout uses the mobile app shipping rule; web COD/Razorpay behavior remains unchanged.
     const shippingAmount =
-      paymentMethod === "PAYTM" && totalAmount < 500 ? 40 : 0;
+      paymentMethod === "PAYTM" && totalAmount < 100 ? 40 : 0;
     totalAmount += shippingAmount;
 
     // 4. Reduce stock safely
@@ -268,7 +268,7 @@ export const createBuyNowOrder = async (
     const discountedPrice = product.discountPrice ?? product.price;
 
     const subtotal = discountedPrice * quantity;
-    const shippingAmount = paymentMethod === "PAYTM" && subtotal < 500 ? 40 : 0;
+    const shippingAmount = paymentMethod === "PAYTM" && subtotal < 100 ? 40 : 0;
     const totalAmount = subtotal + shippingAmount;
 
     // 5. Reduce stock safely
