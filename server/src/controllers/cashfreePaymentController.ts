@@ -18,7 +18,7 @@ import {
 import { finalizePaidCashfreeAttempt } from "../services/cashfreeOrderFinalizationService";
 
 const getShippingAmount = (subtotal: number) =>
-  subtotal > 0 && subtotal < 500 ? 40 : 0;
+  subtotal > 0 && subtotal <= 99 ? 40 : 0;
 const allowedMethods: CashfreePaymentMethod[] = [
   "UPI_GPAY",
   "UPI_PHONEPE",
