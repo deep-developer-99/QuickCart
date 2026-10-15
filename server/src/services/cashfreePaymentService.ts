@@ -218,3 +218,54 @@ export const fetchCashfreePaymentStatus = async (
     rawStatus: paymentStatus || orderStatus || "PENDING",
   };
 };
+
+export interface CashfreeSavedInstrument {
+  instrumentId: string;
+  cardBrand?: string;
+  last4?: string;
+  issuingBank?: string;
+  instrumentType: "card";
+}
+
+/** Stable customer ID must match the customer_id used when creating Cashfree orders. */
+export const getCashfreeCustomerId = (userId: string): string =>
+  userId.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 50) || `user_${crypto.randomBytes(4).toString("hex")}`;
+
+const normalizeInstrument = (item: any): CashfreeSavedInstrument | null => {
+  const instrumentId = String(item?.instrument_id ?? item?.instrumentId ?? "").trim();
+  if (!instrumentId) return null;
+  const rawLast4 = String(item?.instrument_meta?.card?.last_four_digits ?? item?.instrument_meta?.card?.last4 ?? item?.last4 ?? "");
+  const last4 = /^\d{4}$/.test(rawLast4) ? rawLast4 : undefined;
+  const brand = item?.instrument_meta?.card?.card_network ?? item?.instrument_meta?.card?.card_scheme ?? item?.card_brand ?? item?.cardBrand;
+  const bank = item?.instrument_meta?.card?.card_bank_name ?? item?.instrument_meta?.card?.issuing_bank ?? item?.issuing_bank;
+  return {
+    instrumentId,
+    ...(typeof brand === "string" && brand.trim() ? { cardBrand: brand.trim().slice(0, 40) } : {}),
+    ...(last4 ? { last4 } : {}),
+    ...(typeof bank === "string" && bank.trim() ? { issuingBank: bank.trim().slice(0, 100) } : {}),
+    instrumentType: "card",
+  };
+};
+
+/** Lists tokenized card instruments held by Cashfree Token Vault for this customer. */
+export const listCashfreeSavedCardInstruments = async (
+  customerId: string,
+): Promise<CashfreeSavedInstrument[]> => {
+  const result = await cashfreeRequest<any>(
+    `/customers/${encodeURIComponent(customerId)}/instruments?instrument_type=card`,
+    { method: "GET" },
+  );
+  const items = Array.isArray(result) ? result : Array.isArray(result?.instruments) ? result.instruments : Array.isArray(result?.data) ? result.data : [];
+  return items.map(normalizeInstrument).filter((item: CashfreeSavedInstrument | null): item is CashfreeSavedInstrument => Boolean(item));
+};
+
+/** Removes a tokenized card from Cashfree Token Vault. */
+export const deleteCashfreeSavedCardInstrument = async (
+  customerId: string,
+  instrumentId: string,
+): Promise<void> => {
+  await cashfreeRequest<any>(
+    `/customers/${encodeURIComponent(customerId)}/instruments/${encodeURIComponent(instrumentId)}`,
+    { method: "DELETE" },
+  );
+};
