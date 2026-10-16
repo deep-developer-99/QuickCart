@@ -103,7 +103,7 @@ const LocationSelector = () => {
 
     const loadAddresses = async () => {
       try {
-        const response = await getAddresses();
+        const response = await getAddresses(1, 50);
 
         if (!mounted || !response?.success) {
           return;

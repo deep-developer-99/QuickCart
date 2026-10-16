@@ -482,6 +482,21 @@
   cursor: pointer;
 }
 
+.mobile-cart-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mobile-cart-button.navbar-cart-disabled {
+  background: transparent;
+  color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 @media (max-width: 768px) {
   .profile-dropdown {
     display: none;

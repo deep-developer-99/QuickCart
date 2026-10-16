@@ -143,11 +143,15 @@ const AddressMap = ({
 
     window.addEventListener("resize", handleResize);
 
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(mapElementRef.current);
+
     // Fix initial rendering when the map is inside a flex/grid layout.
     window.setTimeout(handleResize, 100);
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
       map.off("dragstart", handleDragStart);
       map.off("dragend", handleDragEnd);
       map.remove();

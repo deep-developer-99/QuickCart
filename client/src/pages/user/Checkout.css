@@ -69,6 +69,85 @@
   cursor: pointer;
 }
 
+.selected-address-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 13px 15px;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+}
+
+.selected-address-summary strong {
+  color: #166534;
+}
+
+.selected-address-summary span,
+.selected-address-summary small,
+.no-selected-address {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.no-selected-address {
+  margin: 16px 0 0;
+}
+
+.address-picker {
+  position: relative;
+  margin-top: 14px;
+}
+
+.change-address-button {
+  padding: 10px 14px;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  background: #fff;
+  color: #15803d;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.change-address-button:hover {
+  background: #f0fdf4;
+}
+
+.address-picker-panel {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.compact-address-card {
+  padding: 12px;
+}
+
+.address-picker-message {
+  margin: 0;
+  padding: 12px;
+  color: #64748b;
+  text-align: center;
+}
+
+.address-picker-message.error {
+  color: #dc2626;
+}
+
+.address-picker-message button {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 7px;
+  background: #16a34a;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* Address form */
 
 .address-form {

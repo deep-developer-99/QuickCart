@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -49,6 +49,9 @@ const Checkout = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
 
   const [selectedAddress, setSelectedAddress] = useState("");
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
+  const [addressError, setAddressError] = useState("");
+  const addressPickerRef = useRef<HTMLDivElement>(null);
 
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "RAZORPAY">("COD");
 
@@ -92,13 +95,34 @@ const Checkout = () => {
     }));
   }, [user]);
 
+  useEffect(() => {
+    if (!showAddressPicker) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (addressPickerRef.current && !addressPickerRef.current.contains(event.target as Node)) {
+        setShowAddressPicker(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowAddressPicker(false);
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [showAddressPicker]);
+
   // Load cart and saved addresses once when Checkout mounts.
   useEffect(() => {
     const loadCheckout = async () => {
       try {
+        setAddressError("");
         const [cartResponse, addressResponse] = await Promise.all([
           getCart(),
-          getAddresses(),
+          getAddresses(1, 50),
         ]);
 
         const cartData = cartResponse.data;
@@ -117,6 +141,7 @@ const Checkout = () => {
         }
       } catch (error) {
         console.error("Failed to load checkout:", error);
+        setAddressError("Unable to load saved addresses.");
       } finally {
         setIsLoading(false);
       }
@@ -300,6 +325,7 @@ const Checkout = () => {
       setAddresses((previous) => [...previous, newAddress]);
 
       setSelectedAddress(newAddress._id);
+      setShowAddressPicker(false);
 
       setShowAddressForm(false);
 
@@ -473,6 +499,10 @@ const Checkout = () => {
     0,
   );
 
+  const selectedAddressData = addresses.find(
+    (address) => address._id === selectedAddress,
+  );
+
   return (
     <div className="checkout-page">
       <div className="checkout-container">
@@ -489,10 +519,91 @@ const Checkout = () => {
 
                 <button
                   type="button"
-                  onClick={() => setShowAddressForm((previous) => !previous)}
+                  onClick={() => {
+                    setShowAddressForm((previous) => !previous);
+                    setShowAddressPicker(false);
+                  }}
                 >
                   {showAddressForm ? "Cancel" : "+ Add Address"}
                 </button>
+              </div>
+
+              {selectedAddressData ? (
+                <div className="selected-address-summary">
+                  <strong>{selectedAddressData.fullName}</strong>
+                  <span>
+                    {selectedAddressData.addressLine}, {selectedAddressData.city},{" "}
+                    {selectedAddressData.state} - {selectedAddressData.pincode}
+                  </span>
+                  <small>{selectedAddressData.phone}</small>
+                </div>
+              ) : (
+                <p className="no-selected-address">
+                  No delivery address selected. Add or choose an address to continue.
+                </p>
+              )}
+
+              <div className="address-picker" ref={addressPickerRef}>
+                <button
+                  type="button"
+                  className="change-address-button"
+                  onClick={() => {
+                    setShowAddressPicker((previous) => !previous);
+                    setShowAddressForm(false);
+                  }}
+                  aria-expanded={showAddressPicker}
+                >
+                  {showAddressPicker ? "Close Address List" : "Change Delivery Address"}
+                </button>
+
+                {showAddressPicker && (
+                  <div className="address-list address-picker-panel">
+                    {addressError ? (
+                      <p className="address-picker-message error">{addressError}</p>
+                    ) : addresses.length === 0 ? (
+                      <div className="address-picker-message">
+                        <p>No saved address found.</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAddressPicker(false);
+                            setShowAddressForm(true);
+                          }}
+                        >
+                          Add Address
+                        </button>
+                      </div>
+                    ) : (
+                      addresses.map((address) => (
+                        <label
+                          key={address._id}
+                          className={`address-card compact-address-card ${
+                            selectedAddress === address._id ? "selected" : ""
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="address"
+                            value={address._id}
+                            checked={selectedAddress === address._id}
+                            onChange={() => {
+                              setSelectedAddress(address._id);
+                              setShowAddressPicker(false);
+                            }}
+                          />
+                          <div>
+                            <strong>{address.fullName}</strong>
+                            <p>
+                              {address.addressLine}, {address.city}, {address.state} -{" "}
+                              {address.pincode}
+                            </p>
+                            <span>{address.phone}</span>
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
               {showAddressForm && (
@@ -599,7 +710,7 @@ const Checkout = () => {
                 </form>
               )}
 
-              <div className="address-list">
+              {false && <div className="address-list">
                 {addresses.length === 0 ? (
                   <p>No address found.</p>
                 ) : (
@@ -640,7 +751,7 @@ const Checkout = () => {
                     </label>
                   ))
                 )}
-              </div>
+              </div>}
             </section>
 
             <section className="checkout-section">

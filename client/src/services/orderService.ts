@@ -36,8 +36,8 @@ export const verifyRazorpayPayment = async (
   return response.data;
 };
 
-export const getMyOrders = async () => {
-  const response = await api.get("/orders/my-orders");
+export const getMyOrders = async (page = 1, limit = 10) => {
+  const response = await api.get("/orders/my-orders", { params: { page, limit } });
   return response.data;
 };
 

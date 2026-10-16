@@ -1,4 +1,5 @@
 import Address from "../models/Address";
+import { createPaginationMeta, getPagination } from "../utils/pagination";
 
 interface CreateAddressData {
   fullName: string;
@@ -55,15 +56,32 @@ export const createAddress = async (
 };
 
 // Get All Addresses
-export const getUserAddresses = async (userId: string) => {
-  const addresses = await Address.find({
-    user: userId,
-  }).sort({
+export const getUserAddresses = async (
+  userId: string,
+  page?: unknown,
+  limit?: unknown,
+) => {
+  const pagination = getPagination(page, limit);
+  const filter = { user: userId };
+  const [addresses, totalItems] = await Promise.all([
+    Address.find(filter)
+      .sort({
     isDefault: -1,
     createdAt: -1,
-  });
+      })
+      .skip(pagination.skip)
+      .limit(pagination.limit),
+    Address.countDocuments(filter),
+  ]);
 
-  return addresses;
+  return {
+    data: addresses,
+    pagination: createPaginationMeta(
+      pagination.page,
+      pagination.limit,
+      totalItems,
+    ),
+  };
 };
 
 // Get Single Address

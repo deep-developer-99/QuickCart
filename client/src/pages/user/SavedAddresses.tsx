@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import axios from "axios";
 
 import {
   deleteAddress,
+  createAddress,
   getAddresses,
   updateAddress,
 } from "../../services/addressService";
@@ -12,6 +12,7 @@ import {
   type DetectedLocation,
 } from "../../services/locationService";
 import AddressMap from "../../components/common/AddressMap";
+import Pagination from "../../components/common/Pagination";
 import type { Address, CreateAddressData } from "../../types/address";
 
 import "./SavedAddresses.css";
@@ -34,18 +35,28 @@ const SavedAddresses = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [isCreatingAddress, setIsCreatingAddress] = useState(false);
   const [form, setForm] = useState<CreateAddressData>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const loadAddresses = async () => {
+  const loadAddresses = async (requestedPage = page) => {
     try {
       setIsLoading(true);
       setError("");
-      const response = await getAddresses();
+      const response = await getAddresses(requestedPage, 10);
       setAddresses(response?.data || []);
+      const availablePages = response?.pagination?.totalPages || 1;
+      setTotalPages(availablePages);
+      setTotalItems(response?.pagination?.totalItems || 0);
+      if (requestedPage > availablePages) {
+        setPage(availablePages);
+      }
     } catch (requestError: unknown) {
       console.error("Load addresses error:", requestError);
       setError(
@@ -60,13 +71,14 @@ const SavedAddresses = () => {
 
   useEffect(() => {
     void loadAddresses();
-  }, []);
+  }, [page]);
 
   const startEditing = (address: Address) => {
     setOpenMenuId(null);
     setError("");
     setSuccess("");
     setEditingAddress(address);
+    setIsCreatingAddress(false);
     setForm({
       fullName: address.fullName,
       phone: address.phone,
@@ -80,9 +92,19 @@ const SavedAddresses = () => {
     });
   };
 
+  const startCreating = () => {
+    setOpenMenuId(null);
+    setError("");
+    setSuccess("");
+    setEditingAddress(null);
+    setIsCreatingAddress(true);
+    setForm(emptyForm);
+  };
+
   const closeEditor = () => {
     if (isSaving) return;
     setEditingAddress(null);
+    setIsCreatingAddress(false);
     setForm(emptyForm);
     setIsDetectingLocation(false);
     setError("");
@@ -128,7 +150,7 @@ const SavedAddresses = () => {
   };
 
   const handleSave = async () => {
-    if (!editingAddress) return;
+    if (!editingAddress && !isCreatingAddress) return;
 
     const requiredFields: Array<keyof CreateAddressData> = [
       "fullName",
@@ -163,7 +185,7 @@ const SavedAddresses = () => {
       setError("");
       setSuccess("");
 
-      const response = await updateAddress(editingAddress._id, {
+      const addressData = {
         ...form,
         fullName: form.fullName.trim(),
         phone: form.phone.trim(),
@@ -171,25 +193,42 @@ const SavedAddresses = () => {
         city: form.city.trim(),
         state: form.state.trim(),
         pincode: form.pincode.trim(),
-      });
+      };
+      const response = editingAddress
+        ? await updateAddress(editingAddress._id, addressData)
+        : await createAddress(addressData);
 
       if (!response?.success) {
-        setError(response?.message || "Failed to update address.");
+        setError(
+          response?.message ||
+            (editingAddress
+              ? "Failed to update address."
+              : "Failed to save address."),
+        );
         return;
       }
 
-      setAddresses((previous) =>
-        previous.map((address) =>
-          address._id === editingAddress._id
-            ? response.data
-            : form.isDefault
-              ? { ...address, isDefault: false }
-              : address,
-        ),
-      );
+      if (editingAddress) {
+        setAddresses((previous) =>
+          previous.map((address) =>
+            address._id === editingAddress._id
+              ? response.data
+              : form.isDefault
+                ? { ...address, isDefault: false }
+                : address,
+          ),
+        );
+      } else {
+        await loadAddresses(page);
+      }
       setEditingAddress(null);
+      setIsCreatingAddress(false);
       setForm(emptyForm);
-      setSuccess("Address updated successfully.");
+      setSuccess(
+        editingAddress
+          ? "Address updated successfully."
+          : "Address added successfully.",
+      );
     } catch (requestError: unknown) {
       console.error("Update address error:", requestError);
       setError(
@@ -222,9 +261,7 @@ const SavedAddresses = () => {
         return;
       }
 
-      setAddresses((previous) =>
-        previous.filter((item) => item._id !== address._id),
-      );
+      await loadAddresses(page);
       setSuccess("Address deleted successfully.");
     } catch (requestError: unknown) {
       console.error("Delete address error:", requestError);
@@ -243,9 +280,13 @@ const SavedAddresses = () => {
       <div className="saved-addresses-container">
         <div className="blinkit-addresses-header">
           <h1>My addresses</h1>
-          <Link to="/checkout" className="blinkit-add-address-link">
+          <button
+            type="button"
+            className="blinkit-add-address-link"
+            onClick={startCreating}
+          >
             <span>+</span> Add new address
-          </Link>
+          </button>
         </div>
 
         {error && <div className="saved-addresses-alert error">{error}</div>}
@@ -276,13 +317,18 @@ const SavedAddresses = () => {
               Add an address during checkout and it will appear here for quick
               access next time.
             </p>
-            <Link to="/checkout" className="saved-addresses-primary-link">
+            <button
+              type="button"
+              className="saved-addresses-primary-link"
+              onClick={startCreating}
+            >
               Add Your First Address
-            </Link>
+            </button>
           </div>
         ) : (
-          <div className="blinkit-address-list">
-            {addresses.map((address) => (
+          <>
+            <div className="blinkit-address-list">
+              {addresses.map((address) => (
               <article className="blinkit-address-row" key={address._id}>
                 <div
                   className={`blinkit-address-icon ${address.isDefault ? "default" : ""}`}
@@ -338,12 +384,19 @@ const SavedAddresses = () => {
                   )}
                 </div>
               </article>
-            ))}
-          </div>
+              ))}
+            </div>
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              onPageChange={setPage}
+            />
+          </>
         )}
       </div>
 
-      {editingAddress && (
+      {(editingAddress || isCreatingAddress) && (
         <div className="address-editor-backdrop" onMouseDown={closeEditor}>
           <div
             className="address-editor-modal"
@@ -394,7 +447,7 @@ const SavedAddresses = () => {
 
             <div className="address-editor-form-panel">
               <div className="address-editor-header">
-                <h2>Enter complete address</h2>
+                <h2>{editingAddress ? "Edit address" : "Add new address"}</h2>
                 <button
                   type="button"
                   className="address-editor-close"
@@ -410,9 +463,9 @@ const SavedAddresses = () => {
               )}
 
               <div className="address-editor-form-scroll">
-                <div className="address-editor-section-label">
-                  Edit address details
-                </div>
+                  <div className="address-editor-section-label">
+                    {editingAddress ? "Edit address details" : "Enter address details"}
+                  </div>
 
                 <label className="address-editor-field">
                   <span>Flat / House no / Building name *</span>

@@ -308,8 +308,12 @@ export const getMyOrdersController = async (
       return;
     }
 
-    const orders = await getMyOrders(req.user.id);
-    res.status(200).json({ success: true, data: orders });
+    const orders = await getMyOrders(
+      req.user.id,
+      req.query.page,
+      req.query.limit,
+    );
+    res.status(200).json({ success: true, ...orders });
   } catch (error) {
     console.error("Get my orders error:", error);
     res.status(500).json({

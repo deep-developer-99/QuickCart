@@ -367,10 +367,15 @@ export const createBuyNowOrder = async (
 };
 
 // Get My Orders
-export const getMyOrders = async (userId: string) => {
-  const orders = await Order.find({
-    user: userId,
-  })
+export const getMyOrders = async (
+  userId: string,
+  page?: unknown,
+  limit?: unknown,
+) => {
+  const pagination = getPagination(page, limit);
+  const filter = { user: userId };
+  const [orders, totalItems] = await Promise.all([
+    Order.find(filter)
     .populate("address")
     .populate({
       path: "items.product",
@@ -380,13 +385,24 @@ export const getMyOrders = async (userId: string) => {
       path: "items.vendor",
       select: "shopName",
     })
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(pagination.skip)
+    .limit(pagination.limit),
+    Order.countDocuments(filter),
+  ]);
 
   if (!orders) {
     throw new Error("Order not found");
   }
 
-  return orders;
+  return {
+    data: orders,
+    pagination: createPaginationMeta(
+      pagination.page,
+      pagination.limit,
+      totalItems,
+    ),
+  };
 };
 
 // Get Single Order

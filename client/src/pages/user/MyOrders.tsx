@@ -2,19 +2,30 @@ import { useEffect, useState } from "react";
 import { getMyOrders } from "../../services/orderService";
 import type { Order } from "../../types/order";
 import OrderCard from "../../components/user/OrderCard";
+import Pagination from "../../components/common/Pagination";
 import "./MyOrders.css";
 
 const MyOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     const loadOrders = async () => {
       try {
+        setIsLoading(true);
         setError("");
-        const response = await getMyOrders();
+        const response = await getMyOrders(page, 10);
         setOrders(response.data || []);
+        const availablePages = response.pagination?.totalPages || 1;
+        setTotalPages(availablePages);
+        setTotalItems(response.pagination?.totalItems || 0);
+        if (page > availablePages) {
+          setPage(availablePages);
+        }
       } catch (requestError) {
         console.error("Failed to load orders:", requestError);
         setError("Failed to load your orders. Please try again.");
@@ -24,7 +35,7 @@ const MyOrders = () => {
     };
 
     void loadOrders();
-  }, []);
+  }, [page]);
 
   return (
     <section className="account-section orders-section">
@@ -38,7 +49,7 @@ const MyOrders = () => {
         </div>
         {!isLoading && !error && (
           <div className="orders-count-badge">
-            {orders.length} {orders.length === 1 ? "Order" : "Orders"}
+            {totalItems} {totalItems === 1 ? "Order" : "Orders"}
           </div>
         )}
       </div>
@@ -62,11 +73,19 @@ const MyOrders = () => {
           <p>Your placed orders will appear here.</p>
         </div>
       ) : (
-        <div className="orders-list">
-          {orders.map((order) => (
-            <OrderCard key={order._id} order={order} />
-          ))}
-        </div>
+        <>
+          <div className="orders-list">
+            {orders.map((order) => (
+              <OrderCard key={order._id} order={order} />
+            ))}
+          </div>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            onPageChange={setPage}
+          />
+        </>
       )}
     </section>
   );

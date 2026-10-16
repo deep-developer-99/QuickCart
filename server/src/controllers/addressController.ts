@@ -54,11 +54,15 @@ export const getUserAddressesController = async (
       });
       return;
     }
-    const addresses = await getUserAddresses(req.user.id);
+    const addresses = await getUserAddresses(
+      req.user.id,
+      req.query.page,
+      req.query.limit,
+    );
 
     res.status(200).json({
       success: true,
-      data: addresses,
+      ...addresses,
     });
   } catch (error) {
     console.error("Get addresses error:", error);

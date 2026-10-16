@@ -1,8 +1,8 @@
 import api from "./api";
 import type { CreateAddressData } from "../types/address";
 
-export const getAddresses = async () => {
-  const response = await api.get("/addresses");
+export const getAddresses = async (page = 1, limit = 10) => {
+  const response = await api.get("/addresses", { params: { page, limit } });
 
   return response.data;
 };

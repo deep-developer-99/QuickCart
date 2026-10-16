@@ -229,15 +229,20 @@ const Navbar = () => {
 
           {isUser ? (
             <>
-              <NavLink
-                to="/cart"
-                className={({ isActive }) =>
-                  isActive ? "mobile-menu-link active" : "mobile-menu-link"
-                }
-                onClick={closeMenu}
+              <button
+                type="button"
+                className={`mobile-menu-link mobile-cart-button${isCartEmpty ? " navbar-cart-disabled" : ""}`}
+                onClick={() => {
+                  if (!isCartEmpty) {
+                    closeMenu();
+                    navigate("/cart");
+                  }
+                }}
+                disabled={isCartEmpty}
+                aria-disabled={isCartEmpty}
               >
                 🛒 Cart
-              </NavLink>
+              </button>
               <button
                 type="button"
                 className="mobile-menu-link mobile-account-button"
