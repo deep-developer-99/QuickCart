@@ -3,12 +3,14 @@ export interface PaginationMeta {
   limit: number;
   totalItems: number;
   totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
 }
 
 export const getPagination = (
   pageValue: unknown,
   limitValue: unknown,
-  defaultLimit = 12,
+  defaultLimit = 10,
 ) => {
   const parsedPage = Number(pageValue);
   const parsedLimit = Number(limitValue);
@@ -36,4 +38,6 @@ export const createPaginationMeta = (
   limit,
   totalItems,
   totalPages: Math.max(1, Math.ceil(totalItems / limit)),
+  hasNextPage: page < Math.max(1, Math.ceil(totalItems / limit)),
+  hasPrevPage: page > 1,
 });

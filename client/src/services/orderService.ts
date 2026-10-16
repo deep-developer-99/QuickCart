@@ -46,8 +46,8 @@ export const getOrderById = async (id: string) => {
   return response.data;
 };
 
-export const getVendorOrders = async () => {
-  const response = await api.get("/orders/vendor");
+export const getVendorOrders = async (page = 1, limit = 10) => {
+  const response = await api.get("/orders/vendor", { params: { page, limit } });
   return response.data;
 };
 

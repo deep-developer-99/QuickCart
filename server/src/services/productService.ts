@@ -1,5 +1,6 @@
 import Product from "../models/Product";
 import Category from "../models/Category";
+import { createPaginationMeta, getPagination } from "../utils/pagination";
 
 interface CreateProductData {
   name: string;
@@ -60,7 +61,8 @@ export const createProduct = async (
   return product;
 };
 
-export const getAllProducts = async (search?: string, category?: string) => {
+export const getAllProducts = async (search?: string, category?: string, page?: unknown, limit?: unknown) => {
+  const pagination = getPagination(page, limit);
   const filter: Record<string, unknown> = {
     isActive: true,
     stock: { $gt: 0 },
@@ -77,12 +79,12 @@ export const getAllProducts = async (search?: string, category?: string) => {
     filter.category = category;
   }
 
-  const products = await Product.find(filter)
+  const [products, totalItems] = await Promise.all([Product.find(filter)
     .populate("category", "name image")
     .populate("vendor", "shopName")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), Product.countDocuments(filter)]);
 
-  return products;
+  return { data: products, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
 };
 
 export const getProductById = async (productId: string) => {
@@ -100,22 +102,26 @@ export const getProductById = async (productId: string) => {
   return product;
 };
 
-export const getProductsByCategory = async (categoryId: string) => {
-  const products = await Product.find({
+export const getProductsByCategory = async (categoryId: string, page?: unknown, limit?: unknown) => {
+  const pagination = getPagination(page, limit);
+  const filter = {
     category: categoryId,
     isActive: true,
     stock: { $gt: 0 },
-  }).populate("category", "name image");
+  };
+  const [products, totalItems] = await Promise.all([Product.find(filter).populate("category", "name image").sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), Product.countDocuments(filter)]);
 
-  return products;
+  return { data: products, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
 };
 
-export const getVendorProducts = async (vendorId: string) => {
-  const products = await Product.find({ vendor: vendorId })
+export const getVendorProducts = async (vendorId: string, page?: unknown, limit?: unknown) => {
+  const pagination = getPagination(page, limit);
+  const filter = { vendor: vendorId };
+  const [products, totalItems] = await Promise.all([Product.find(filter)
     .populate("category", "name image")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), Product.countDocuments(filter)]);
 
-  return products;
+  return { data: products, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
 };
 
 export const getVendorProductById = async (

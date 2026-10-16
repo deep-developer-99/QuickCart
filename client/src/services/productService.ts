@@ -1,18 +1,20 @@
 import api from "./api";
 
-export const getProducts = async (search?: string, category?: string) => {
+export const getProducts = async (search?: string, category?: string, page = 1, limit = 10) => {
   const response = await api.get("/products", {
     params: {
       search,
       category,
+      page,
+      limit,
     },
   });
 
   return response.data;
 };
 
-export const getVendorProducts = async () => {
-  const response = await api.get("/products/vendor");
+export const getVendorProducts = async (page = 1, limit = 10) => {
+  const response = await api.get("/products/vendor", { params: { page, limit } });
 
   return response.data;
 };
@@ -23,8 +25,8 @@ export const getProductById = async (id: string) => {
   return response.data;
 };
 
-export const getProductsByCategory = async (id: string) => {
-  const response = await api.get(`/products/category/${id}`);
+export const getProductsByCategory = async (id: string, page = 1, limit = 10) => {
+  const response = await api.get(`/products/category/${id}`, { params: { page, limit } });
 
   return response.data;
 };

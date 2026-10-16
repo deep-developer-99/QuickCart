@@ -20,11 +20,11 @@ export const getAllVendorsController = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const vendors = await getAllVendors();
+    const vendors = await getAllVendors(req.query.page, req.query.limit);
 
     res.status(200).json({
       success: true,
-      data: vendors,
+      ...vendors,
     });
   } catch (error) {
     console.error("Get vendors error:", error);
@@ -146,11 +146,11 @@ export const getAllUsersController = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const users = await getAllUsers();
+    const users = await getAllUsers(req.query.page, req.query.limit);
 
     res.status(200).json({
       success: true,
-      data: users,
+      ...users,
     });
   } catch (error) {
     console.error("Get users error:", error);
@@ -168,11 +168,11 @@ export const getAllProductsAdminController = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const products = await getAllProductsAdmin();
+    const products = await getAllProductsAdmin(req.query.page, req.query.limit);
 
     res.status(200).json({
       success: true,
-      data: products,
+      ...products,
     });
   } catch (error) {
     console.error("Get admin products error:", error);
@@ -190,11 +190,11 @@ export const getAllOrdersAdminController = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const orders = await getAllOrdersAdmin();
+    const orders = await getAllOrdersAdmin(req.query.page, req.query.limit);
 
     res.status(200).json({
       success: true,
-      data: orders,
+      ...orders,
     });
   } catch (error) {
     console.error("Get admin orders error:", error);

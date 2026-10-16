@@ -356,8 +356,8 @@ export const getVendorOrdersController = async (
       return;
     }
 
-    const orders = await getVendorOrders(req.user.id);
-    res.status(200).json({ success: true, data: orders });
+    const orders = await getVendorOrders(req.user.id, req.query.page, req.query.limit);
+    res.status(200).json({ success: true, ...orders });
   } catch (error) {
     console.error("Get vendor orders error:", error);
     res.status(500).json({

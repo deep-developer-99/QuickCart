@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 import { getAdminProducts } from "../../services/adminService";
+import Pagination from "../../components/common/Pagination";
 
 import "./AdminProducts.css";
 
@@ -36,16 +37,22 @@ const AdminProducts = () => {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (requestedPage = page) => {
     try {
       setIsLoading(true);
       setError("");
 
-      const response = await getAdminProducts();
+      const response = await getAdminProducts(requestedPage, 10);
 
       if (response?.success) {
         setProducts(response.data || []);
+        setTotalPages(response.pagination?.totalPages || 1);
+        if (requestedPage > (response.pagination?.totalPages || 1)) setPage(response.pagination?.totalPages || 1);
+        setTotalItems(response.pagination?.totalItems || 0);
       } else {
         setError("Failed to load products.");
       }
@@ -64,7 +71,7 @@ const AdminProducts = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [page]);
 
   if (isLoading) {
     return (
@@ -84,7 +91,7 @@ const AdminProducts = () => {
           </div>
 
           <div className="admin-count">
-            {products.length} {products.length === 1 ? "Product" : "Products"}
+            {totalItems} {totalItems === 1 ? "Product" : "Products"}
           </div>
         </div>
 
@@ -171,6 +178,7 @@ const AdminProducts = () => {
             })}
           </div>
         )}
+        <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} onPageChange={setPage} />
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import {
   updateAdminCategory,
 } from "../../services/adminService";
 import type { Category } from "../../types/product";
+import Pagination from "../../components/common/Pagination";
 
 import "./AdminCategories.css";
 
@@ -35,16 +36,22 @@ const AdminCategories = () => {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const fetchCategories = async () => {
+  const fetchCategories = async (requestedPage = page) => {
     try {
       setIsLoading(true);
       setError("");
 
-      const response = await getAdminCategories();
+      const response = await getAdminCategories(requestedPage, 10);
 
       if (response?.success) {
         setCategories(response.data || []);
+        setTotalPages(response.pagination?.totalPages || 1);
+        if (requestedPage > (response.pagination?.totalPages || 1)) setPage(response.pagination?.totalPages || 1);
+        setTotalItems(response.pagination?.totalItems || 0);
       } else {
         setError("Failed to load categories.");
       }
@@ -63,7 +70,7 @@ const AdminCategories = () => {
 
   useEffect(() => {
     void fetchCategories();
-  }, []);
+  }, [page]);
 
   const clearPreviewUrl = () => {
     if (imagePreview.startsWith("blob:")) {
@@ -377,6 +384,7 @@ const AdminCategories = () => {
             <p>Add your first QuickCart category.</p>
           </div>
         ) : (
+          <>
           <div className="admin-categories-grid">
             {categories.map((category) => (
               <div className="admin-category-card" key={category._id}>
@@ -426,6 +434,8 @@ const AdminCategories = () => {
               </div>
             ))}
           </div>
+          <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} onPageChange={setPage} />
+          </>
         )}
       </div>
     </div>

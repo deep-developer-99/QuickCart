@@ -1,5 +1,6 @@
 import Product from "../models/Product";
 import Category from "../models/Category";
+import { createPaginationMeta, getPagination } from "../utils/pagination";
 
 interface CreateCategoryData {
   name: string;
@@ -37,8 +38,10 @@ export const getCategoryById = async (categoryId: string) => {
 };
 
 // Get all active/inactive categories for admin.
-export const getAllCategoriesAdmin = async () => {
-  return Category.find().sort({ createdAt: -1 });
+export const getAllCategoriesAdmin = async (page?: unknown, limit?: unknown) => {
+  const pagination = getPagination(page, limit);
+  const [data, totalItems] = await Promise.all([Category.find().sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), Category.countDocuments()]);
+  return { data, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
 };
 
 // Create a new category.

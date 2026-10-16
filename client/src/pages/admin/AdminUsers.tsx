@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 import { getAdminUsers } from "../../services/adminService";
+import Pagination from "../../components/common/Pagination";
 
 import "./AdminUsers.css";
 
@@ -20,16 +21,22 @@ const AdminUsers = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (requestedPage = page) => {
     try {
       setIsLoading(true);
       setError("");
 
-      const response = await getAdminUsers();
+      const response = await getAdminUsers(requestedPage, 10);
 
       if (response?.success) {
         setUsers(response.data || []);
+        setTotalPages(response.pagination?.totalPages || 1);
+        if (requestedPage > (response.pagination?.totalPages || 1)) setPage(response.pagination?.totalPages || 1);
+        setTotalItems(response.pagination?.totalItems || 0);
       } else {
         setError("Failed to load users.");
       }
@@ -48,7 +55,7 @@ const AdminUsers = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [page]);
 
   if (isLoading) {
     return (
@@ -68,7 +75,7 @@ const AdminUsers = () => {
           </div>
 
           <div className="admin-count">
-            {users.length} {users.length === 1 ? "User" : "Users"}
+            {totalItems} {totalItems === 1 ? "User" : "Users"}
           </div>
         </div>
 
@@ -136,6 +143,7 @@ const AdminUsers = () => {
             </table>
           </div>
         )}
+        <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} onPageChange={setPage} />
       </div>
     </div>
   );

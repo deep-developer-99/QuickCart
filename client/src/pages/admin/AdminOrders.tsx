@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 import { getAdminOrders } from "../../services/adminService";
+import Pagination from "../../components/common/Pagination";
 
 import type { OrderStatus } from "../../types/order";
 
@@ -80,16 +81,22 @@ const AdminOrders = () => {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (requestedPage = page) => {
     try {
       setIsLoading(true);
       setError("");
 
-      const response = await getAdminOrders();
+      const response = await getAdminOrders(requestedPage, 10);
 
       if (response?.success) {
         setOrders(response.data || []);
+        setTotalPages(response.pagination?.totalPages || 1);
+        if (requestedPage > (response.pagination?.totalPages || 1)) setPage(response.pagination?.totalPages || 1);
+        setTotalItems(response.pagination?.totalItems || 0);
       } else {
         setError("Failed to load orders.");
       }
@@ -108,7 +115,7 @@ const AdminOrders = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [page]);
 
   if (isLoading) {
     return (
@@ -240,6 +247,7 @@ const AdminOrders = () => {
             })}
           </div>
         )}
+        <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} onPageChange={setPage} />
       </div>
     </div>
   );

@@ -132,11 +132,13 @@ export const getAllProductsController = async (
     const products = await getAllProducts(
       search as string | undefined,
       category as string | undefined,
+      req.query.page,
+      req.query.limit,
     );
 
     res.status(200).json({
       success: true,
-      data: products,
+      ...products,
     });
   } catch (error) {
     console.error("Get products error:", error);
@@ -178,11 +180,11 @@ export const getProductsByCategoryController = async (
   try {
     const { categoryId } = req.params as { categoryId: string };
 
-    const products = await getProductsByCategory(categoryId);
+    const products = await getProductsByCategory(categoryId, req.query.page, req.query.limit);
 
     res.status(200).json({
       success: true,
-      data: products,
+      ...products,
     });
   } catch (error) {
     console.error("Get products through category error:", error);
@@ -207,11 +209,11 @@ export const getVendorProductsController = async (
       return;
     }
 
-    const products = await getVendorProducts(req.user.id);
+    const products = await getVendorProducts(req.user.id, req.query.page, req.query.limit);
 
     res.status(200).json({
       success: true,
-      data: products,
+      ...products,
     });
   } catch (error) {
     console.error("Get vendor products error:", error);

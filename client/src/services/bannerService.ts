@@ -5,8 +5,8 @@ export const getActiveBanners = async () => {
   return response.data;
 };
 
-export const getAdminBanners = async () => {
-  const response = await api.get("/admin/banners");
+export const getAdminBanners = async (page = 1, limit = 10) => {
+  const response = await api.get("/admin/banners", { params: { page, limit } });
   return response.data;
 };
 

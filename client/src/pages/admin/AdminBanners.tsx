@@ -15,6 +15,7 @@ import {
 } from "../../services/adminService";
 import type { Banner, BannerRedirectType } from "../../types/banner";
 import type { Category, Product } from "../../types/product";
+import Pagination from "../../components/common/Pagination";
 
 import "./AdminBanners.css";
 
@@ -84,6 +85,9 @@ const AdminBanners = () => {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   const isEditing = Boolean(editingBanner);
 
@@ -101,15 +105,18 @@ const AdminBanners = () => {
     }));
   }, [categories, products, form.redirectType]);
 
-  const fetchBanners = async () => {
+  const fetchBanners = async (requestedPage = page) => {
     try {
       setIsLoading(true);
       setError("");
 
-      const response = await getAdminBanners();
+      const response = await getAdminBanners(requestedPage, 10);
 
       if (response?.success) {
         setBanners(response.data || []);
+        setTotalPages(response.pagination?.totalPages || 1);
+        if (requestedPage > (response.pagination?.totalPages || 1)) setPage(response.pagination?.totalPages || 1);
+        setTotalItems(response.pagination?.totalItems || 0);
       } else {
         setError("Failed to load banners.");
       }
@@ -129,8 +136,8 @@ const AdminBanners = () => {
   const fetchBannerOptions = async () => {
     try {
       const [categoryResponse, productResponse] = await Promise.all([
-        getAdminCategories(),
-        getAdminProducts(),
+        getAdminCategories(1, 50),
+        getAdminProducts(1, 50),
       ]);
 
       if (categoryResponse?.success) {
@@ -147,7 +154,7 @@ const AdminBanners = () => {
 
   useEffect(() => {
     void Promise.all([fetchBanners(), fetchBannerOptions()]);
-  }, []);
+    }, [page]);
 
   const resetForm = () => {
     setShowForm(false);
@@ -827,6 +834,7 @@ const AdminBanners = () => {
             ))}
           </div>
         )}
+        <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} onPageChange={setPage} />
       </div>
     </div>
   );

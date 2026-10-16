@@ -2,14 +2,18 @@ import User from "../models/User";
 import Vendor from "../models/Vendor";
 import Product from "../models/Product";
 import Order from "../models/Order";
+import { createPaginationMeta, getPagination } from "../utils/pagination";
 
 // Get all vendors
-export const getAllVendors = async () => {
-  const vendors = await Vendor.find()
+export const getAllVendors = async (page?: unknown, limit?: unknown) => {
+  const pagination = getPagination(page, limit);
+  const [vendors, totalItems] = await Promise.all([Vendor.find()
     .select("-password")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(pagination.skip)
+    .limit(pagination.limit), Vendor.countDocuments()]);
 
-  return vendors;
+  return { data: vendors, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
 };
 
 // Approve vendor
@@ -75,25 +79,28 @@ export const activateVendor = async (vendorId: string) => {
 };
 
 // Get All Users
-export const getAllUsers = async () => {
-  const users = await User.find().select("-__v").sort({ createdAt: -1 });
+export const getAllUsers = async (page?: unknown, limit?: unknown) => {
+  const pagination = getPagination(page, limit);
+  const [users, totalItems] = await Promise.all([User.find().select("-__v").sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), User.countDocuments()]);
 
-  return users;
+  return { data: users, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
 };
 
 // Products
-export const getAllProductsAdmin = async () => {
-  const product = await Product.find()
+export const getAllProductsAdmin = async (page?: unknown, limit?: unknown) => {
+  const pagination = getPagination(page, limit);
+  const [product, totalItems] = await Promise.all([Product.find()
     .populate("category", "name image")
     .populate("vendor", "name shopName email")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), Product.countDocuments()]);
 
-  return product;
+  return { data: product, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
 };
 
 // Orders
-export const getAllOrdersAdmin = async () => {
-  const orders = await Order.find()
+export const getAllOrdersAdmin = async (page?: unknown, limit?: unknown) => {
+  const pagination = getPagination(page, limit);
+  const [orders, totalItems] = await Promise.all([Order.find()
     .populate("user", "name email phone")
     .populate("address")
     .populate({
@@ -104,9 +111,9 @@ export const getAllOrdersAdmin = async () => {
       path: "items.vendor",
       select: "name shopName",
     })
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), Order.countDocuments()]);
 
-  return orders;
+  return { data: orders, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
 };
 
 const getIndiaDateKey = (date: Date): string => {

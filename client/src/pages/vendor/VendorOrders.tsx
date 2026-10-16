@@ -6,6 +6,7 @@ import {
 } from "../../services/orderService";
 
 import type { Order, OrderStatus } from "../../types/order";
+import Pagination from "../../components/common/Pagination";
 
 import "./VendorOrders.css";
 
@@ -42,16 +43,22 @@ const VendorOrders = () => {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (requestedPage = page) => {
     try {
       setIsLoading(true);
       setError("");
 
-      const response = await getVendorOrders();
+      const response = await getVendorOrders(requestedPage, 10);
 
       if (response?.success) {
         setOrders(response.data || []);
+        setTotalPages(response.pagination?.totalPages || 1);
+        if (requestedPage > (response.pagination?.totalPages || 1)) setPage(response.pagination?.totalPages || 1);
+        setTotalItems(response.pagination?.totalItems || 0);
       }
     } catch (error) {
       console.error("Failed to fetch vendor orders:", error);
@@ -64,7 +71,7 @@ const VendorOrders = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [page]);
 
   const handleStatusChange = async (orderId: string, status: OrderStatus) => {
     try {
@@ -250,6 +257,7 @@ const VendorOrders = () => {
             ))}
           </div>
         )}
+        <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} onPageChange={setPage} />
       </div>
     </div>
   );

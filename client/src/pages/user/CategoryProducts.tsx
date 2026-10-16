@@ -9,6 +9,7 @@ import {
 import type { Category, Product } from "../../types/product";
 
 import ProductCard from "../../components/user/ProductCard";
+import Pagination from "../../components/common/Pagination";
 
 import "./CategoryProducts.css";
 
@@ -20,6 +21,9 @@ const CategoryProducts = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     if (!categoryId) {
@@ -34,12 +38,15 @@ const CategoryProducts = () => {
         setError("");
 
         const [productsResponse, categoriesResponse] = await Promise.all([
-          getProductsByCategory(categoryId),
+          getProductsByCategory(categoryId, page, 10),
           getCategories(),
         ]);
 
         if (productsResponse?.success) {
           setProducts(productsResponse.data || []);
+          setTotalPages(productsResponse.pagination?.totalPages || 1);
+          if (page > (productsResponse.pagination?.totalPages || 1)) setPage(productsResponse.pagination?.totalPages || 1);
+          setTotalItems(productsResponse.pagination?.totalItems || 0);
         } else {
           setProducts([]);
         }
@@ -63,7 +70,7 @@ const CategoryProducts = () => {
     };
 
     fetchCategoryProducts();
-  }, [categoryId]);
+  }, [categoryId, page]);
 
   if (isLoading) {
     return (
@@ -135,6 +142,7 @@ const CategoryProducts = () => {
             <Link to="/">Continue Shopping</Link>
           </div>
         )}
+        <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} onPageChange={setPage} />
       </div>
     </div>
   );

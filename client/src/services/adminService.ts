@@ -1,13 +1,13 @@
 import api from "./api";
 
-export const getAdminUsers = async () => {
-  const resposne = await api.get("/admin/users");
+export const getAdminUsers = async (page = 1, limit = 10) => {
+  const resposne = await api.get("/admin/users", { params: { page, limit } });
 
   return resposne.data;
 };
 
-export const getAdminVendors = async () => {
-  const resposne = await api.get("/admin/vendors");
+export const getAdminVendors = async (page = 1, limit = 10) => {
+  const resposne = await api.get("/admin/vendors", { params: { page, limit } });
 
   return resposne.data;
 };
@@ -36,20 +36,24 @@ export const activateVendor = async (id: string) => {
   return resposne.data;
 };
 
-export const getAdminProducts = async () => {
-  const resposne = await api.get("/admin/products");
+export const getAdminProducts = async (page = 1, limit = 10) => {
+  const resposne = await api.get("/admin/products", {
+    params: { page, limit },
+  });
 
   return resposne.data;
 };
 
-export const getAdminOrders = async () => {
-  const resposne = await api.get("/admin/orders");
+export const getAdminOrders = async (page = 1, limit = 10) => {
+  const resposne = await api.get("/admin/orders", { params: { page, limit } });
 
   return resposne.data;
 };
 
-export const getAdminCategories = async () => {
-  const response = await api.get("/admin/categories");
+export const getAdminCategories = async (page = 1, limit = 10) => {
+  const response = await api.get("/admin/categories", {
+    params: { page, limit },
+  });
 
   return response.data;
 };

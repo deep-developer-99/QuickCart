@@ -71,15 +71,15 @@ export const getActiveBannersController = async (
 };
 
 export const getAllBannersAdminController = async (
-  _req: AuthenticatedRequest,
+  req: AuthenticatedRequest,
   res: Response,
 ): Promise<void> => {
   try {
-    const banners = await getAllBannersAdmin();
+    const banners = await getAllBannersAdmin(req.query.page, req.query.limit);
 
     res.status(200).json({
       success: true,
-      data: banners,
+      ...banners,
     });
   } catch (error) {
     console.error("Get admin banners error:", error);

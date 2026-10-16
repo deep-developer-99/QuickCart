@@ -8,6 +8,7 @@ import {
   deactivateVendor,
   activateVendor,
 } from "../../services/adminService";
+import Pagination from "../../components/common/Pagination";
 
 import "./AdminVendors.css";
 
@@ -31,16 +32,22 @@ const AdminVendors = () => {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const fetchVendors = async () => {
+  const fetchVendors = async (requestedPage = page) => {
     try {
       setIsLoading(true);
       setError("");
 
-      const response = await getAdminVendors();
+      const response = await getAdminVendors(requestedPage, 10);
 
       if (response?.success) {
         setVendors(response.data || []);
+        setTotalPages(response.pagination?.totalPages || 1);
+        if (requestedPage > (response.pagination?.totalPages || 1)) setPage(response.pagination?.totalPages || 1);
+        setTotalItems(response.pagination?.totalItems || 0);
       } else {
         setError("Failed to load vendors");
       }
@@ -59,7 +66,7 @@ const AdminVendors = () => {
 
   useEffect(() => {
     fetchVendors();
-  }, []);
+  }, [page]);
 
   const handleAction = async (
     id: string,
@@ -117,7 +124,7 @@ const AdminVendors = () => {
           </div>
 
           <div className="admin-count">
-            {vendors.length} {vendors.length === 1 ? "Vendor" : "Vendors"}
+            {totalItems} {totalItems === 1 ? "Vendor" : "Vendors"}
           </div>
         </div>
 
@@ -244,6 +251,7 @@ const AdminVendors = () => {
             </table>
           </div>
         )}
+        <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} onPageChange={setPage} />
       </div>
     </div>
   );

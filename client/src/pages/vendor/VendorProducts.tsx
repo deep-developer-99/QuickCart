@@ -10,6 +10,7 @@ import {
 } from "../../services/productService";
 
 import type { Category, Product } from "../../types/product";
+import Pagination from "../../components/common/Pagination";
 
 import "./VendorProducts.css";
 
@@ -44,6 +45,9 @@ const VendorProducts = () => {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
@@ -58,12 +62,15 @@ const VendorProducts = () => {
       setError("");
 
       const [productResponse, categoryResponse] = await Promise.all([
-        getVendorProducts(),
+        getVendorProducts(page, 10),
         getCategories(),
       ]);
 
       if (productResponse?.success) {
         setProducts(productResponse.data || []);
+        setTotalPages(productResponse.pagination?.totalPages || 1);
+        if (page > (productResponse.pagination?.totalPages || 1)) setPage(productResponse.pagination?.totalPages || 1);
+        setTotalItems(productResponse.pagination?.totalItems || 0);
       }
 
       if (categoryResponse?.success) {
@@ -80,7 +87,7 @@ const VendorProducts = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [page]);
 
   // ==============================
   // Cleanup Preview URL
@@ -442,8 +449,9 @@ const VendorProducts = () => {
                 </button>
               </div>
             ) : (
+              <>
               <div className="vendor-products-grid">
-                {products.map((product) => {
+              {products.map((product) => {
                   const categoryName =
                     typeof product.category === "string"
                       ? product.category
@@ -533,8 +541,10 @@ const VendorProducts = () => {
                       </div>
                     </div>
                   );
-                })}
+              })}
               </div>
+              <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} onPageChange={setPage} />
+              </>
             )}
           </section>
         </div>

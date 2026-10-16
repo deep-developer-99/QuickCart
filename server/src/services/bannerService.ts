@@ -1,5 +1,6 @@
 import Banner from "../models/Banner";
 import type { BannerRedirectType } from "../models/Banner";
+import { createPaginationMeta, getPagination } from "../utils/pagination";
 
 export interface BannerInput {
   title?: string;
@@ -92,8 +93,10 @@ export const getActiveBanners = async () => {
   }).sort({ order: 1, createdAt: -1 });
 };
 
-export const getAllBannersAdmin = async () => {
-  return Banner.find().sort({ order: 1, createdAt: -1 });
+export const getAllBannersAdmin = async (page?: unknown, limit?: unknown) => {
+  const pagination = getPagination(page, limit);
+  const [data, totalItems] = await Promise.all([Banner.find().sort({ order: 1, createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), Banner.countDocuments()]);
+  return { data, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
 };
 
 export const getBannerById = async (bannerId: string) => {

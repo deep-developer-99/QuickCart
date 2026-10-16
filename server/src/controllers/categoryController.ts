@@ -67,11 +67,11 @@ export const getAllCategoriesAdminController = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const categories = await getAllCategoriesAdmin();
+    const categories = await getAllCategoriesAdmin(req.query.page, req.query.limit);
 
     res.status(200).json({
       success: true,
-      data: categories,
+      ...categories,
     });
   } catch (error) {
     console.error("Get admin categories error:", error);
