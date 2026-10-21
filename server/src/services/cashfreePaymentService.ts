@@ -108,6 +108,14 @@ const paymentMethodsFor = (
   return undefined;
 };
 
+const idempotencyKeyFor = (orderId: string) => {
+  const bytes = crypto.createHash("sha256").update(orderId).digest();
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.subarray(0, 16).toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+};
+
 export const createCashfreeOrder = async (
   input: CreateCashfreeOrderInput,
 ): Promise<CashfreeOrderSession> => {
@@ -141,7 +149,9 @@ export const createCashfreeOrder = async (
 
   const result = await cashfreeRequest<any>("/orders", {
     method: "POST",
-    headers: { "x-idempotency-key": crypto.randomUUID() },
+    // Derive a stable UUID from the server-generated order ID so a retry is
+    // safe when the first provider request succeeded but its response was lost.
+    headers: { "x-idempotency-key": idempotencyKeyFor(input.orderId) },
     body: JSON.stringify(body),
   });
   if (!result.order_id || !result.payment_session_id) {
