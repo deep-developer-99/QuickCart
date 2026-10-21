@@ -81,7 +81,7 @@ export const activateVendor = async (vendorId: string) => {
 // Get All Users
 export const getAllUsers = async (page?: unknown, limit?: unknown) => {
   const pagination = getPagination(page, limit);
-  const [users, totalItems] = await Promise.all([User.find().select("-__v").sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), User.countDocuments()]);
+  const [users, totalItems] = await Promise.all([User.find().select("-__v -fcmTokens").sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), User.countDocuments()]);
 
   return { data: users, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
 };

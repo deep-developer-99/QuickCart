@@ -11,6 +11,7 @@ import orderRoutes from "./routes/orderRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import bannerRoutes from "./routes/bannerRoutes";
 import wishlistRoutes from "./routes/wishlistRoutes";
+import offerRoutes from "./routes/offerRoutes";
 
 const app = express();
 
@@ -35,5 +36,6 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/banners", bannerRoutes);
 app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/offers", offerRoutes);
 
 export default app;

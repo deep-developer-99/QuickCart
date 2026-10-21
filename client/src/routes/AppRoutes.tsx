@@ -33,6 +33,7 @@ import AdminVendors from "../pages/admin/AdminVendors";
 import AdminProducts from "../pages/admin/AdminProducts";
 import AdminCategories from "../pages/admin/AdminCategories";
 import AdminBanners from "../pages/admin/AdminBanners";
+import AdminOffers from "../pages/admin/AdminOffers";
 import AdminOrders from "../pages/admin/AdminOrders";
 
 import ScrollToTop from "../components/ScrollToTop";
@@ -103,6 +104,7 @@ const AppRoutes = () => {
           <Route path="/admin/products" element={<AdminProducts />} />
           <Route path="/admin/categories" element={<AdminCategories />} />
           <Route path="/admin/banners" element={<AdminBanners />} />
+          <Route path="/admin/offers" element={<AdminOffers />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
         </Route>
       </Routes>

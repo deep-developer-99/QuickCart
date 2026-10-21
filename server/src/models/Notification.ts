@@ -1,7 +1,11 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 
-export type NotificationRole = "admin" | "vendor";
-export type NotificationType = "NEW_ORDER" | "NEW_VENDOR";
+export type NotificationRole = "admin" | "vendor" | "user";
+export type NotificationType =
+  | "NEW_ORDER"
+  | "NEW_VENDOR"
+  | "ORDER_STATUS_UPDATED"
+  | "NEW_OFFER";
 
 export interface INotification extends Document {
   recipient: Types.ObjectId;
@@ -24,13 +28,13 @@ const notificationSchema = new Schema<INotification>(
     },
     recipientRole: {
       type: String,
-      enum: ["admin", "vendor"],
+      enum: ["admin", "vendor", "user"],
       required: true,
       index: true,
     },
     type: {
       type: String,
-      enum: ["NEW_ORDER", "NEW_VENDOR"],
+      enum: ["NEW_ORDER", "NEW_VENDOR", "ORDER_STATUS_UPDATED", "NEW_OFFER"],
       required: true,
     },
     title: {

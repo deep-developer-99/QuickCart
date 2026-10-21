@@ -7,6 +7,7 @@ export interface IUser extends Document {
   profileImage?: string;
   googleId?: string;
   role: "user";
+  fcmTokens: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +49,11 @@ const userSchema = new Schema<IUser>(
       type: String,
       enum: ["user"],
       default: "user",
+    },
+
+    fcmTokens: {
+      type: [String],
+      default: [],
     },
   },
   {

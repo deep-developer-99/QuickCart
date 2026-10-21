@@ -4,7 +4,10 @@ import Order from "../models/Order";
 import Cart from "../models/Cart";
 import Address from "../models/Address";
 import Product from "../models/Product";
-import { notifyVendorsAboutNewOrder } from "./notificationService";
+import {
+  notifyCustomerAboutOrderStatus,
+  notifyVendorsAboutNewOrder,
+} from "./notificationService";
 import { createPaginationMeta, getPagination } from "../utils/pagination";
 
 interface CreateOrderData {
@@ -486,11 +489,27 @@ export const updateVendorOrderStatus = async (
     );
   }
 
-  order.status = newStatus;
+  const updatedOrder = await Order.findOneAndUpdate(
+    { _id: order._id, "items.vendor": vendorId, status: currentStatus },
+    { $set: { status: newStatus } },
+    { new: true },
+  );
 
-  await order.save();
+  if (!updatedOrder) {
+    throw new Error("Order status changed while this request was processing");
+  }
 
-  return order;
+  try {
+    await notifyCustomerAboutOrderStatus(
+      updatedOrder.user.toString(),
+      updatedOrder._id.toString(),
+      newStatus,
+    );
+  } catch (notificationError) {
+    console.error("Customer order status notification error:", notificationError);
+  }
+
+  return updatedOrder;
 };
 
 // Vendor Dashboard

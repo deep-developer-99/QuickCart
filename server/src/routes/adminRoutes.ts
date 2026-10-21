@@ -29,6 +29,12 @@ import {
 
 import authMiddleware from "../middleware/authMiddleware";
 import upload from "../middleware/uploadMiddleware";
+import {
+  createOfferController,
+  getAdminOffersController,
+  publishOfferController,
+  updateOfferController,
+} from "../controllers/offerController";
 
 const router = Router();
 
@@ -62,6 +68,12 @@ router.post("/banners", upload.single("image"), createBannerController);
 router.put("/banners/:id", upload.single("image"), updateBannerController);
 router.delete("/banners/:id", deleteBannerController);
 router.put("/banners/:id/status", toggleBannerStatusController);
+
+// Offers
+router.get("/offers", getAdminOffersController);
+router.post("/offers", createOfferController);
+router.put("/offers/:id", updateOfferController);
+router.put("/offers/:id/publish", publishOfferController);
 
 // Orders
 router.get("/orders", getAllOrdersAdminController);

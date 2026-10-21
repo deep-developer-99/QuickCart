@@ -13,13 +13,13 @@ const router = Router();
 
 router.post(
   "/fcm-token",
-  authMiddleware("admin", "vendor"),
+  authMiddleware("admin", "vendor", "user"),
   registerFcmTokenController,
 );
 
 router.delete(
   "/fcm-token",
-  authMiddleware("admin", "vendor"),
+  authMiddleware("admin", "vendor", "user"),
   removeFcmTokenController,
 );
 

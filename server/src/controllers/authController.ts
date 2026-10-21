@@ -293,7 +293,7 @@ export const getMeController = async (
     let user;
 
     if (req.user.role === "user") {
-      user = await User.findById(req.user.id).select("-__v");
+      user = await User.findById(req.user.id).select("-__v -fcmTokens");
     } else if (req.user.role === "vendor") {
       user = await Vendor.findById(req.user.id).select("-password -__v");
     } else {

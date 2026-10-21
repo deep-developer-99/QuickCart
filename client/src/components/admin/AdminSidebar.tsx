@@ -27,6 +27,7 @@ const AdminSidebar = () => {
     { to: "/admin/products", label: "Manage Products", icon: "📦" },
     { to: "/admin/categories", label: "Categories", icon: "🗂️" },
     { to: "/admin/banners", label: "Banners", icon: "🖼️" },
+    { to: "/admin/offers", label: "Offers", icon: "🎁" },
     { to: "/admin/orders", label: "Manage Orders", icon: "🛒" },
   ];
 

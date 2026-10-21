@@ -12,19 +12,22 @@ import { addNotificationClient } from "../utils/notificationStream";
 const isNotificationRole = (role?: string): role is "admin" | "vendor" =>
   role === "admin" || role === "vendor";
 
+const isTokenRole = (role?: string): role is "admin" | "vendor" | "user" =>
+  role === "admin" || role === "vendor" || role === "user";
+
 export const registerFcmTokenController = async (
   req: AuthenticatedRequest,
   res: Response,
 ): Promise<void> => {
   try {
-    if (!req.user || !isNotificationRole(req.user.role)) {
+    if (!req.user || !isTokenRole(req.user.role)) {
       res.status(403).json({ success: false, message: "Access denied" });
       return;
     }
 
     const { token } = req.body;
 
-    if (typeof token !== "string" || !token.trim()) {
+    if (typeof token !== "string" || !token.trim() || token.trim().length > 4096) {
       res.status(400).json({
         success: false,
         message: "FCM token is required",
@@ -52,14 +55,14 @@ export const removeFcmTokenController = async (
   res: Response,
 ): Promise<void> => {
   try {
-    if (!req.user || !isNotificationRole(req.user.role)) {
+    if (!req.user || !isTokenRole(req.user.role)) {
       res.status(403).json({ success: false, message: "Access denied" });
       return;
     }
 
     const { token } = req.body;
 
-    if (typeof token !== "string" || !token.trim()) {
+    if (typeof token !== "string" || !token.trim() || token.trim().length > 4096) {
       res.status(400).json({
         success: false,
         message: "FCM token is required",
