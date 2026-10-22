@@ -12,6 +12,7 @@ import notificationRoutes from "./routes/notificationRoutes";
 import bannerRoutes from "./routes/bannerRoutes";
 import wishlistRoutes from "./routes/wishlistRoutes";
 import offerRoutes from "./routes/offerRoutes";
+import locationRoutes from "./routes/locationRoutes";
 
 const app = express();
 
@@ -37,5 +38,6 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/banners", bannerRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/offers", offerRoutes);
+app.use("/api/location", locationRoutes);
 
 export default app;
