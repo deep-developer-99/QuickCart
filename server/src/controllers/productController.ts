@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
 import {
@@ -157,18 +158,37 @@ export const getProductByIdController = async (
   try {
     const { id } = req.params as { id: string };
 
+    if (!id || !mongoose.isObjectIdOrHexString(id)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
+      return;
+    }
+
     const product = await getProductById(id);
+
+    if (!product) {
+      res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+      return;
+    }
 
     res.status(200).json({
       success: true,
       data: product,
     });
   } catch (error) {
-    console.error("Get product error:", error);
+    console.error(
+      "Get product error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
 
-    res.status(404).json({
+    res.status(500).json({
       success: false,
-      message: error instanceof Error ? error.message : "Product not found",
+      message: "Failed to fetch product",
     });
   }
 };

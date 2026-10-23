@@ -95,10 +95,6 @@ export const getProductById = async (productId: string) => {
     .populate("category", "name image")
     .populate("vendor", "shopName");
 
-  if (!product) {
-    throw new Error("Product not found");
-  }
-
   return product;
 };
 
