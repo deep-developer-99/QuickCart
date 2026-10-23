@@ -8,9 +8,32 @@
           "value": "same-origin-allow-popups"
         }
       ]
+    },
+    {
+      "source": "/.well-known/assetlinks.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+      ]
+    },
+    {
+      "source": "/.well-known/apple-app-site-association",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+      ]
     }
   ],
   "rewrites": [
+    {
+      "source": "/products/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(bot|Bot|BOT|crawler|Crawler|spider|Spider|WhatsApp|facebookexternalhit|Twitterbot|Slackbot|TelegramBot|LinkedInBot|Pinterest|Discordbot|SkypeUriPreview|Embedly|Quora Link Preview|vkShare).*"
+        }
+      ],
+      "destination": "/api/product-meta?id=:id"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
