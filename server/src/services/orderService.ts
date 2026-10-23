@@ -379,18 +379,18 @@ export const getMyOrders = async (
   const filter = { user: userId };
   const [orders, totalItems] = await Promise.all([
     Order.find(filter)
-    .populate("address")
-    .populate({
-      path: "items.product",
-      select: "name image price",
-    })
-    .populate({
-      path: "items.vendor",
-      select: "shopName",
-    })
-    .sort({ createdAt: -1 })
-    .skip(pagination.skip)
-    .limit(pagination.limit),
+      .populate("address")
+      .populate({
+        path: "items.product",
+        select: "name image price",
+      })
+      .populate({
+        path: "items.vendor",
+        select: "shopName address",
+      })
+      .sort({ createdAt: -1 })
+      .skip(pagination.skip)
+      .limit(pagination.limit),
     Order.countDocuments(filter),
   ]);
 
@@ -421,7 +421,7 @@ export const getOrderById = async (orderId: string, userId: string) => {
     })
     .populate({
       path: "items.vendor",
-      select: "shopName",
+      select: "shopName address",
     });
 
   if (!order) {
@@ -432,25 +432,41 @@ export const getOrderById = async (orderId: string, userId: string) => {
 };
 
 // Get Vendor Orders
-export const getVendorOrders = async (vendorId: string, page?: unknown, limit?: unknown) => {
+export const getVendorOrders = async (
+  vendorId: string,
+  page?: unknown,
+  limit?: unknown,
+) => {
   const pagination = getPagination(page, limit);
   const filter = {
     "items.vendor": vendorId,
   };
-  const [orders, totalItems] = await Promise.all([Order.find(filter)
-    .populate("user", "name email phone")
-    .populate("address")
-    .populate({
-      path: "items.product",
-      select: "name image price",
-    })
-    .populate({
-      path: "items.vendor",
-      select: "shopName",
-    })
-    .sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), Order.countDocuments(filter)]);
+  const [orders, totalItems] = await Promise.all([
+    Order.find(filter)
+      .populate("user", "name email phone")
+      .populate("address")
+      .populate({
+        path: "items.product",
+        select: "name image price",
+      })
+      .populate({
+        path: "items.vendor",
+        select: "shopName address",
+      })
+      .sort({ createdAt: -1 })
+      .skip(pagination.skip)
+      .limit(pagination.limit),
+    Order.countDocuments(filter),
+  ]);
 
-  return { data: orders, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
+  return {
+    data: orders,
+    pagination: createPaginationMeta(
+      pagination.page,
+      pagination.limit,
+      totalItems,
+    ),
+  };
 };
 
 // Changing Order Status By Vendor
@@ -506,7 +522,10 @@ export const updateVendorOrderStatus = async (
       newStatus,
     );
   } catch (notificationError) {
-    console.error("Customer order status notification error:", notificationError);
+    console.error(
+      "Customer order status notification error:",
+      notificationError,
+    );
   }
 
   return updatedOrder;
