@@ -27,6 +27,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+app.use("/", (req, res) => {
+  res.json({
+    message: "The backend is running perfectly",
+  });
+});
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/categories", categoryRoutes);
