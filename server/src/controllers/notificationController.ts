@@ -8,7 +8,7 @@ import {
   removeFcmToken,
 } from "../services/notificationService";
 import { addNotificationClient } from "../utils/notificationStream";
-import { deleteManagedNotification, getEligibleCustomers, getManagedNotificationHistory, sendManualNotification } from "../services/notificationService";
+import { deleteManagedNotification, editManagedNotification, getEligibleCustomers, getManagedNotificationHistory, resendManagedNotification, sendManualNotification } from "../services/notificationService";
 import Offer from "../models/Offer";
 import { Types } from "mongoose";
 import Category from "../models/Category";
@@ -245,7 +245,7 @@ export const sendManualNotificationController = async (req: AuthenticatedRequest
       senderId: req.user.id, senderRole: req.user.role, recipientId: customerId,
       audience, type: kind === "offer" ? "NEW_OFFER" : "CUSTOM", title: sendTitle,
       message: sendMessage, category: kind === "offer" ? "offer" : category,
-      relatedId, data, idempotencyKey: req.get("Idempotency-Key")?.slice(0, 100),
+      relatedId, action: kind === "offer" ? { type: "offer", id: relatedId, redirectType: data.redirectType as "category" | "product", redirectValue: data.redirectValue } : { type: "none" }, data, idempotencyKey: req.get("Idempotency-Key")?.slice(0, 100),
     });
     res.status(200).json({ success: true, data: result });
   } catch (error) {
@@ -257,7 +257,7 @@ export const sendManualNotificationController = async (req: AuthenticatedRequest
 export const managedNotificationHistoryController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     if (!req.user || (req.user.role !== "admin" && req.user.role !== "vendor")) { res.status(403).json({ success: false, message: "Access denied" }); return; }
-    res.status(200).json({ success: true, ...(await getManagedNotificationHistory(req.user.id, req.user.role, req.query.page, req.query.limit)) });
+    res.status(200).json({ success: true, ...(await getManagedNotificationHistory(req.user.id, req.user.role, req.query.page, req.query.limit, req.query)) });
   } catch (error) { res.status(400).json({ success: false, message: error instanceof Error ? error.message : "Failed to fetch history" }); }
 };
 
@@ -266,6 +266,23 @@ export const deleteManagedNotificationController = async (req: AuthenticatedRequ
     if (!req.user || (req.user.role !== "admin" && req.user.role !== "vendor")) { res.status(403).json({ success: false, message: "Access denied" }); return; }
     const result = await deleteManagedNotification(req.params.id as string, req.user.id, req.user.role);
     if (!result) { res.status(404).json({ success: false, message: "Notification not found" }); return; }
-    res.status(200).json({ success: true, message: "History entry hidden; a delivered push cannot be recalled", data: { id: result._id, deletedAt: result.deletedAt } });
+    res.status(200).json({ success: true, message: "Campaign history hidden; a delivered push cannot be recalled", data: result });
   } catch (error) { res.status(400).json({ success: false, message: error instanceof Error ? error.message : "Failed to delete history entry" }); }
+};
+
+export const editManagedNotificationController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user || (req.user.role !== "admin" && req.user.role !== "vendor")) { res.status(403).json({ success: false, message: "Access denied" }); return; }
+    const result = await editManagedNotification(req.params.id as string, req.user.id, req.user.role, { title: String(req.body?.title ?? ""), message: String(req.body?.message ?? "") });
+    if (!result) { res.status(404).json({ success: false, message: "Campaign not found" }); return; }
+    res.status(200).json({ success: true, message: "Campaign updated; push delivery requires an explicit resend", data: result });
+  } catch (error) { res.status(400).json({ success: false, message: error instanceof Error ? error.message : "Failed to edit campaign" }); }
+};
+
+export const resendManagedNotificationController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user || (req.user.role !== "admin" && req.user.role !== "vendor")) { res.status(403).json({ success: false, message: "Access denied" }); return; }
+    const result = await resendManagedNotification(req.params.id as string, req.user.id, req.user.role, String(req.get("Idempotency-Key") ?? ""));
+    res.status(200).json({ success: true, message: result.duplicate ? "Duplicate resend request" : "Resend completed", data: result });
+  } catch (error) { res.status(400).json({ success: false, message: error instanceof Error ? error.message : "Failed to resend campaign" }); }
 };

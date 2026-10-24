@@ -520,6 +520,7 @@ export const updateVendorOrderStatus = async (
       updatedOrder.user.toString(),
       updatedOrder._id.toString(),
       newStatus,
+      vendorId,
     );
   } catch (notificationError) {
     console.error(

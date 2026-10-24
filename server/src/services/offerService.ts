@@ -7,7 +7,8 @@ import Offer, {
 import Category from "../models/Category";
 import Product from "../models/Product";
 import { createPaginationMeta, getPagination } from "../utils/pagination";
-import { notifyEligibleCustomersAboutOffer } from "./notificationService";
+import { notifyEligibleCustomersAboutOffer, resendManagedNotification } from "./notificationService";
+import { randomUUID } from "crypto";
 
 export interface OfferInput {
   title: string;
@@ -127,19 +128,20 @@ export const publishOffer = async (offerId: string, actorId?: string, actorRole:
     throw new Error("Offer has already been published");
   }
 
+  const campaignId = randomUUID();
   const stats = await notifyEligibleCustomersAboutOffer({
     offerId: offer._id.toString(),
     title: offer.title,
     message: offer.message,
     redirectType: offer.redirectType,
     redirectValue: offer.redirectValue,
-  }, { senderId: actorId ?? draft.ownerId?.toString(), senderRole: actorRole, audience: draft.audience }).catch((error) => {
+  }, { senderId: actorId ?? draft.ownerId?.toString(), senderRole: actorRole, audience: draft.audience, campaignId }).catch((error) => {
     console.error("Offer notification dispatch failed:", error);
     return { attempted: 0, accepted: 0, failed: 1, skipped: 0 };
   });
 
   const completedAt = new Date();
-  await Offer.updateOne({ _id: offer._id }, { $set: { lastDispatch: { ...stats, completedAt } }, $push: { dispatchHistory: { kind: "publish", outcome: "complete", ...stats, completedAt } } });
+  await Offer.updateOne({ _id: offer._id }, { $set: { notificationCampaignId: campaignId, lastDispatch: { ...stats, completedAt } }, $push: { dispatchHistory: { kind: "publish", outcome: "complete", ...stats, completedAt } } });
 
   return (await Offer.findById(offer._id)) ?? offer;
 };
@@ -187,7 +189,14 @@ export const resendOfferNotification = async (offerId: string, actorId: string, 
   let stats: { stored: number; attempted: number; accepted: number; failed: number; skipped: number };
   let outcome: "complete" | "failed" = "complete";
   try {
-    stats = await notifyEligibleCustomersAboutOffer({ offerId: offer._id.toString(), title: offer.title, message: offer.message, redirectType: offer.redirectType, redirectValue: offer.redirectValue }, { senderId: actorId, senderRole: actorRole, audience: offer.audience, idempotencyKey: `resend:${key}` });
+    if (offer.notificationCampaignId) {
+      const resent = await resendManagedNotification(offer.notificationCampaignId, actorId, actorRole, key);
+      stats = { stored: resent.recipients, attempted: resent.attempted, accepted: resent.accepted, failed: resent.failed, skipped: resent.skipped };
+    } else {
+      const campaignId = randomUUID();
+      stats = await notifyEligibleCustomersAboutOffer({ offerId: offer._id.toString(), title: offer.title, message: offer.message, redirectType: offer.redirectType, redirectValue: offer.redirectValue }, { senderId: actorId, senderRole: actorRole, audience: offer.audience, campaignId });
+      await Offer.updateOne({ _id: offer._id }, { $set: { notificationCampaignId: campaignId } });
+    }
   } catch (error) {
     console.error("Offer resend dispatch failed:", error);
     stats = { stored: 0, attempted: 0, accepted: 0, failed: 1, skipped: 0 };

@@ -13,6 +13,7 @@ export interface IOffer extends Document {
   ownerRole: "admin" | "vendor";
   deletedAt?: Date;
   audience: "all" | "vendor_customers";
+  notificationCampaignId?: string;
   lastDispatch?: {
     stored: number;
     attempted: number;
@@ -64,6 +65,7 @@ const offerSchema = new Schema<IOffer>(
     ownerRole: { type: String, enum: ["admin", "vendor"], default: "admin", index: true },
     deletedAt: { type: Date, default: null, index: true },
     audience: { type: String, enum: ["all", "vendor_customers"], default: "all" },
+    notificationCampaignId: { type: String },
     lastDispatch: {
       stored: Number,
       attempted: Number,

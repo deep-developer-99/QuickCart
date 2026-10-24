@@ -46,16 +46,44 @@ export type ManagedDispatchStatus =
   | "no_devices";
 
 export interface ManagedNotification {
+  /** Campaign ID returned as _id by the backend campaign summary. */
   _id: string;
   title: string;
   message: string;
-  category?: string;
+  category: "offer" | "announcement";
   type: string;
   relatedId?: string;
+  action?: { type: "offer" | "order" | "none"; id?: string; redirectType?: "category" | "product"; redirectValue?: string };
+  sender: string;
+  senderRole: "admin" | "vendor";
+  recipientCount: number;
+  stored: number;
+  attempted: number;
+  accepted: number;
+  failed: number;
+  skipped: number;
   dispatchStatus: ManagedDispatchStatus;
-  acceptedCount: number;
-  failedCount: number;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationHistoryFilters {
+  search?: string;
+  category?: "offer" | "announcement" | "";
+  senderRole?: "admin" | "vendor" | "";
+  campaignId?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface CampaignResendResult {
+  duplicate: boolean;
+  campaignId: string;
+  recipients: number;
+  attempted: number;
+  accepted: number;
+  failed: number;
+  skipped: number;
 }
 
 export interface PaginatedResponse<T> {
@@ -65,6 +93,7 @@ export interface PaginatedResponse<T> {
 }
 
 export interface ManualNotificationResult {
+  campaignId: string;
   attempted: number;
   accepted: number;
   failed: number;

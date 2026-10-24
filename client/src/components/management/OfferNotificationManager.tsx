@@ -7,11 +7,13 @@ import {
   createManagedOffer,
   deleteManagedNotification,
   deleteManagedOffer,
+  editManagedNotification,
   getEligibleRecipients,
   getManagedNotificationHistory,
   getManagedOffers,
   publishManagedOffer,
   resendOfferNotification,
+  resendManagedNotification,
   sendManagedNotification,
   updateOfferContent,
 } from "../../services/notificationManagementService";
@@ -19,6 +21,7 @@ import type {
   CustomerRecipient,
   ManagedNotification,
   ManagedOffer,
+  NotificationHistoryFilters,
   PageInfo,
 } from "../../types/notificationManagement";
 import type { OfferRedirectType } from "../../types/offer";
@@ -32,6 +35,7 @@ type Confirmation =
   | { kind: "broadcast" }
   | { kind: "delete-offer"; offer: ManagedOffer }
   | { kind: "delete-notification"; notification: ManagedNotification }
+  | { kind: "resend-notification"; notification: ManagedNotification }
   | { kind: "publish-offer"; offer: ManagedOffer };
 
 interface OfferDraft {
@@ -90,6 +94,12 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
   const [history, setHistory] = useState<ManagedNotification[]>([]);
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPagination, setHistoryPagination] = useState(pageInfo(1, 20));
+  const [historyFilters, setHistoryFilters] = useState<NotificationHistoryFilters>({});
+  const [historyError, setHistoryError] = useState("");
+  const [editingNotification, setEditingNotification] = useState<ManagedNotification | null>(null);
+  const [notificationEditTitle, setNotificationEditTitle] = useState("");
+  const [notificationEditMessage, setNotificationEditMessage] = useState("");
+  const [isSavingNotification, setIsSavingNotification] = useState(false);
   const [recipients, setRecipients] = useState<CustomerRecipient[]>([]);
   const [recipientPage, setRecipientPage] = useState(1);
   const [recipientPagination, setRecipientPagination] = useState(
@@ -123,6 +133,7 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
     null,
   );
   const resendIdempotencyRef = useRef(new Map<string, string>());
+  const campaignResendIdempotencyRef = useRef(new Map<string, string>());
 
   const publishedOffers = useMemo(
     () => offers.filter((offer) => offer.status === "published"),
@@ -158,19 +169,20 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
   const loadHistory = useCallback(async (page: number) => {
     try {
       setIsLoadingHistory(true);
-      const response = await getManagedNotificationHistory(page, 20);
+      setHistoryError("");
+      const response = await getManagedNotificationHistory(page, 20, historyFilters);
       setHistory(response.data ?? []);
       setHistoryPagination(response.pagination ?? pageInfo(page, 20));
       if (page > (response.pagination?.totalPages ?? 1))
         setHistoryPage(response.pagination?.totalPages ?? 1);
     } catch (requestError) {
-      setError(
+      setHistoryError(
         getRequestError(requestError, "Could not load notification history."),
       );
     } finally {
       setIsLoadingHistory(false);
     }
-  }, []);
+  }, [historyFilters]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -183,9 +195,9 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
     if (activeTab !== "history") return;
     const timer = window.setTimeout(() => {
       void loadHistory(historyPage);
-    }, 0);
+    }, historyFilters.search ? 250 : 0);
     return () => window.clearTimeout(timer);
-  }, [activeTab, historyPage, loadHistory]);
+  }, [activeTab, historyPage, loadHistory, historyFilters.search]);
 
   useEffect(() => {
     if (audience !== "individual") return;
@@ -399,15 +411,56 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
       setBusyNotificationId(notification._id);
       setError("");
       await deleteManagedNotification(notification._id);
-      setSuccess(
-        "History entry hidden. A push already delivered to a phone cannot be recalled.",
-      );
+      setSuccess("Campaign history hidden. It does not delete the related offer or order, and a delivered push cannot be recalled.");
       setConfirmation(null);
       await loadHistory(historyPage);
     } catch (requestError) {
       setError(
         getRequestError(requestError, "Could not delete the history entry."),
       );
+    } finally {
+      setBusyNotificationId(null);
+    }
+  };
+
+  const saveNotificationCampaign = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingNotification || isSavingNotification) return;
+    try {
+      setIsSavingNotification(true);
+      setError("");
+      await editManagedNotification(editingNotification._id, {
+        title: notificationEditTitle.trim(),
+        message: notificationEditMessage.trim(),
+      });
+      setSuccess("Campaign content saved. No push was sent; use Resend campaign when ready.");
+      setEditingNotification(null);
+      await loadHistory(historyPage);
+    } catch (requestError) {
+      setError(getRequestError(requestError, "Could not save campaign content."));
+    } finally {
+      setIsSavingNotification(false);
+    }
+  };
+
+  const runHistoryResend = async (notification: ManagedNotification) => {
+    if (busyNotificationId) return;
+    try {
+      setBusyNotificationId(notification._id);
+      setError("");
+      let key = campaignResendIdempotencyRef.current.get(notification._id);
+      if (!key) {
+        key = createIdempotencyKey();
+        campaignResendIdempotencyRef.current.set(notification._id, key);
+      }
+      const response = await resendManagedNotification(notification._id, key);
+      campaignResendIdempotencyRef.current.delete(notification._id);
+      const outcome = response.data;
+      setSuccess(`${outcome.duplicate ? "Duplicate resend prevented." : "Campaign resent."} Firebase accepted ${outcome.accepted}; failed ${outcome.failed}; skipped ${outcome.skipped}.`);
+      setConfirmation(null);
+      await loadHistory(historyPage);
+    } catch (requestError) {
+      setError(getRequestError(requestError, "Could not resend the campaign."));
     } finally {
       setBusyNotificationId(null);
     }
@@ -423,6 +476,8 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
         await runOfferAction("delete", confirmation.offer);
       else if (confirmation.kind === "delete-notification")
         await runHistoryDelete(confirmation.notification);
+      else if (confirmation.kind === "resend-notification")
+        await runHistoryResend(confirmation.notification);
       else await runOfferAction("publish", confirmation.offer);
     } finally {
       setIsConfirming(false);
@@ -830,18 +885,29 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
                 <h2 id="history-heading">Notification history</h2>
               </div>
               <span className="offer-manager-note">
-                Delete history hides the record; it does not delete an offer.
+                {isAdmin ? "Admin view includes Admin and Vendor campaigns." : "Vendor view is limited to your campaigns."} Editing saves only; resend is separate.
               </span>
+            </div>
+            <div className="offer-manager-history-filters" aria-label="Filter notification history">
+              <label>Search title or message<input type="search" value={historyFilters.search ?? ""} maxLength={100} onChange={(event) => { setHistoryPage(1); setHistoryFilters((current) => ({ ...current, search: event.target.value })); }} placeholder="Search campaigns" /></label>
+              <label>Category<select value={historyFilters.category ?? ""} onChange={(event) => { setHistoryPage(1); setHistoryFilters((current) => ({ ...current, category: event.target.value as NotificationHistoryFilters["category"] })); }}><option value="">All categories</option><option value="offer">Offer</option><option value="announcement">Announcement</option></select></label>
+              {isAdmin && <label>Sender role<select value={historyFilters.senderRole ?? ""} onChange={(event) => { setHistoryPage(1); setHistoryFilters((current) => ({ ...current, senderRole: event.target.value as NotificationHistoryFilters["senderRole"] })); }}><option value="">Admin and Vendor</option><option value="admin">Admin</option><option value="vendor">Vendor</option></select></label>}
+              <label>Campaign ID<input value={historyFilters.campaignId ?? ""} onChange={(event) => { setHistoryPage(1); setHistoryFilters((current) => ({ ...current, campaignId: event.target.value })); }} placeholder="Filter by ID" /></label>
+              <label>From<input type="date" value={historyFilters.from ?? ""} onChange={(event) => { setHistoryPage(1); setHistoryFilters((current) => ({ ...current, from: event.target.value })); }} /></label>
+              <label>To<input type="date" value={historyFilters.to ?? ""} onChange={(event) => { setHistoryPage(1); setHistoryFilters((current) => ({ ...current, to: event.target.value })); }} /></label>
+              <button type="button" onClick={() => { setHistoryPage(1); setHistoryFilters({}); }}>Clear filters</button>
             </div>
             {isLoadingHistory ? (
               <div className="offer-manager-empty">
                 Loading notification history…
               </div>
+            ) : historyError ? (
+              <div className="offer-manager-empty offer-manager-history-error" role="alert"><strong>Could not load notification history</strong><span>{historyError}</span><button type="button" onClick={() => void loadHistory(historyPage)}>Retry</button></div>
             ) : history.length === 0 ? (
               <div className="offer-manager-empty">
                 <strong>No notification history yet</strong>
                 <span>
-                  Sent notifications and offer dispatches will appear here.
+                  Customer-targeted campaigns matching these filters will appear here.
                 </span>
               </div>
             ) : (
@@ -865,31 +931,25 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
                       </div>
                       <p>{notification.message}</p>
                       <div className="offer-manager-meta">
-                        <span>
-                          {notification.category || notification.type}
-                        </span>
+                        <span>{notification.category}</span>
+                        <span>Sent by {notification.senderRole} · {notification.sender}</span>
+                        <span>{notification.recipientCount} recipient(s)</span>
+                        <span>Campaign {notification._id}</span>
                         {notification.relatedId && (
-                          <span>Offer {notification.relatedId}</span>
+                          <span>{notification.category === "offer" ? "Offer" : "Related resource"} {notification.relatedId}</span>
                         )}
-                        <span>{notification.acceptedCount} accepted</span>
-                        <span>{notification.failedCount} failed</span>
+                        <span>{notification.stored} stored</span>
+                        <span>{notification.attempted} attempted</span>
+                        <span>{notification.accepted} Firebase accepted</span>
+                        <span>{notification.failed} failed</span>
+                        <span>{notification.skipped} skipped</span>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      className="danger"
-                      disabled={busyNotificationId === notification._id}
-                      onClick={() =>
-                        setConfirmation({
-                          kind: "delete-notification",
-                          notification,
-                        })
-                      }
-                    >
-                      {busyNotificationId === notification._id
-                        ? "Deleting…"
-                        : "Delete history"}
-                    </button>
+                    <div className="offer-manager-history-actions">
+                      <button type="button" disabled={Boolean(busyNotificationId) || isSavingNotification} onClick={() => { setEditingNotification(notification); setNotificationEditTitle(notification.title); setNotificationEditMessage(notification.message); setError(""); }}>Edit campaign</button>
+                      <button type="button" disabled={Boolean(busyNotificationId) || isSavingNotification} onClick={() => setConfirmation({ kind: "resend-notification", notification })}>Resend campaign</button>
+                      <button type="button" className="danger" disabled={Boolean(busyNotificationId) || isSavingNotification} onClick={() => setConfirmation({ kind: "delete-notification", notification })}>{busyNotificationId === notification._id ? "Working…" : "Hide history"}</button>
+                    </div>
                   </article>
                 ))}
               </div>
@@ -1021,6 +1081,24 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
         </div>
       )}
 
+      {editingNotification && (
+        <div className="offer-manager-overlay" role="presentation">
+          <form className="offer-manager-modal" onSubmit={(event) => void saveNotificationCampaign(event)}>
+            <header>
+              <div><span className="offer-manager-kicker">CAMPAIGN CONTENT</span><h2>Edit customer notification</h2></div>
+              <button type="button" aria-label="Close" onClick={() => setEditingNotification(null)} disabled={isSavingNotification}>×</button>
+            </header>
+            <p className="offer-manager-modal-note">This updates the title and message for all campaign recipients. Saving does not send a push; use Resend campaign separately.</p>
+            <label>Title<input required minLength={1} maxLength={120} value={notificationEditTitle} onChange={(event) => setNotificationEditTitle(event.target.value)} /></label>
+            <label>Message<textarea required minLength={1} maxLength={240} value={notificationEditMessage} onChange={(event) => setNotificationEditMessage(event.target.value)} /></label>
+            <footer>
+              <button type="button" onClick={() => setEditingNotification(null)} disabled={isSavingNotification}>Cancel</button>
+              <button type="submit" className="primary" disabled={isSavingNotification}>{isSavingNotification ? "Saving…" : "Save content only"}</button>
+            </footer>
+          </form>
+        </div>
+      )}
+
       {confirmation && (
         <div className="offer-manager-overlay" role="presentation">
           <section
@@ -1035,19 +1113,23 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
               {confirmation.kind === "broadcast"
                 ? "Send to all customer accounts?"
                 : confirmation.kind === "delete-notification"
-                  ? "Delete this history entry?"
-                  : confirmation.kind === "delete-offer"
-                    ? "Delete this offer?"
-                    : "Publish and notify customers?"}
+                  ? "Hide this campaign history?"
+                  : confirmation.kind === "resend-notification"
+                    ? "Resend this campaign?"
+                    : confirmation.kind === "delete-offer"
+                      ? "Delete this offer?"
+                      : "Publish and notify customers?"}
             </h2>
             <p id="offer-confirm-description">
               {confirmation.kind === "broadcast"
                 ? "This offer notification will be sent to all customer accounts. Admin and vendor accounts are excluded."
                 : confirmation.kind === "delete-notification"
-                  ? "This hides the managed history record. It does not delete its offer, and a delivered push cannot be recalled."
-                  : confirmation.kind === "delete-offer"
-                    ? "The offer will be soft-deleted and cannot be resent. Historical notification records and orders are retained."
-                    : "Publishing sends a notification to customer accounts. This action cannot be undone."}
+                  ? "This hides all recipient history rows for this campaign. It does not delete a related offer or order, and a delivered push cannot be recalled."
+                  : confirmation.kind === "resend-notification"
+                    ? `This sends the saved campaign content to its ${confirmation.notification.recipientCount} saved recipient(s). Firebase may accept or reject each device attempt.`
+                    : confirmation.kind === "delete-offer"
+                      ? "The offer will be soft-deleted and cannot be resent. Historical notification records and orders are retained."
+                      : "Publishing sends a notification to customer accounts. This action cannot be undone."}
             </p>
             {error && (
               <div className="offer-manager-alert error" role="alert">
@@ -1078,9 +1160,11 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
                     ? "Send broadcast"
                     : confirmation.kind === "delete-notification"
                       ? "Hide history"
-                      : confirmation.kind === "delete-offer"
-                        ? "Delete offer"
-                        : "Publish offer"}
+                      : confirmation.kind === "resend-notification"
+                        ? "Resend campaign"
+                        : confirmation.kind === "delete-offer"
+                          ? "Delete offer"
+                          : "Publish offer"}
               </button>
             </footer>
           </section>

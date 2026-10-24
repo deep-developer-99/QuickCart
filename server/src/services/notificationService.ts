@@ -10,6 +10,11 @@ import Order from "../models/Order";
 import { createPaginationMeta, getPagination } from "../utils/pagination";
 import { emitNotification } from "../utils/notificationStream";
 import { sendFirebaseNotification } from "./firebaseNotificationService";
+import UserNotification, { IUserNotification, UserNotificationType } from "../models/UserNotification";
+import { randomUUID } from "crypto";
+import Offer from "../models/Offer";
+import Category from "../models/Category";
+import Product from "../models/Product";
 
 interface CreateNotificationData {
   recipient: string | Types.ObjectId;
@@ -241,6 +246,7 @@ export const notifyCustomerAboutOrderStatus = async (
   customerId: string,
   orderId: string,
   status: string,
+  vendorId: string,
 ) => {
   const messages: Record<string, string> = {
     Placed: "Your order has been placed successfully.",
@@ -251,15 +257,13 @@ export const notifyCustomerAboutOrderStatus = async (
   const message = messages[status];
   if (!message) return;
 
-  return createNotification({
-    recipient: customerId,
-    recipientRole: "user",
-    type: "ORDER_STATUS_UPDATED",
-    title: `Order ${status}`,
-    message,
-    relatedId: orderId,
-    data: { event: "ORDER_STATUS_UPDATED", orderId, status },
-    deferDelivery: true,
+  const order = await Order.findById(orderId).select("user").lean();
+  if (!order || order.user.toString() !== customerId) return;
+  return createUserCampaign({
+    recipients: [customerId], senderId: vendorId, senderRole: "vendor",
+    type: "ORDER_STATUS_UPDATED", category: "announcement", title: `Order ${status}`, message,
+    relatedId: orderId, action: { type: "order", id: orderId },
+    data: { event: "ORDER_STATUS_UPDATED", orderId, status }, campaignId: randomUUID(),
   });
 };
 
@@ -271,61 +275,103 @@ interface PublishedOfferNotification {
   redirectValue: string;
 }
 
+const deliverUserNotification = async (record: IUserNotification, data?: Record<string, string>) => {
+  const recipient = await User.findById(record.recipient).select("fcmTokens").lean();
+  const tokens = recipient?.fcmTokens ?? [];
+  if (!tokens.length) {
+    await UserNotification.updateOne({ _id: record._id }, { $set: { dispatchStatus: "no_devices", skippedCount: 1 } });
+    return { attempted: 0, accepted: 0, failed: 0, skipped: 1 };
+  }
+  try {
+    const response = await sendFirebaseNotification(tokens, {
+      notificationId: record._id.toString(), type: record.type === "CUSTOM_MESSAGE" ? "CUSTOM_MESSAGE" : record.type,
+      title: record.title, message: record.message, relatedId: record.relatedId?.toString(), role: "user", data,
+    });
+    const accepted = response.responses.filter((item) => item.success).length;
+    const failed = response.responses.length - accepted;
+    const invalid = response.responses.flatMap((item, index) => {
+      const code = item.error?.code ?? "";
+      return !item.success && (code.includes("registration-token-not-registered") || code.includes("invalid-registration-token")) ? [response.tokens[index]] : [];
+    });
+    if (invalid.length) await User.updateOne({ _id: record.recipient }, { $pull: { fcmTokens: { $in: invalid } } });
+    const dispatchStatus = accepted === 0 ? "failed" : failed ? "partial" : "accepted";
+    await UserNotification.updateOne({ _id: record._id }, { $set: { dispatchStatus, attemptedCount: response.tokens.length, acceptedCount: accepted, failedCount: failed, skippedCount: 0 } });
+    return { attempted: response.tokens.length, accepted, failed, skipped: 0 };
+  } catch (error) {
+    console.error("Firebase customer notification delivery failed:", error);
+    await UserNotification.updateOne({ _id: record._id }, { $set: { dispatchStatus: "failed", attemptedCount: tokens.length, acceptedCount: 0, failedCount: tokens.length, skippedCount: 0 } });
+    return { attempted: tokens.length, accepted: 0, failed: tokens.length, skipped: 0 };
+  }
+};
+
+const createUserCampaign = async (args: {
+  recipients?: string[]; recipientCursor?: AsyncIterable<{ _id: Types.ObjectId }>;
+  senderId: string; senderRole: "admin" | "vendor"; campaignId: string;
+  type: UserNotificationType; category: "offer" | "announcement"; title: string; message: string;
+  relatedId?: string; action?: IUserNotification["action"]; data?: Record<string, string>;
+}) => {
+  const totals = { campaignId: args.campaignId, recipients: 0, stored: 0, attempted: 0, accepted: 0, failed: 0, skipped: 0 };
+  const sendBatch = async (ids: string[]) => {
+    if (!ids.length) return;
+    const previouslyStored = await UserNotification.find({ campaignId: args.campaignId, recipient: { $in: ids } }).distinct("recipient");
+    const existing = new Set(previouslyStored.map((id) => id.toString()));
+    const pendingIds = ids.filter((id) => !existing.has(id));
+    if (!pendingIds.length) return;
+    // Persist the entire recipient batch before any Firebase attempt.
+    const records = await UserNotification.insertMany(pendingIds.map((recipient) => ({
+      recipient: new Types.ObjectId(recipient), recipientRole: "user", sender: new Types.ObjectId(args.senderId), senderRole: args.senderRole,
+      campaignId: args.campaignId, type: args.type, category: args.category, title: args.title, message: args.message,
+      relatedId: args.relatedId ? new Types.ObjectId(args.relatedId) : undefined, action: args.action ?? { type: "none" }, dispatchStatus: "stored",
+    })), { ordered: false });
+    totals.recipients += pendingIds.length;
+    totals.stored += records.length;
+    // Process individually so one Firebase failure does not affect other recipients.
+    for (const record of records) {
+      const result = await deliverUserNotification(record, args.data);
+      totals.attempted += result.attempted; totals.accepted += result.accepted; totals.failed += result.failed; totals.skipped += result.skipped;
+    }
+  };
+  let batch: string[] = [];
+  if (args.recipients) {
+    for (const id of args.recipients) {
+      if (!Types.ObjectId.isValid(id)) continue;
+      batch.push(id);
+      if (batch.length === 25) { await sendBatch(batch); batch = []; }
+    }
+  } else if (args.recipientCursor) {
+    for await (const user of args.recipientCursor) {
+      batch.push(user._id.toString());
+      if (batch.length === 25) { await sendBatch(batch); batch = []; }
+    }
+  }
+  if (batch.length) await sendBatch(batch);
+  return totals;
+};
+
 export const notifyEligibleCustomersAboutOffer = async (
   offer: PublishedOfferNotification,
-  options: { senderId?: string; senderRole?: "admin" | "vendor"; audience?: "all" | "vendor_customers"; idempotencyKey?: string } = {},
+  options: { senderId?: string; senderRole?: "admin" | "vendor"; audience?: "all" | "vendor_customers"; idempotencyKey?: string; campaignId?: string } = {},
 ) => {
-  const cursor = User.find({})
-    .select("_id")
-    .lean()
-    .cursor();
-
-  const recipients: string[] = [];
-  const totals = { stored: 0, attempted: 0, accepted: 0, failed: 0, skipped: 0 };
-  const dispatch = async (ids: string[]) => {
-    const result = await Promise.allSettled(ids.map((customerId) => createNotification({
-      recipient: customerId,
-      recipientRole: "user",
-      type: "NEW_OFFER",
-      title: offer.title,
-      message: offer.message,
-      relatedId: offer.offerId,
-      sender: options.senderId,
-      senderRole: options.senderRole,
-      category: "offer",
-      idempotencyKey: options.idempotencyKey ? `${options.idempotencyKey}:${customerId}` : undefined,
-      data: {
-        event: "NEW_OFFER", type: "NEW_OFFER", offerId: offer.offerId,
-        role: "user", title: offer.title, message: offer.message,
-        redirectType: offer.redirectType, redirectValue: offer.redirectValue,
-      },
-      deferDelivery: true,
-    })));
-    result.forEach((outcome: any) => {
-      if (outcome.status === "rejected") { totals.failed += 1; totals.attempted += 1; return; }
-      const record = outcome.value;
-      totals.stored += 1;
-      const stats = record?.deliveryResult;
-      if (!stats) { totals.skipped += 1; return; }
-      totals.attempted += stats.attempted;
-      totals.accepted += stats.accepted;
-      totals.failed += stats.failed;
-      totals.skipped += stats.skipped;
-    });
-  };
-
-  for await (const customer of cursor) {
-    recipients.push(customer._id.toString());
-
-    if (recipients.length < 25) continue;
-
-    await dispatch(recipients.splice(0));
-  }
-
-  if (recipients.length > 0) {
-    await dispatch(recipients);
-  }
-  return totals;
+  const senderId = options.senderId;
+  const senderRole = options.senderRole;
+  if (!senderId || !senderRole) throw new Error("Notification sender is required");
+  const offerDoc = await Offer.findOne({ _id: offer.offerId, status: "published", deletedAt: null }).lean();
+  if (!offerDoc) throw new Error("Published offer is not available");
+  const destination = Types.ObjectId.isValid(offerDoc.redirectValue) && (offerDoc.redirectType === "category"
+    ? await Category.exists({ _id: offerDoc.redirectValue, isActive: true })
+    : await Product.exists({ _id: offerDoc.redirectValue, isActive: true }));
+  if (!destination) throw new Error("Offer destination is not available");
+  const campaignId = options.campaignId ?? (options.idempotencyKey ? `offer:${offer.offerId}:${options.idempotencyKey}` : randomUUID());
+  const audience = options.audience === "vendor_customers" && senderRole === "vendor"
+    ? await Order.distinct("user", { "items.vendor": senderId })
+    : undefined;
+  return createUserCampaign({
+    recipients: audience?.map((id) => id.toString()), recipientCursor: audience ? undefined : User.find({}).select("_id").lean().cursor(),
+    senderId, senderRole, campaignId, type: "NEW_OFFER", category: "offer", title: offerDoc.title,
+    message: offerDoc.message, relatedId: offerDoc._id.toString(),
+    action: { type: "offer", id: offerDoc._id.toString(), redirectType: offerDoc.redirectType, redirectValue: offerDoc.redirectValue },
+    data: { event: "NEW_OFFER", type: "NEW_OFFER", offerId: offerDoc._id.toString(), role: "user", title: offerDoc.title, message: offerDoc.message, redirectType: offerDoc.redirectType, redirectValue: offerDoc.redirectValue },
+  });
 };
 
 export const getNotifications = async (
@@ -384,9 +430,10 @@ export const getEligibleCustomers = async (actorRole: "admin" | "vendor", vendor
 export const sendManualNotification = async (args: {
   senderId: string; senderRole: "admin" | "vendor"; recipientId?: string; audience: "individual" | "all";
   type: "CUSTOM" | "NEW_OFFER"; title: string; message: string; category: string;
-  relatedId?: string; data?: Record<string, string>; idempotencyKey?: string;
+  relatedId?: string; data?: Record<string, string>; action?: IUserNotification["action"]; idempotencyKey?: string;
 }) => {
-  let individualRecipient: string | undefined;
+  let recipients: string[] | undefined;
+  let recipientCursor: AsyncIterable<{ _id: Types.ObjectId }> | undefined;
   if (args.audience === "individual") {
     if (!args.recipientId || !Types.ObjectId.isValid(args.recipientId)) throw new Error("A valid customerId is required");
     if (args.senderRole === "vendor") {
@@ -395,53 +442,95 @@ export const sendManualNotification = async (args: {
     }
     const userExists = await User.exists({ _id: args.recipientId });
     if (!userExists) throw new Error("Customer not found");
-    individualRecipient = args.recipientId;
-  }
-  const totals = { attempted: 0, accepted: 0, failed: 0, skipped: 0 };
-  let stored = 0;
-  let recipientCount = 0;
-  const dispatchBatch = async (batch: string[]) => {
-    const records = await Promise.allSettled(batch.map((recipient) => createNotification({
-      recipient, recipientRole: "user", type: args.type, title: args.title, message: args.message,
-      relatedId: args.relatedId, data: args.data, sender: args.senderId, senderRole: args.senderRole,
-      category: args.category, idempotencyKey: args.idempotencyKey ? `${args.idempotencyKey}:${recipient}` : undefined,
-    })));
-    records.forEach((outcome: any) => {
-      if (outcome.status === "rejected") { totals.failed += 1; totals.attempted += 1; return; }
-      const record = outcome.value;
-      stored += 1;
-      const stats = record?.deliveryResult;
-      if (!stats) { totals.skipped += 1; return; }
-      totals.attempted += stats.attempted; totals.accepted += stats.accepted;
-      totals.failed += stats.failed; totals.skipped += stats.skipped;
-    });
-    recipientCount += batch.length;
-  };
-  if (individualRecipient) {
-    await dispatchBatch([individualRecipient]);
+    recipients = [args.recipientId];
+  } else if (args.senderRole === "vendor") {
+    recipients = (await Order.distinct("user", { "items.vendor": args.senderId })).map((id) => id.toString());
   } else {
-    const cursor = User.find({}).select("_id").lean().cursor();
-    let batch: string[] = [];
-    for await (const user of cursor) {
-      batch.push(user._id.toString());
-      if (batch.length === 25) { await dispatchBatch(batch); batch = []; }
-    }
-    if (batch.length) await dispatchBatch(batch);
+    recipientCursor = User.find({}).select("_id").lean().cursor();
   }
-  return { ...totals, recipients: recipientCount, stored };
+  const campaignId = args.idempotencyKey ? `manual:${args.senderRole}:${args.senderId}:${args.idempotencyKey}` : randomUUID();
+  return createUserCampaign({
+    recipients, recipientCursor, senderId: args.senderId, senderRole: args.senderRole, campaignId,
+    type: args.type === "CUSTOM" ? "CUSTOM_MESSAGE" : args.type,
+    category: args.category === "offer" ? "offer" : "announcement", title: args.title, message: args.message,
+    relatedId: args.relatedId, action: args.action, data: args.data,
+  });
 };
 
-export const getManagedNotificationHistory = async (senderId: string, senderRole: "admin" | "vendor", page?: unknown, limit?: unknown) => {
+export const getManagedNotificationHistory = async (senderId: string, senderRole: "admin" | "vendor", page?: unknown, limit?: unknown, filters: { search?: unknown; category?: unknown; senderRole?: unknown; campaignId?: unknown; from?: unknown; to?: unknown } = {}) => {
   const pagination = getPagination(page, limit, 20);
-  const filter = { sender: senderId, senderRole, deletedAt: null };
-  const [data, totalItems] = await Promise.all([
-    Notification.find(filter).sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit).select("title message category type relatedId dispatchStatus acceptedCount failedCount createdAt sender senderRole").lean(),
-    Notification.countDocuments(filter),
-  ]);
+  const match: Record<string, any> = { deletedAt: null };
+  if (senderRole === "vendor") Object.assign(match, { sender: senderId, senderRole });
+  else if (filters.senderRole === "admin" || filters.senderRole === "vendor") match.senderRole = filters.senderRole;
+  if (filters.category === "offer" || filters.category === "announcement") match.category = filters.category;
+  if (typeof filters.campaignId === "string" && filters.campaignId.trim()) match.campaignId = filters.campaignId.trim();
+  if (typeof filters.search === "string" && filters.search.trim()) {
+    const term = filters.search.trim().slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    match.$or = [{ title: { $regex: term, $options: "i" } }, { message: { $regex: term, $options: "i" } }];
+  }
+  const date: Record<string, Date> = {};
+  if (typeof filters.from === "string" && !Number.isNaN(Date.parse(filters.from))) date.$gte = new Date(filters.from);
+  if (typeof filters.to === "string" && !Number.isNaN(Date.parse(filters.to))) date.$lte = new Date(filters.to);
+  if (Object.keys(date).length) match.createdAt = date;
+  const pipeline: any[] = [
+    { $match: match },
+    { $group: { _id: "$campaignId", title: { $first: "$title" }, message: { $first: "$message" }, category: { $first: "$category" }, type: { $first: "$type" }, relatedId: { $first: "$relatedId" }, action: { $first: "$action" }, sender: { $first: "$sender" }, senderRole: { $first: "$senderRole" }, createdAt: { $min: "$createdAt" }, updatedAt: { $max: "$updatedAt" }, recipientCount: { $sum: 1 }, stored: { $sum: 1 }, attempted: { $sum: "$attemptedCount" }, accepted: { $sum: "$acceptedCount" }, failed: { $sum: "$failedCount" }, skipped: { $sum: "$skippedCount" }, statuses: { $push: "$dispatchStatus" } } },
+    { $sort: { createdAt: -1 } },
+    { $facet: { data: [{ $skip: pagination.skip }, { $limit: pagination.limit }], total: [{ $count: "count" }] } },
+  ];
+  const [result] = await UserNotification.aggregate(pipeline);
+  const totalItems = result?.total?.[0]?.count ?? 0;
+  const data = (result?.data ?? []).map((campaign: any) => ({ ...campaign, dispatchStatus: campaign.statuses.every((s: string) => s === "accepted") ? "accepted" : campaign.statuses.some((s: string) => s === "accepted" || s === "partial") ? "partial" : campaign.statuses.every((s: string) => s === "no_devices") ? "no_devices" : campaign.statuses.every((s: string) => s === "stored") ? "stored" : "failed", statuses: undefined }));
   return { data, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
 };
 
-export const deleteManagedNotification = async (notificationId: string, senderId: string, senderRole: "admin" | "vendor") => {
-  if (!Types.ObjectId.isValid(notificationId)) throw new Error("Notification not found");
-  return Notification.findOneAndUpdate({ _id: notificationId, sender: senderId, senderRole, deletedAt: null }, { $set: { deletedAt: new Date() } }, { new: true }).lean();
+const campaignAccessFilter = (campaignId: string, senderId: string, senderRole: "admin" | "vendor") => ({ campaignId, ...(senderRole === "vendor" ? { sender: senderId, senderRole } : {}) });
+
+export const editManagedNotification = async (campaignId: string, senderId: string, senderRole: "admin" | "vendor", input: { title: string; message: string }) => {
+  const title = input.title.trim(), message = input.message.trim();
+  if (!title || title.length > 120 || !message || message.length > 240) throw new Error("Title and message are required (up to 120 and 240 characters)");
+  const filter = { ...campaignAccessFilter(campaignId, senderId, senderRole), deletedAt: null };
+  const existing = await UserNotification.findOne(filter).select("campaignId").lean();
+  if (!existing) return null;
+  if (!(await UserNotification.updateMany(filter, { $set: { title, message } })).matchedCount) return null;
+  return { campaignId, title, message };
+};
+
+export const deleteManagedNotification = async (campaignId: string, senderId: string, senderRole: "admin" | "vendor") => {
+  const filter = { ...campaignAccessFilter(campaignId, senderId, senderRole), deletedAt: null };
+  const first = await UserNotification.findOne(filter).select("campaignId").lean();
+  if (!first) return null;
+  const deletedAt = new Date();
+  await UserNotification.updateMany(filter, { $set: { deletedAt } });
+  return { campaignId, deletedAt };
+};
+
+export const resendManagedNotification = async (campaignId: string, senderId: string, senderRole: "admin" | "vendor", idempotencyKey: string) => {
+  const key = idempotencyKey.trim().slice(0, 100);
+  if (!key) throw new Error("Idempotency-Key header is required");
+  const filter = { ...campaignAccessFilter(campaignId, senderId, senderRole), deletedAt: null };
+  const records = await UserNotification.find(filter).sort({ _id: 1 }).lean();
+  if (!records.length) throw new Error("Notification campaign not found");
+  const first = records[0];
+  let data: Record<string, string> = { event: first.type, role: "user" };
+  if (first.type === "NEW_OFFER") {
+    const offer = first.relatedId && await Offer.findOne({ _id: first.relatedId, status: "published", deletedAt: null }).lean();
+    if (!offer) throw new Error("Published offer is no longer available");
+    const destination = Types.ObjectId.isValid(offer.redirectValue) && (offer.redirectType === "category" ? await Category.exists({ _id: offer.redirectValue, isActive: true }) : await Product.exists({ _id: offer.redirectValue, isActive: true }));
+    if (!destination) throw new Error("Offer destination is no longer available");
+    data = { event: "NEW_OFFER", type: "NEW_OFFER", offerId: offer._id.toString(), role: "user", title: first.title, message: first.message, redirectType: offer.redirectType, redirectValue: offer.redirectValue };
+  } else if (first.type === "ORDER_STATUS_UPDATED" && first.relatedId) {
+    data = { event: "ORDER_STATUS_UPDATED", orderId: first.relatedId.toString(), role: "user" };
+  } else data = { event: "CUSTOM", type: "CUSTOM_MESSAGE", role: "user" };
+  const anchor = await UserNotification.findOneAndUpdate({ ...filter, resendKeys: { $ne: key } }, { $addToSet: { resendKeys: key } }, { new: true });
+  if (!anchor) {
+    const latest = await UserNotification.find(filter).select("attemptedCount acceptedCount failedCount skippedCount").lean();
+    return { duplicate: true, campaignId, recipients: latest.length, attempted: latest.reduce((sum, row) => sum + row.attemptedCount, 0), accepted: latest.reduce((sum, row) => sum + row.acceptedCount, 0), failed: latest.reduce((sum, row) => sum + row.failedCount, 0), skipped: latest.reduce((sum, row) => sum + row.skippedCount, 0) };
+  }
+  const totals = { duplicate: false, campaignId, recipients: records.length, attempted: 0, accepted: 0, failed: 0, skipped: 0 };
+  for (const record of records) {
+    const result = await deliverUserNotification(record as IUserNotification, data);
+    totals.attempted += result.attempted; totals.accepted += result.accepted; totals.failed += result.failed; totals.skipped += result.skipped;
+  }
+  return totals;
 };

@@ -1,12 +1,14 @@
 import api from "./api";
 import type {
   CustomerRecipient,
+  CampaignResendResult,
   ManualNotificationResult,
   ManagedNotification,
   ManagedOffer,
   PageInfo,
   PaginatedResponse,
   ResendResult,
+  NotificationHistoryFilters,
 } from "../types/notificationManagement";
 
 export const getManagedOffers = async (page: number, limit = 10) => {
@@ -86,17 +88,40 @@ export const sendManagedNotification = async (
   return response.data;
 };
 
-export const getManagedNotificationHistory = async (page: number, limit = 20) => {
+export const getManagedNotificationHistory = async (page: number, limit = 20, filters: NotificationHistoryFilters = {}) => {
+  const params: Record<string, string | number> = { page, limit };
+  for (const [key, value] of Object.entries(filters)) {
+    if (typeof value === "string" && value) params[key] = value;
+  }
+  if (filters.from) params.from = `${filters.from}T00:00:00.000Z`;
+  if (filters.to) params.to = `${filters.to}T23:59:59.999Z`;
   const response = await api.get<PaginatedResponse<ManagedNotification>>(
-    "/notifications/managed/history",
-    { params: { page, limit } },
+    "/notifications/users-history",
+    { params },
   );
   return response.data;
 };
 
-export const deleteManagedNotification = async (notificationId: string) => {
-  const response = await api.delete<{ success: boolean; data: { id: string; deletedAt: string } }>(
-    `/notifications/managed/${notificationId}`,
+export const editManagedNotification = async (campaignId: string, body: { title: string; message: string }) => {
+  const response = await api.put<{ success: boolean; data: { campaignId: string; title: string; message: string } }>(
+    `/notifications/managed/${encodeURIComponent(campaignId)}`,
+    body,
+  );
+  return response.data;
+};
+
+export const deleteManagedNotification = async (campaignId: string) => {
+  const response = await api.delete<{ success: boolean; data: { campaignId: string; deletedAt: string } }>(
+    `/notifications/managed/${encodeURIComponent(campaignId)}`,
+  );
+  return response.data;
+};
+
+export const resendManagedNotification = async (campaignId: string, idempotencyKey: string) => {
+  const response = await api.post<{ success: boolean; message: string; data: CampaignResendResult }>(
+    `/notifications/managed/${encodeURIComponent(campaignId)}/resend`,
+    undefined,
+    { headers: { "Idempotency-Key": idempotencyKey } },
   );
   return response.data;
 };
