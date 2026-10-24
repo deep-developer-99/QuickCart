@@ -28,6 +28,7 @@ import {
 } from "../controllers/categoryController";
 
 import authMiddleware from "../middleware/authMiddleware";
+import { validatePagination } from "../middleware/validatePagination";
 import upload from "../middleware/uploadMiddleware";
 import {
   createOfferController,
@@ -70,7 +71,7 @@ router.delete("/banners/:id", deleteBannerController);
 router.put("/banners/:id/status", toggleBannerStatusController);
 
 // Offers
-router.get("/offers", getAdminOffersController);
+router.get("/offers", validatePagination, getAdminOffersController);
 router.post("/offers", createOfferController);
 router.put("/offers/:id", updateOfferController);
 router.put("/offers/:id/publish", publishOfferController);

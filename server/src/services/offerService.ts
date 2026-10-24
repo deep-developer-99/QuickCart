@@ -47,11 +47,11 @@ const buildOfferData = (data: OfferInput) => ({
 export const getAdminOffers = async (page?: unknown, limit?: unknown) => {
   const pagination = getPagination(page, limit);
   const [data, totalItems] = await Promise.all([
-    Offer.find()
+    Offer.find({ deletedAt: null })
       .sort({ createdAt: -1 })
       .skip(pagination.skip)
       .limit(pagination.limit),
-    Offer.countDocuments(),
+    Offer.countDocuments({ deletedAt: null }),
   ]);
 
   return {
@@ -63,31 +63,42 @@ export const getAdminOffers = async (page?: unknown, limit?: unknown) => {
 export const getPublishedOffer = async (offerId: string) => {
   if (!Types.ObjectId.isValid(offerId)) throw new Error("Offer not found");
 
-  const offer = await Offer.findOne({ _id: offerId, status: "published" }).lean();
+  const offer = await Offer.findOne({ _id: offerId, status: "published", deletedAt: null }).lean();
   if (!offer) throw new Error("Offer not found");
+  const destinationExists = Types.ObjectId.isValid(offer.redirectValue) && (offer.redirectType === "category"
+    ? await Category.exists({ _id: offer.redirectValue, isActive: true })
+    : await Product.exists({ _id: offer.redirectValue, isActive: true }));
+  if (!destinationExists) throw new Error("Offer not found");
   return offer;
 };
 
-export const createOffer = async (data: OfferInput) => {
+export const createOffer = async (data: OfferInput, ownerId?: string, ownerRole: "admin" | "vendor" = "admin") => {
   validateOfferInput(data);
-  return Offer.create({ ...buildOfferData(data), status: "draft" as OfferStatus });
+  return Offer.create({ ...buildOfferData(data), status: "draft" as OfferStatus, ownerId, ownerRole, audience: ownerRole === "vendor" ? "vendor_customers" : "all" });
 };
 
-export const updateOffer = async (offerId: string, data: OfferInput) => {
-  validateOfferInput(data);
-
-  const offer = await Offer.findById(offerId);
+export const updateOffer = async (offerId: string, data: Pick<OfferInput, "title" | "message">, actorId?: string, actorRole: "admin" | "vendor" = "admin") => {
+  const title = normalize(data.title), message = normalize(data.message);
+  if (!title || title.length > 120) throw new Error("Offer title is required and must be at most 120 characters");
+  if (!message || message.length > 240) throw new Error("Offer message is required and must be at most 240 characters");
+  if (!Types.ObjectId.isValid(offerId)) throw new Error("Offer not found");
+  const filter: Record<string, unknown> = { _id: offerId, deletedAt: null };
+  if (actorRole === "vendor") Object.assign(filter, { ownerId: actorId, ownerRole: "vendor" });
+  const offer = await Offer.findOne(filter);
   if (!offer) throw new Error("Offer not found");
 
-  Object.assign(offer, buildOfferData(data));
+  offer.title = title;
+  offer.message = message;
   await offer.save();
   return offer;
 };
 
-export const publishOffer = async (offerId: string) => {
-  const draft = await Offer.findOne({ _id: offerId, status: "draft" });
+export const publishOffer = async (offerId: string, actorId?: string, actorRole: "admin" | "vendor" = "admin") => {
+  if (!Types.ObjectId.isValid(offerId)) throw new Error("Offer not found");
+  const ownership = actorRole === "vendor" ? { ownerId: actorId, ownerRole: "vendor", deletedAt: null } : { deletedAt: null };
+  const draft = await Offer.findOne({ _id: offerId, status: "draft", ...ownership });
   if (!draft) {
-    const existingOffer = await Offer.findById(offerId);
+    const existingOffer = await Offer.findOne({ _id: offerId, ...ownership });
     if (!existingOffer) throw new Error("Offer not found");
     throw new Error("Offer has already been published");
   }
@@ -116,15 +127,73 @@ export const publishOffer = async (offerId: string) => {
     throw new Error("Offer has already been published");
   }
 
-  void notifyEligibleCustomersAboutOffer({
+  const stats = await notifyEligibleCustomersAboutOffer({
     offerId: offer._id.toString(),
     title: offer.title,
     message: offer.message,
     redirectType: offer.redirectType,
     redirectValue: offer.redirectValue,
-  }).catch((error) => {
+  }, { senderId: actorId ?? draft.ownerId?.toString(), senderRole: actorRole, audience: draft.audience }).catch((error) => {
     console.error("Offer notification dispatch failed:", error);
+    return { attempted: 0, accepted: 0, failed: 1, skipped: 0 };
   });
 
-  return offer;
+  const completedAt = new Date();
+  await Offer.updateOne({ _id: offer._id }, { $set: { lastDispatch: { ...stats, completedAt } }, $push: { dispatchHistory: { kind: "publish", outcome: "complete", ...stats, completedAt } } });
+
+  return (await Offer.findById(offer._id)) ?? offer;
+};
+
+export const getManagedOffers = async (actorId: string, actorRole: "admin" | "vendor", page?: unknown, limit?: unknown) => {
+  const pagination = getPagination(page, limit);
+  const filter = actorRole === "admin" ? { deletedAt: null } : { deletedAt: null, ownerId: actorId, ownerRole: "vendor" };
+  const [data, totalItems] = await Promise.all([
+    Offer.find(filter).sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit).lean(),
+    Offer.countDocuments(filter),
+  ]);
+  return { data, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
+};
+
+export const deleteOffer = async (offerId: string, actorId: string, actorRole: "admin" | "vendor") => {
+  if (!Types.ObjectId.isValid(offerId)) throw new Error("Offer not found");
+  const filter: Record<string, unknown> = { _id: offerId, deletedAt: null };
+  if (actorRole === "vendor") Object.assign(filter, { ownerId: actorId, ownerRole: "vendor" });
+  return Offer.findOneAndUpdate(filter, { $set: { deletedAt: new Date() } }, { new: true });
+};
+
+export const resendOfferNotification = async (offerId: string, actorId: string, actorRole: "admin" | "vendor", idempotencyKey: string) => {
+  if (!Types.ObjectId.isValid(offerId)) throw new Error("Offer not found");
+  const filter: Record<string, unknown> = { _id: offerId, status: "published", deletedAt: null };
+  if (actorRole === "vendor") Object.assign(filter, { ownerId: actorId, ownerRole: "vendor" });
+  const offer = await Offer.findOne(filter);
+  if (!offer) throw new Error("Offer not found, published, or available to resend");
+  if (!Types.ObjectId.isValid(offer.redirectValue)) throw new Error("Offer destination is invalid");
+  const available = offer.redirectType === "category"
+    ? await Category.exists({ _id: offer.redirectValue, isActive: true })
+    : await Product.exists({ _id: offer.redirectValue, isActive: true });
+  if (!available) throw new Error("Offer destination is not available");
+  const key = idempotencyKey.trim().slice(0, 100);
+  if (!key) throw new Error("Idempotency-Key header is required");
+  if (offer.resendKeys?.includes(key)) {
+    const previous = offer.dispatchHistory?.find((entry: { kind: string; idempotencyKey?: string }) => entry.kind === "resend" && entry.idempotencyKey === key);
+    const result = previous ?? offer.lastDispatch ?? { stored: 0, attempted: 0, accepted: 0, failed: 0, skipped: 0 };
+    return { duplicate: true, stored: result.stored, attempted: result.attempted, accepted: result.accepted, failed: result.failed, skipped: result.skipped, completedAt: result.completedAt };
+  }
+  const claim = await Offer.findOneAndUpdate({ ...filter, resendKeys: { $ne: key } }, { $addToSet: { resendKeys: key }, $set: { resendKey: key } }, { new: true });
+  if (!claim) {
+    const result = offer.lastDispatch ?? { stored: 0, attempted: 0, accepted: 0, failed: 0, skipped: 0 };
+    return { duplicate: true, stored: result.stored, attempted: result.attempted, accepted: result.accepted, failed: result.failed, skipped: result.skipped, completedAt: result.completedAt };
+  }
+  let stats: { stored: number; attempted: number; accepted: number; failed: number; skipped: number };
+  let outcome: "complete" | "failed" = "complete";
+  try {
+    stats = await notifyEligibleCustomersAboutOffer({ offerId: offer._id.toString(), title: offer.title, message: offer.message, redirectType: offer.redirectType, redirectValue: offer.redirectValue }, { senderId: actorId, senderRole: actorRole, audience: offer.audience, idempotencyKey: `resend:${key}` });
+  } catch (error) {
+    console.error("Offer resend dispatch failed:", error);
+    stats = { stored: 0, attempted: 0, accepted: 0, failed: 1, skipped: 0 };
+    outcome = "failed";
+  }
+  const completedAt = new Date();
+  await Offer.updateOne({ _id: offer._id }, { $set: { lastDispatch: { ...stats, completedAt } }, $push: { dispatchHistory: { kind: "resend", idempotencyKey: key, outcome, ...stats, completedAt } } });
+  return { duplicate: false, ...stats, completedAt };
 };

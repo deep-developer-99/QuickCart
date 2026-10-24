@@ -2,7 +2,7 @@ import { firebaseAdminMessaging } from "../config/firebaseAdmin";
 
 interface FcmNotificationPayload {
   notificationId: string;
-  type: "NEW_ORDER" | "NEW_VENDOR" | "ORDER_STATUS_UPDATED" | "NEW_OFFER";
+  type: "NEW_ORDER" | "NEW_VENDOR" | "ORDER_STATUS_UPDATED" | "NEW_OFFER" | "CUSTOM";
   title: string;
   message: string;
   relatedId?: string;

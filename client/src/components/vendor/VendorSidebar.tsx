@@ -63,6 +63,16 @@ const VendorSidebar = () => {
           <span className="vendor-sidebar-icon">🛒</span>
           <span>Manage Orders</span>
         </NavLink>
+
+        <NavLink
+          to="/vendor/offers"
+          className={({ isActive }) =>
+            `vendor-sidebar-link${isActive ? " active" : ""}`
+          }
+        >
+          <span className="vendor-sidebar-icon">🎁</span>
+          <span>Offers &amp; notifications</span>
+        </NavLink>
       </nav>
 
       <div className="vendor-sidebar-footer">
