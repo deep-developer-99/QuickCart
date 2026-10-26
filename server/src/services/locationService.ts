@@ -24,11 +24,15 @@ export type LocationLookupErrorCode =
   | "INVALID_INPUT"
   | "NOT_FOUND"
   | "RATE_LIMITED"
+  | "UPSTREAM_RATE_LIMITED"
   | "TIMEOUT"
   | "PROVIDER_ERROR";
 
 export class LocationLookupError extends Error {
-  constructor(public readonly code: LocationLookupErrorCode) {
+  constructor(
+    public readonly code: LocationLookupErrorCode,
+    public readonly retryAfterSeconds?: number,
+  ) {
     super(code);
     this.name = "LocationLookupError";
   }
@@ -44,7 +48,25 @@ const RESULT_CACHE = new Map<
 const IN_FLIGHT = new Map<string, Promise<NominatimValue>>();
 
 let lastNominatimRequestAt = 0;
+let providerRateLimitUntil = 0;
 let requestQueue: Promise<void> = Promise.resolve();
+
+const getRetryAfterSeconds = (value: string | null): number => {
+  if (!value) return 60;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.max(1, Math.ceil(seconds));
+  }
+  const retryAt = Date.parse(value);
+  if (!Number.isFinite(retryAt)) return 60;
+  return Math.max(1, Math.ceil((retryAt - Date.now()) / 1000));
+};
+
+const upstreamRateLimitError = (): LocationLookupError =>
+  new LocationLookupError(
+    "UPSTREAM_RATE_LIMITED",
+    Math.max(1, Math.ceil((providerRateLimitUntil - Date.now()) / 1000)),
+  );
 
 const waitForNominatimSlot = async (): Promise<void> => {
   let release!: () => void;
@@ -54,11 +76,13 @@ const waitForNominatimSlot = async (): Promise<void> => {
   });
   await previous;
   try {
+    if (providerRateLimitUntil > Date.now()) throw upstreamRateLimitError();
     const waitMs = Math.max(
       0,
       MIN_REQUEST_INTERVAL_MS - (Date.now() - lastNominatimRequestAt),
     );
     if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+    if (providerRateLimitUntil > Date.now()) throw upstreamRateLimitError();
     lastNominatimRequestAt = Date.now();
   } finally {
     release();
@@ -119,14 +143,25 @@ const requestNominatim = async (
   }
 
   if (response.status === 429) {
+    const retryAfterSeconds = getRetryAfterSeconds(
+      response.headers.get("Retry-After"),
+    );
+    providerRateLimitUntil = Math.max(
+      providerRateLimitUntil,
+      Date.now() + retryAfterSeconds * 1000,
+    );
     if (stage) {
       console.warn("[Nominatim] lookup failed", {
         stage,
         providerHttpStatus: response.status,
-        error: "rate_limited",
+        error: "upstream_rate_limited",
+        retryAfterSeconds,
       });
     }
-    throw new LocationLookupError("RATE_LIMITED");
+    throw new LocationLookupError(
+      "UPSTREAM_RATE_LIMITED",
+      retryAfterSeconds,
+    );
   }
   if (!response.ok) {
     if (stage) {

@@ -166,6 +166,25 @@
   font-size: 12px;
 }
 
+.shop-location-retry-button {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #f2c37c;
+  border-radius: 7px;
+  background: #fff9ed;
+  color: #8a4b08;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.shop-location-retry-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .shop-location-spinner {
   width: 15px;
   height: 15px;

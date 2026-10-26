@@ -14,7 +14,7 @@ export interface ShopLocationDraft {
 
 interface ShopLocationFieldsProps {
   value: ShopLocationDraft;
-  onChange: (value: ShopLocationDraft) => void;
+  onChange: (value: Partial<ShopLocationDraft>) => void;
   disabled?: boolean;
   enableLocationTools?: boolean;
 }
@@ -28,7 +28,7 @@ const ShopLocationFields = ({
   const updateText =
     (field: "address" | "city" | "state" | "pincode") =>
     (event: ChangeEvent<HTMLInputElement>) =>
-      onChange({ ...value, [field]: event.target.value });
+      onChange({ [field]: event.target.value });
 
   const hasCoordinates =
     typeof value.latitude === "number" &&
@@ -120,7 +120,7 @@ const ShopLocationFields = ({
             : null
         }
         onChange={(coordinates, address) =>
-          onChange({ ...value, ...coordinates, ...address })
+          onChange({ ...coordinates, ...address })
         }
         disabled={disabled}
         enableLocationTools={enableLocationTools}

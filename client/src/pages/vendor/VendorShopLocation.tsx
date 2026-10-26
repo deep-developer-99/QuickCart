@@ -181,7 +181,7 @@ const VendorShopLocation = () => {
             enableLocationTools
             onChange={(next) => {
               setError("");
-              setLocation(next);
+              setLocation((current) => ({ ...current, ...next }));
               setSuccess("");
             }}
             disabled={isSaving}

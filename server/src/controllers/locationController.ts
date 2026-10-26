@@ -14,7 +14,7 @@ const errorResponse = (error: unknown, res: Response): void => {
       ? 400
       : code === "NOT_FOUND"
         ? 404
-        : code === "RATE_LIMITED"
+        : code === "RATE_LIMITED" || code === "UPSTREAM_RATE_LIMITED"
           ? 429
           : code === "TIMEOUT"
             ? 504
@@ -22,11 +22,21 @@ const errorResponse = (error: unknown, res: Response): void => {
   const message: Record<string, string> = {
     INVALID_INPUT: "Enter a complete address to look up.",
     NOT_FOUND: "No map location was found for this address.",
-    RATE_LIMITED: "The address provider is temporarily rate-limiting requests.",
+    RATE_LIMITED: "QuickCart's location request queue is temporarily limiting lookups.",
+    UPSTREAM_RATE_LIMITED:
+      "The upstream address provider is temporarily rate-limiting requests.",
     TIMEOUT: "The address provider did not respond in time.",
     PROVIDER_ERROR: "The address provider could not complete this lookup.",
   };
-  res.status(status).json({ success: false, code, message: message[code] });
+  const retryAfterSeconds =
+    error instanceof LocationLookupError ? error.retryAfterSeconds : undefined;
+  if (retryAfterSeconds) res.setHeader("Retry-After", String(retryAfterSeconds));
+  res.status(status).json({
+    success: false,
+    code,
+    message: message[code],
+    ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
+  });
 };
 
 export const forwardGeocodeController = async (
