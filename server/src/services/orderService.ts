@@ -379,7 +379,10 @@ export const getMyOrders = async (
   const filter = { user: userId };
   const [orders, totalItems] = await Promise.all([
     Order.find(filter)
-      .populate("address")
+      .populate({
+        path: "address",
+        select: "fullName phone addressLine city state pincode latitude longitude isDefault",
+      })
       .populate({
         path: "items.product",
         select: "name image price",
@@ -414,7 +417,10 @@ export const getOrderById = async (orderId: string, userId: string) => {
     _id: orderId,
     user: userId,
   })
-    .populate("address")
+    .populate({
+      path: "address",
+      select: "fullName phone addressLine city state pincode latitude longitude isDefault",
+    })
     .populate({
       path: "items.product",
       select: "name image price discountPrice",
@@ -444,7 +450,10 @@ export const getVendorOrders = async (
   const [orders, totalItems] = await Promise.all([
     Order.find(filter)
       .populate("user", "name email phone")
-      .populate("address")
+      .populate({
+        path: "address",
+        select: "fullName phone addressLine city state pincode latitude longitude isDefault",
+      })
       .populate({
         path: "items.product",
         select: "name image price",

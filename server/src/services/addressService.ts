@@ -1,5 +1,6 @@
 import Address from "../models/Address";
 import { createPaginationMeta, getPagination } from "../utils/pagination";
+import { optionalCoordinates } from "../utils/optionalCoordinates";
 
 interface CreateAddressData {
   fullName: string;
@@ -36,6 +37,9 @@ export const createAddress = async (
   userId: string,
   data: CreateAddressData,
 ) => {
+  const { latitude: _latitude, longitude: _longitude, ...addressFields } = data;
+  const coordinates = optionalCoordinates(data);
+
   if (data.isDefault) {
     await Address.updateMany(
       { user: userId },
@@ -49,7 +53,8 @@ export const createAddress = async (
 
   const address = await Address.create({
     user: userId,
-    ...data,
+    ...addressFields,
+    ...coordinates,
   });
 
   return address;
@@ -104,6 +109,8 @@ export const updateAddress = async (
   userId: string,
   data: UpdateAddressData,
 ) => {
+  const { latitude: _latitude, longitude: _longitude, ...addressFields } = data;
+  const coordinates = optionalCoordinates(data);
   const address = await Address.findOne({
     _id: addressId,
     user: userId,
@@ -127,7 +134,7 @@ export const updateAddress = async (
     );
   }
 
-  Object.assign(address, data);
+  Object.assign(address, addressFields, coordinates);
 
   await address.save();
 
