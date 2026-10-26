@@ -1,4 +1,4 @@
-import type { ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 
 import ShopLocationPicker from "./ShopLocationPicker";
 import "./ShopLocationFields.css";
@@ -17,6 +17,7 @@ interface ShopLocationFieldsProps {
   onChange: (value: Partial<ShopLocationDraft>) => void;
   disabled?: boolean;
   enableLocationTools?: boolean;
+  registrationMode?: boolean;
 }
 
 const ShopLocationFields = ({
@@ -24,11 +25,43 @@ const ShopLocationFields = ({
   onChange,
   disabled = false,
   enableLocationTools = false,
+  registrationMode = false,
 }: ShopLocationFieldsProps) => {
+  const [manuallyEditedFields, setManuallyEditedFields] = useState(
+    () => new Set<"address" | "city" | "state" | "pincode">(),
+  );
+
   const updateText =
     (field: "address" | "city" | "state" | "pincode") =>
-    (event: ChangeEvent<HTMLInputElement>) =>
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setManuallyEditedFields((current) => new Set(current).add(field));
       onChange({ [field]: event.target.value });
+    };
+
+  const handlePickerChange = (
+    coordinates: { latitude: number; longitude: number },
+    address?: Partial<ShopLocationDraft>,
+    source?: "map" | "reverse" | "search" | "current",
+  ) => {
+    const editedFields = new Set(manuallyEditedFields);
+    if (source === "search" || source === "current") {
+      Object.keys(address ?? {}).forEach((field) => {
+        editedFields.delete(field as "address" | "city" | "state" | "pincode");
+      });
+      if (editedFields.size !== manuallyEditedFields.size) {
+        setManuallyEditedFields(editedFields);
+      }
+    }
+    const safeAddress = Object.fromEntries(
+      Object.entries(address ?? {}).filter(
+        ([field]) =>
+          !editedFields.has(
+            field as "address" | "city" | "state" | "pincode",
+          ),
+      ),
+    );
+    onChange({ ...coordinates, ...safeAddress });
+  };
 
   const hasCoordinates =
     typeof value.latitude === "number" &&
@@ -119,11 +152,10 @@ const ShopLocationFields = ({
               }
             : null
         }
-        onChange={(coordinates, address) =>
-          onChange({ ...coordinates, ...address })
-        }
+        onChange={handlePickerChange}
         disabled={disabled}
         enableLocationTools={enableLocationTools}
+        registrationMode={registrationMode}
       />
     </section>
   );

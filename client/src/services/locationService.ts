@@ -48,12 +48,40 @@ export const reverseGeocodeFromBackend = async (
   return extractAddressComponents(response.data?.data ?? {});
 };
 
+export const reverseGeocodeForVendorRegistration = async (
+  latitude: number,
+  longitude: number,
+  signal?: AbortSignal,
+): Promise<ReverseGeocodedAddress> => {
+  const response = await api.get("/location/registration/reverse", {
+    params: { lat: latitude, lon: longitude },
+    signal,
+  });
+  return extractAddressComponents(response.data?.data ?? {});
+};
+
 export const searchLocations = async (
   query: string,
   signal?: AbortSignal,
 ): Promise<LocationSearchResult[]> => {
   const response = await api.post(
     "/location/search",
+    { query },
+    { signal },
+  );
+  const results: unknown = response.data?.data;
+  if (!Array.isArray(results)) {
+    throw new Error("The location service returned an invalid response.");
+  }
+  return results as LocationSearchResult[];
+};
+
+export const searchLocationsForVendorRegistration = async (
+  query: string,
+  signal?: AbortSignal,
+): Promise<LocationSearchResult[]> => {
+  const response = await api.post(
+    "/location/registration/search",
     { query },
     { signal },
   );

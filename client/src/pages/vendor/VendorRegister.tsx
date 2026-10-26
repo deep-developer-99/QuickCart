@@ -190,6 +190,8 @@ const VendorRegister = () => {
 
           <ShopLocationFields
             value={formData}
+            enableLocationTools
+            registrationMode
             onChange={(location) => {
               setError("");
               setFormData((current) => ({ ...current, ...location }));

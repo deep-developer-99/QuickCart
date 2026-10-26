@@ -6,7 +6,9 @@ import { addressFieldsFromProvider, extractAddressComponents } from "../../servi
 import {
   getCurrentLocation,
   reverseGeocodeFromBackend,
+  reverseGeocodeForVendorRegistration,
   searchLocations,
+  searchLocationsForVendorRegistration,
 } from "../../services/locationService";
 import type {
   LocationSearchResult,
@@ -29,11 +31,18 @@ const traceShopLocation = (event: string, details: Record<string, unknown>) => {
   }
 };
 
+export type LocationChangeSource = "map" | "reverse" | "search" | "current";
+
 interface ShopLocationPickerProps {
   coordinates: ShopCoordinates | null;
-  onChange: (coordinates: ShopCoordinates, address?: Partial<AddressFields>) => void;
+  onChange: (
+    coordinates: ShopCoordinates,
+    address?: Partial<AddressFields>,
+    source?: LocationChangeSource,
+  ) => void;
   disabled?: boolean;
   enableLocationTools?: boolean;
+  registrationMode?: boolean;
 }
 
 const locationErrorMessage = (error: unknown, fallback: string): string => {
@@ -92,6 +101,7 @@ const ShopLocationPicker = ({
   onChange,
   disabled = false,
   enableLocationTools = false,
+  registrationMode = false,
 }: ShopLocationPickerProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<LocationSearchResult[]>([]);
@@ -109,6 +119,13 @@ const ShopLocationPicker = ({
   const requestRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0);
   const selectionIdRef = useRef(0);
+  const onChangeRef = useRef(onChange);
+  const reverseGeocode = registrationMode
+    ? reverseGeocodeForVendorRegistration
+    : reverseGeocodeFromBackend;
+  const searchLocation = registrationMode
+    ? searchLocationsForVendorRegistration
+    : searchLocations;
 
   useEffect(
     () => () => {
@@ -120,6 +137,10 @@ const ShopLocationPicker = ({
     },
     [],
   );
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     if (retryNotBefore === null) return;
@@ -138,7 +159,7 @@ const ShopLocationPicker = ({
     traceShopLocation("reverse lookup requested", { ...selected });
     setLocationMessage("Looking up address for the selected coordinates...");
     try {
-      const address = await reverseGeocodeFromBackend(
+      const address = await reverseGeocode(
         selected.latitude,
         selected.longitude,
       );
@@ -156,7 +177,7 @@ const ShopLocationPicker = ({
         addressComponents: address,
         appliedFields: fields,
       });
-      onChange(selected, fields);
+      onChangeRef.current(selected, fields, "reverse");
       setLocationError("");
       setLocationMessage(
         Object.keys(fields).length
@@ -188,7 +209,7 @@ const ShopLocationPicker = ({
         }`,
       );
     }
-  }, [onChange]);
+  }, [reverseGeocode]);
 
   const handleMapLocationChange = useCallback(
     (location: DetectedLocation) => {
@@ -208,7 +229,7 @@ const ShopLocationPicker = ({
         latitude: location.latitude,
         longitude: location.longitude,
       };
-      onChange(selected);
+      onChangeRef.current(selected, undefined, "map");
       traceShopLocation("map center selected", { ...selected });
       setLocationError("");
       setLocationMessage(
@@ -223,7 +244,7 @@ const ShopLocationPicker = ({
         }, 500);
       }
     },
-    [enableLocationTools, lookupAddressForCoordinates, onChange],
+    [enableLocationTools, lookupAddressForCoordinates],
   );
 
   const handleSearch = () => {
@@ -249,7 +270,7 @@ const ShopLocationPicker = ({
     debounceRef.current = window.setTimeout(() => {
       void (async () => {
         try {
-          const results = await searchLocations(query, controller.signal);
+          const results = await searchLocation(query, controller.signal);
           if (requestId !== requestIdRef.current) return;
           setSearchResults(results);
           if (!results.length) {
@@ -304,9 +325,10 @@ const ShopLocationPicker = ({
       addressComponents: result.address,
       appliedFields: address,
     });
-    onChange(
+      onChangeRef.current(
       { latitude: result.latitude, longitude: result.longitude },
       address,
+      "search",
     );
   };
 
@@ -330,12 +352,12 @@ const ShopLocationPicker = ({
     try {
       const result = await locateAndReverseGeocodeShop(
         getCurrentLocation,
-        reverseGeocodeFromBackend,
+        reverseGeocode,
         (selected) => {
           if (selectionId === selectionIdRef.current) {
             traceShopLocation("current coordinates selected", { ...selected });
             traceShopLocation("reverse lookup requested", { ...selected });
-            onChange(selected);
+            onChangeRef.current(selected, undefined, "current");
           }
         },
       );
@@ -362,7 +384,7 @@ const ShopLocationPicker = ({
         return;
       }
 
-      onChange(result.coordinates, result.addressFields);
+      onChangeRef.current(result.coordinates, result.addressFields, "current");
       traceShopLocation("current address fields applied", {
         coordinates: result.coordinates,
         appliedFields: result.addressFields,
@@ -524,7 +546,7 @@ const ShopLocationPicker = ({
         emptyTitle="Select your shop entrance"
         emptyDescription="Drag the map until the pin marks the exact shop entrance."
         showCurrentLocationButton={false}
-        emptyMapView={{ latitude: 22.9734, longitude: 78.6569, zoom: 5 }}
+        emptyMapView={{ latitude: 0, longitude: 0, zoom: 2 }}
       />
       {coordinates ? (
         <p className="shop-location-picker-selected" role="status">
