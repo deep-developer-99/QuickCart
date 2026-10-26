@@ -6,7 +6,12 @@ export interface VendorRegisterData {
   password: string;
   shopName: string;
   phone?: string;
-  address?: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface VendorLoginData {
@@ -71,6 +76,27 @@ export const loginWithFirebaseGoogle = async (idToken: string) => {
 export const getCurrentUser = async () => {
   const response = await api.get("/auth/me");
 
+  return response.data;
+};
+
+export interface UpdateVendorShopLocationData {
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  latitude: number;
+  longitude: number;
+}
+
+export const getVendorShopLocation = async () => {
+  const response = await api.get("/auth/vendor/shop-location");
+  return response.data;
+};
+
+export const updateVendorShopLocation = async (
+  data: UpdateVendorShopLocationData,
+) => {
+  const response = await api.put("/auth/vendor/shop-location", data);
   return response.data;
 };
 

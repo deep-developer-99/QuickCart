@@ -40,6 +40,22 @@
   font-size: 15px;
 }
 
+.vendor-shop-location-dashboard-link {
+  flex-shrink: 0;
+  padding: 11px 15px;
+  border: 1px solid #d5e3d2;
+  border-radius: 9px;
+  background: #fff;
+  color: #347d31;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.vendor-shop-location-dashboard-link:hover {
+  background: #f4f8f4;
+}
+
 .vendor-logout-button:hover {
   background: #bd3028;
   transform: translateY(-1px);
@@ -318,6 +334,10 @@
 
   .vendor-dashboard-header {
     flex-direction: column;
+  }
+
+  .vendor-shop-location-dashboard-link {
+    align-self: flex-start;
   }
 
   .vendor-dashboard-header h1 {

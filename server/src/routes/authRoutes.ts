@@ -10,6 +10,8 @@ import {
   logoutController,
   getMeController,
   updateProfileController,
+  updateVendorShopLocationController,
+  getVendorShopLocationController,
 } from "../controllers/authController";
 import authMiddleware from "../middleware/authMiddleware";
 import upload from "../middleware/uploadMiddleware";
@@ -24,6 +26,16 @@ router.post("/phone/send-otp", sendPhoneOtpController);
 router.post("/phone/verify-otp", verifyPhoneOtpController);
 router.post("/logout", logoutController);
 router.get("/me", authMiddleware("user", "admin", "vendor"), getMeController);
+router.put(
+  "/vendor/shop-location",
+  authMiddleware("vendor"),
+  updateVendorShopLocationController,
+);
+router.get(
+  "/vendor/shop-location",
+  authMiddleware("vendor"),
+  getVendorShopLocationController,
+);
 router.put(
   "/profile",
   authMiddleware("user"),

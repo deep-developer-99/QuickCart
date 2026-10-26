@@ -8,7 +8,6 @@ import Admin from "../models/Admin";
 
 import generateToken from "../utils/jwt";
 import { notifyAdminsAboutNewVendor } from "./notificationService";
-import { forwardGeocodeAddress } from "./locationService";
 
 interface LoginResponse {
   id: string;
@@ -26,9 +25,12 @@ interface VendorRegisterData {
   password: string;
   shopName: string;
   phone?: string;
-  address?: string;
-  latitude?: number;
-  longitude?: number;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  latitude: number;
+  longitude: number;
 }
 
 // Helper
@@ -47,25 +49,42 @@ const formatPhoneNumber = (phone: string): string => {
 export const registerVendor = async (
   data: VendorRegisterData,
 ): Promise<void> => {
-  const { name, email, password, shopName, phone, address } = data;
+  const {
+    name,
+    email,
+    password,
+    shopName,
+    phone,
+    address,
+    city,
+    state,
+    pincode,
+  } = data;
   const { latitude, longitude } = data;
 
-  if ((latitude === undefined) !== (longitude === undefined)) {
-    throw new Error("Shop latitude and longitude must be provided together");
+  if (
+    typeof address !== "string" ||
+    !address.trim() ||
+    typeof city !== "string" ||
+    !city.trim() ||
+    typeof state !== "string" ||
+    !state.trim() ||
+    typeof pincode !== "string" ||
+    !/^\d{6}$/.test(pincode.trim())
+  ) {
+    throw new Error("Enter the complete shop address, city, state, and 6-digit postal code");
   }
   if (
-    (latitude !== undefined &&
-      (typeof latitude !== "number" ||
-        !Number.isFinite(latitude) ||
-        latitude < -90 ||
-        latitude > 90)) ||
-    (longitude !== undefined &&
-      (typeof longitude !== "number" ||
-        !Number.isFinite(longitude) ||
-        longitude < -180 ||
-        longitude > 180))
+    typeof latitude !== "number" ||
+    typeof longitude !== "number" ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
   ) {
-    throw new Error("Shop coordinates are invalid");
+    throw new Error("Select a valid shop location on the map before registering");
   }
 
   const existingVendor = await Vendor.findOne({ email });
@@ -76,18 +95,7 @@ export const registerVendor = async (
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  let shopCoordinates =
-    latitude !== undefined && longitude !== undefined
-      ? { latitude, longitude }
-      : undefined;
-  if (!shopCoordinates && address?.trim()) {
-    try {
-      const geocoded = await forwardGeocodeAddress(address);
-      shopCoordinates = geocoded.coordinate;
-    } catch {
-      // Registration remains available if the optional map lookup is unavailable.
-    }
-  }
+  const shopCoordinates = { latitude, longitude };
 
   const vendor = await Vendor.create({
     name,
@@ -96,6 +104,9 @@ export const registerVendor = async (
     shopName,
     phone,
     address,
+    city: city?.trim(),
+    state: state?.trim(),
+    pincode: pincode?.trim(),
     ...shopCoordinates,
     isApproved: false,
     isActive: true,

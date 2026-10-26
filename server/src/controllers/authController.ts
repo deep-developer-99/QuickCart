@@ -12,6 +12,11 @@ import {
   sendPhoneOtpService,
   verifyPhoneOtpService,
 } from "../services/authService";
+import {
+  getVendorShopLocation,
+  updateVendorShopLocation,
+  VendorShopLocationError,
+} from "../services/vendorShopService";
 
 // Vender Registration
 export const registerVendorController = async (
@@ -318,6 +323,65 @@ export const getMeController = async (
     res.status(500).json({
       success: false,
       message: "Failed to fetch account",
+    });
+  }
+};
+
+export const updateVendorShopLocationController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  if (!req.user || req.user.role !== "vendor") {
+    res.status(401).json({
+      success: false,
+      message: "Vendor authentication is required.",
+    });
+    return;
+  }
+
+  try {
+    const vendor = await updateVendorShopLocation(req.user.id, req.body);
+    res.status(200).json({
+      success: true,
+      data: vendor,
+    });
+  } catch (error) {
+    const status =
+      error instanceof VendorShopLocationError ? error.statusCode : 500;
+    res.status(status).json({
+      success: false,
+      message:
+        error instanceof VendorShopLocationError
+          ? error.message
+          : "Unable to save shop details right now.",
+    });
+  }
+};
+
+export const getVendorShopLocationController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  if (!req.user || req.user.role !== "vendor") {
+    res.status(401).json({
+      success: false,
+      message: "Vendor authentication is required.",
+    });
+    return;
+  }
+
+  try {
+    const vendor = await getVendorShopLocation(req.user.id);
+    res.status(200).json({ success: true, data: vendor });
+  } catch (error) {
+    const status =
+      error instanceof VendorShopLocationError ? error.statusCode : 500;
+    res.status(status).json({
+      success: false,
+      message:
+        error instanceof VendorShopLocationError
+          ? error.message
+          : "Unable to load shop details right now.",
     });
   }
 };

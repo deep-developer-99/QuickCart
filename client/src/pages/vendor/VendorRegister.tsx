@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { registerVendor } from "../../services/authService";
+import ShopLocationFields from "../../components/vendor/ShopLocationFields";
 
 import "./VendorRegister.css";
 
@@ -17,6 +18,11 @@ const VendorRegister = () => {
     shopName: "",
     phone: "",
     address: "",
+    city: "",
+    state: "",
+    pincode: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -42,14 +48,31 @@ const VendorRegister = () => {
       !formData.name.trim() ||
       !formData.email.trim() ||
       !formData.password.trim() ||
-      !formData.shopName.trim()
+      !formData.shopName.trim() ||
+      !formData.address.trim() ||
+      !formData.city.trim() ||
+      !formData.state.trim() ||
+      !/^\d{6}$/.test(formData.pincode.trim())
     ) {
-      setError("Please fill all required fields");
+      setError("Enter the complete shop address, including city, state, and 6-digit postal code.");
+      return;
+    }
+    if (
+      typeof formData.latitude !== "number" ||
+      typeof formData.longitude !== "number" ||
+      !Number.isFinite(formData.latitude) ||
+      !Number.isFinite(formData.longitude) ||
+      formData.latitude < -90 ||
+      formData.latitude > 90 ||
+      formData.longitude < -180 ||
+      formData.longitude > 180
+    ) {
+      setError("Select the exact shop location on the map before registering.");
       return;
     }
 
     try {
-      setIsLoading(false);
+      setIsLoading(true);
 
       const response = await registerVendor({
         name: formData.name.trim(),
@@ -57,7 +80,12 @@ const VendorRegister = () => {
         password: formData.password,
         shopName: formData.shopName.trim(),
         phone: formData.phone.trim() || undefined,
-        address: formData.address.trim() || undefined,
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        pincode: formData.pincode.trim(),
+        latitude: formData.latitude,
+        longitude: formData.longitude,
       });
 
       if (response?.success) {
@@ -70,7 +98,7 @@ const VendorRegister = () => {
         setError(response?.message || "Registration failed.");
       }
     } catch (error: unknown) {
-      console.error("Vendor registration error:", error);
+      console.error("Vendor registration failed.");
 
       if (axios.isAxiosError(error)) {
         setError(
@@ -160,15 +188,13 @@ const VendorRegister = () => {
             onChange={handleChange}
           />
 
-          <label htmlFor="address">Address</label>
-
-          <input
-            id="address"
-            name="address"
-            type="text"
-            placeholder="Enter shop address"
-            value={formData.address}
-            onChange={handleChange}
+          <ShopLocationFields
+            value={formData}
+            onChange={(location) => {
+              setError("");
+              setFormData((current) => ({ ...current, ...location }));
+            }}
+            disabled={isLoading}
           />
 
           <button type="submit" disabled={isLoading}>

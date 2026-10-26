@@ -26,6 +26,7 @@ import VendorDashboard from "../pages/vendor/VendorDashboard";
 import VendorProducts from "../pages/vendor/VendorProducts";
 import VendorOrders from "../pages/vendor/VendorOrders";
 import VendorOffers from "../pages/vendor/VendorOffers";
+import VendorShopLocation from "../pages/vendor/VendorShopLocation";
 
 import AdminLogin from "../pages/admin/AdminLogin";
 import AdminDashboard from "../pages/admin/AdminDashboard";
@@ -97,6 +98,7 @@ const AppRoutes = () => {
           <Route path="/vendor/products" element={<VendorProducts />} />
           <Route path="/vendor/orders" element={<VendorOrders />} />
           <Route path="/vendor/offers" element={<VendorOffers />} />
+          <Route path="/vendor/shop-location" element={<VendorShopLocation />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRole="admin" />}>

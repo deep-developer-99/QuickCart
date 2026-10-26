@@ -1,0 +1,91 @@
+.shop-location-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 24px 0;
+}
+
+.shop-location-fields-heading h2 {
+  margin: 0 0 6px;
+  color: #172033;
+  font-size: 19px;
+}
+
+.shop-location-fields-heading p,
+.shop-location-picker-instruction {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.shop-location-picker.disabled .address-map {
+  pointer-events: none;
+  opacity: 0.72;
+}
+
+.shop-location-fields label {
+  margin: 5px 0 0;
+  color: #273043;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.shop-location-fields input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #172033;
+  font: inherit;
+}
+
+.shop-location-fields input:focus {
+  border-color: #4caf50;
+  outline: 2px solid rgba(76, 175, 80, 0.16);
+}
+
+.shop-location-fields input:disabled {
+  background: #f8fafc;
+  opacity: 0.75;
+}
+
+.shop-location-address-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 150px;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.shop-location-address-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shop-location-picker-instruction {
+  margin: 2px 0 10px;
+}
+
+.shop-location-picker-selected,
+.shop-location-picker-unselected {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.shop-location-picker-selected {
+  color: #166534;
+}
+
+.shop-location-picker-unselected {
+  color: #9a6700;
+}
+
+@media (max-width: 680px) {
+  .shop-location-address-grid {
+    grid-template-columns: 1fr;
+  }
+}

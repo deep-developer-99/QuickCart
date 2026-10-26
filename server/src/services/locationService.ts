@@ -67,6 +67,7 @@ const remember = (key: string, value: NominatimResult | null): void => {
 const requestNominatim = async (
   endpoint: "search" | "reverse",
   params: URLSearchParams,
+  stage?: string,
 ): Promise<NominatimResult | null> => {
   await waitForNominatimSlot();
   const contact = process.env.NOMINATIM_CONTACT_EMAIL?.trim();
@@ -88,6 +89,16 @@ const requestNominatim = async (
       },
     );
   } catch (error) {
+    if (stage) {
+      console.warn("[Nominatim] lookup failed", {
+        stage,
+        providerHttpStatus: null,
+        error:
+          error instanceof Error && error.name === "TimeoutError"
+            ? "timeout"
+            : "network_error",
+      });
+    }
     if (
       error instanceof Error &&
       (error.name === "TimeoutError" || error.name === "AbortError")
@@ -98,15 +109,38 @@ const requestNominatim = async (
   }
 
   if (response.status === 429) {
+    if (stage) {
+      console.warn("[Nominatim] lookup failed", {
+        stage,
+        providerHttpStatus: response.status,
+        error: "rate_limited",
+      });
+    }
     throw new LocationLookupError("RATE_LIMITED");
   }
-  if (!response.ok) throw new LocationLookupError("PROVIDER_ERROR");
+  if (!response.ok) {
+    if (stage) {
+      console.warn("[Nominatim] lookup failed", {
+        stage,
+        providerHttpStatus: response.status,
+        error: "provider_error",
+      });
+    }
+    throw new LocationLookupError("PROVIDER_ERROR");
+  }
 
   try {
     if (endpoint === "search") {
       const results: unknown = await response.json();
       if (!Array.isArray(results)) {
         throw new LocationLookupError("PROVIDER_ERROR");
+      }
+      if (stage) {
+        console.info("[Nominatim] lookup completed", {
+          stage,
+          providerHttpStatus: response.status,
+          resultCount: results.length,
+        });
       }
       const candidate = results[0] as NominatimResult | undefined;
       if (!candidate) return null;
@@ -121,6 +155,14 @@ const requestNominatim = async (
     }
     return result as NominatimResult;
   } catch (error) {
+    if (stage) {
+      console.warn("[Nominatim] lookup failed", {
+        stage,
+        providerHttpStatus: response.status,
+        resultCount: null,
+        error: "invalid_response",
+      });
+    }
     if (error instanceof LocationLookupError) throw error;
     throw new LocationLookupError("PROVIDER_ERROR");
   }
@@ -130,15 +172,24 @@ const getCachedOrRequest = async (
   cacheKey: string,
   endpoint: "search" | "reverse",
   params: URLSearchParams,
+  stage?: string,
 ): Promise<NominatimResult | null> => {
   const cached = RESULT_CACHE.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) return cached.value;
+  if (cached && cached.expiresAt > Date.now()) {
+    if (stage) {
+      console.info("[Nominatim] lookup cache hit", {
+        stage,
+        resultCount: cached.value ? 1 : 0,
+      });
+    }
+    return cached.value;
+  }
   if (cached) RESULT_CACHE.delete(cacheKey);
 
   const inFlight = IN_FLIGHT.get(cacheKey);
   if (inFlight) return inFlight;
 
-  const request = requestNominatim(endpoint, params)
+  const request = requestNominatim(endpoint, params, stage)
     .then((value) => {
       remember(cacheKey, value);
       return value;
@@ -148,13 +199,45 @@ const getCachedOrRequest = async (
   return request;
 };
 
-export const normalizeAddressQuery = (value: unknown): string => {
+interface ForwardAddress {
+  address: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  country?: string;
+}
+
+const normalizePart = (value: unknown, maxLength = 120): string | undefined => {
+  if (value === undefined || value === null || value === "") return undefined;
   if (typeof value !== "string") throw new LocationLookupError("INVALID_INPUT");
   const normalized = value.trim().replace(/\s+/g, " ");
-  if (normalized.length < 5 || normalized.length > 500) {
+  if (!normalized || normalized.length > maxLength) {
     throw new LocationLookupError("INVALID_INPUT");
   }
   return normalized;
+};
+
+export const normalizeAddressQuery = (value: unknown): ForwardAddress => {
+  if (typeof value === "string") {
+    const address = normalizePart(value, 500);
+    if (!address || address.length < 5) {
+      throw new LocationLookupError("INVALID_INPUT");
+    }
+    return { address, country: "India" };
+  }
+  if (!value || typeof value !== "object") {
+    throw new LocationLookupError("INVALID_INPUT");
+  }
+  const input = value as Record<string, unknown>;
+  const address = normalizePart(input.address, 500);
+  if (!address || address.length < 5) {
+    throw new LocationLookupError("INVALID_INPUT");
+  }
+  const city = normalizePart(input.city);
+  const state = normalizePart(input.state);
+  const pincode = normalizePart(input.pincode, 20);
+  const country = normalizePart(input.country) ?? "India";
+  return { address, city, state, pincode, country };
 };
 
 export const toCoordinate = (
@@ -187,18 +270,85 @@ export const forwardGeocodeAddress = async (
   input: unknown,
 ): Promise<{ coordinate: GeocodedCoordinate; displayName: string | null }> => {
   const address = normalizeAddressQuery(input);
-  const cacheKey = `forward:${address.toLocaleLowerCase("en-IN")}`;
-  const params = new URLSearchParams({
-    q: address,
-    format: "jsonv2",
-    addressdetails: "1",
-    limit: "1",
-  });
-  const result = await getCachedOrRequest(cacheKey, "search", params);
-  if (!result) throw new LocationLookupError("NOT_FOUND");
-  const coordinate = toCoordinate(result);
+  const fullQuery = [
+    address.address,
+    address.city,
+    address.state,
+    address.pincode,
+    address.country,
+  ]
+    .filter((part): part is string => Boolean(part))
+    .filter(
+      (part, index, parts) =>
+        parts.findIndex(
+          (candidate) => candidate.toLocaleLowerCase("en-IN") === part.toLocaleLowerCase("en-IN"),
+        ) === index,
+    )
+    .join(", ");
+
+  const search = async (
+    query: string,
+    stage: "full-address" | "locality-fallback",
+  ): Promise<NominatimResult | null> => {
+    const cacheKey = `forward:${query.toLocaleLowerCase("en-IN")}`;
+    const params = new URLSearchParams({
+      q: query,
+      format: "jsonv2",
+      addressdetails: "1",
+      limit: "1",
+    });
+    return getCachedOrRequest(cacheKey, "search", params, stage);
+  };
+
+  const fullResult = await search(fullQuery, "full-address");
+  if (fullResult) {
+    const coordinate = toCoordinate(fullResult);
+    if (!coordinate) throw new LocationLookupError("PROVIDER_ERROR");
+    return { coordinate, displayName: fullResult.display_name ?? null };
+  }
+
+  const addressParts = address.address
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const pincodeInAddress = address.address.match(/\b\d{6}\b/)?.[0];
+  const hasStructuredContext = Boolean(
+    (address.city && address.state) ||
+      (address.state && address.pincode) ||
+      (pincodeInAddress && addressParts.length >= 3),
+  );
+  const fallbackParts = address.city && address.state
+    ? [address.city, address.state, address.pincode, address.country]
+    : address.state && address.pincode
+      ? [address.state, address.pincode, address.country]
+      : hasStructuredContext
+        ? [...addressParts.slice(1), address.country]
+        : [];
+  const fallbackQuery = fallbackParts
+    .filter((part): part is string => Boolean(part))
+    .filter(
+      (part, index, parts) =>
+        parts.findIndex(
+          (candidate) => candidate.toLocaleLowerCase("en-IN") === part.toLocaleLowerCase("en-IN"),
+        ) === index,
+    )
+    .join(", ");
+
+  if (!fallbackQuery || fallbackQuery.toLocaleLowerCase("en-IN") === fullQuery.toLocaleLowerCase("en-IN")) {
+    console.info("[Nominatim] locality fallback skipped", {
+      stage: "locality-fallback",
+      providerHttpStatus: null,
+      resultCount: 0,
+      reason: "insufficient_location_context",
+    });
+    throw new LocationLookupError("NOT_FOUND");
+  }
+
+  const fallbackResult = await search(fallbackQuery, "locality-fallback");
+  if (!fallbackResult) throw new LocationLookupError("NOT_FOUND");
+  const coordinate = toCoordinate(fallbackResult);
   if (!coordinate) throw new LocationLookupError("PROVIDER_ERROR");
-  return { coordinate, displayName: result.display_name ?? null };
+  return { coordinate, displayName: fallbackResult.display_name ?? null };
 };
 
 export const reverseGeocodeCoordinates = async (

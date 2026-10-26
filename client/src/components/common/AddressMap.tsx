@@ -15,6 +15,16 @@ interface AddressMapProps {
   onDetectLocation: () => void;
   onLocationChange: (location: DetectedLocation) => void;
   isDetecting: boolean;
+  reverseGeocodeOnMove?: boolean;
+  instructionLabel?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  showCurrentLocationButton?: boolean;
+  emptyMapView?: {
+    latitude: number;
+    longitude: number;
+    zoom: number;
+  };
 }
 
 interface Coordinates {
@@ -35,10 +45,17 @@ const AddressMap = ({
   onDetectLocation,
   onLocationChange,
   isDetecting,
+  reverseGeocodeOnMove = true,
+  instructionLabel = "Move map to select delivery location",
+  emptyTitle = "Select your delivery location",
+  emptyDescription = "Move the map so the pin is exactly where you want delivery.",
+  showCurrentLocationButton = true,
+  emptyMapView,
 }: AddressMapProps) => {
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const onLocationChangeRef = useRef(onLocationChange);
+  const reverseGeocodeOnMoveRef = useRef(reverseGeocodeOnMove);
   const geocodeRequestRef = useRef(0);
   const hasInitialisedRef = useRef(false);
 
@@ -49,6 +66,10 @@ const AddressMap = ({
     onLocationChangeRef.current = onLocationChange;
   }, [onLocationChange]);
 
+  useEffect(() => {
+    reverseGeocodeOnMoveRef.current = reverseGeocodeOnMove;
+  }, [reverseGeocodeOnMove]);
+
   const hasCoordinates =
     typeof latitude === "number" &&
     typeof longitude === "number" &&
@@ -57,7 +78,9 @@ const AddressMap = ({
 
   const currentCenter: Coordinates = hasCoordinates
     ? { lat: latitude, lng: longitude }
-    : DEFAULT_CENTER;
+    : emptyMapView
+      ? { lat: emptyMapView.latitude, lng: emptyMapView.longitude }
+      : DEFAULT_CENTER;
 
   useEffect(() => {
     if (!mapElementRef.current || hasInitialisedRef.current) {
@@ -68,7 +91,7 @@ const AddressMap = ({
 
     const map = L.map(mapElementRef.current, {
       center: [currentCenter.lat, currentCenter.lng],
-      zoom: hasCoordinates ? DEFAULT_ZOOM : 13,
+      zoom: hasCoordinates ? DEFAULT_ZOOM : (emptyMapView?.zoom ?? 13),
       zoomControl: false,
       attributionControl: true,
       zoomAnimation: true,
@@ -103,6 +126,22 @@ const AddressMap = ({
       const nextLatitude = center.lat;
       const nextLongitude = center.lng;
       const requestId = ++geocodeRequestRef.current;
+
+      if (!reverseGeocodeOnMoveRef.current) {
+        onLocationChangeRef.current({
+          latitude: nextLatitude,
+          longitude: nextLongitude,
+          accuracy: 0,
+          address: {
+            addressLine: "",
+            city: "",
+            state: "",
+            pincode: "",
+            displayName: "",
+          },
+        });
+        return;
+      }
 
       setIsUpdatingAddress(true);
       setMapError("");
@@ -206,7 +245,7 @@ const AddressMap = ({
       <div className="address-map-topbar">
         <div className="address-map-location-chip">
           <span className="address-map-location-dot" aria-hidden="true" />
-          <span>Move map to select delivery location</span>
+          <span>{instructionLabel}</span>
         </div>
       </div>
 
@@ -217,7 +256,7 @@ const AddressMap = ({
         </div>
       </div>
 
-      <button
+      {showCurrentLocationButton ? <button
         type="button"
         className="address-map-locate"
         onClick={handleLocateButton}
@@ -229,7 +268,7 @@ const AddressMap = ({
           ⦿
         </span>
         <span>{isDetecting ? "Locating..." : "Current location"}</span>
-      </button>
+      </button> : null}
 
       {isUpdatingAddress && (
         <div className="address-map-status">Updating address...</div>
@@ -239,10 +278,8 @@ const AddressMap = ({
 
       {!hasCoordinates && !mapError && (
         <div className="address-map-empty">
-          <strong>Select your delivery location</strong>
-          <span>
-            Move the map so the pin is exactly where you want delivery.
-          </span>
+          <strong>{emptyTitle}</strong>
+          <span>{emptyDescription}</span>
         </div>
       )}
     </div>

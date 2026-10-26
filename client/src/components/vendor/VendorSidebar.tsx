@@ -65,6 +65,16 @@ const VendorSidebar = () => {
         </NavLink>
 
         <NavLink
+          to="/vendor/shop-location"
+          className={({ isActive }) =>
+            `vendor-sidebar-link${isActive ? " active" : ""}`
+          }
+        >
+          <span className="vendor-sidebar-icon">📍</span>
+          <span>Shop location</span>
+        </NavLink>
+
+        <NavLink
           to="/vendor/offers"
           className={({ isActive }) =>
             `vendor-sidebar-link${isActive ? " active" : ""}`

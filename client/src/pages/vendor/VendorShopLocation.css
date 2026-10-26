@@ -1,0 +1,125 @@
+.vendor-shop-location-page {
+  min-height: 100vh;
+  padding: 42px 24px 64px;
+  background: #f6f8f7;
+}
+
+.vendor-shop-location-container {
+  width: min(100%, 1040px);
+  margin: 0 auto;
+}
+
+.vendor-shop-location-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.vendor-shop-location-eyebrow {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: #5fa653;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+
+.vendor-shop-location-header h1 {
+  margin: 0 0 8px;
+  color: #172033;
+  font-size: 32px;
+}
+
+.vendor-shop-location-header p {
+  max-width: 620px;
+  margin: 0;
+  color: #718096;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.vendor-shop-location-back {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border: 1px solid #d5e3d2;
+  border-radius: 8px;
+  color: #347d31;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.vendor-shop-location-card {
+  padding: 28px;
+  border: 1px solid #e1e8e2;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(31, 41, 55, 0.05);
+}
+
+.vendor-shop-location-alert {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.vendor-shop-location-alert.error {
+  border: 1px solid #fecaca;
+  background: #fff1f1;
+  color: #b42318;
+}
+
+.vendor-shop-location-alert.success {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.vendor-shop-location-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 18px;
+  border-top: 1px solid #edf1ef;
+}
+
+.vendor-shop-location-actions button {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #4caf50;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.vendor-shop-location-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vendor-shop-location-loading {
+  width: min(100%, 900px);
+  margin: 0 auto;
+  padding: 60px 24px;
+  color: #64748b;
+  text-align: center;
+}
+
+@media (max-width: 680px) {
+  .vendor-shop-location-page {
+    padding: 28px 14px 44px;
+  }
+
+  .vendor-shop-location-header {
+    flex-direction: column;
+  }
+
+  .vendor-shop-location-card {
+    padding: 18px 14px;
+  }
+}

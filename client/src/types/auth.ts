@@ -17,6 +17,11 @@ export interface Vendor {
   shopName: string;
   phone?: string;
   address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  latitude?: number;
+  longitude?: number;
   isApproved: boolean;
   isActive: boolean;
   status: "pending" | "approved" | "rejected";

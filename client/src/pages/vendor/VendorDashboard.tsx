@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 
 import api from "../../services/api";
 import { getVendorSalesOverview } from "../../services/orderService";
@@ -121,6 +122,9 @@ const VendorDashboard = () => {
             <h1>Vendor Dashboard</h1>
             <p>Monitor your store performance and manage your business.</p>
           </div>
+          <Link className="vendor-shop-location-dashboard-link" to="/vendor/shop-location">
+            Update shop location
+          </Link>
         </div>
 
         {error && <div className="vendor-dashboard-error">{error}</div>}
