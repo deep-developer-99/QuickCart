@@ -7,6 +7,8 @@ export interface IVendor extends Document {
   shopName: string;
   phone?: string;
   address?: string;
+  latitude?: number;
+  longitude?: number;
   isApproved: boolean;
   isActive: boolean;
   status: "pending" | "approved" | "rejected";
@@ -52,6 +54,18 @@ const vendorSchema = new Schema<IVendor>(
     address: {
       type: String,
       trim: true,
+    },
+
+    latitude: {
+      type: Number,
+      min: -90,
+      max: 90,
+    },
+
+    longitude: {
+      type: Number,
+      min: -180,
+      max: 180,
     },
 
     isApproved: {

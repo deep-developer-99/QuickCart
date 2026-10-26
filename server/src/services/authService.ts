@@ -8,6 +8,7 @@ import Admin from "../models/Admin";
 
 import generateToken from "../utils/jwt";
 import { notifyAdminsAboutNewVendor } from "./notificationService";
+import { forwardGeocodeAddress } from "./locationService";
 
 interface LoginResponse {
   id: string;
@@ -26,6 +27,8 @@ interface VendorRegisterData {
   shopName: string;
   phone?: string;
   address?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 // Helper
@@ -45,6 +48,25 @@ export const registerVendor = async (
   data: VendorRegisterData,
 ): Promise<void> => {
   const { name, email, password, shopName, phone, address } = data;
+  const { latitude, longitude } = data;
+
+  if ((latitude === undefined) !== (longitude === undefined)) {
+    throw new Error("Shop latitude and longitude must be provided together");
+  }
+  if (
+    (latitude !== undefined &&
+      (typeof latitude !== "number" ||
+        !Number.isFinite(latitude) ||
+        latitude < -90 ||
+        latitude > 90)) ||
+    (longitude !== undefined &&
+      (typeof longitude !== "number" ||
+        !Number.isFinite(longitude) ||
+        longitude < -180 ||
+        longitude > 180))
+  ) {
+    throw new Error("Shop coordinates are invalid");
+  }
 
   const existingVendor = await Vendor.findOne({ email });
 
@@ -54,6 +76,19 @@ export const registerVendor = async (
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
+  let shopCoordinates =
+    latitude !== undefined && longitude !== undefined
+      ? { latitude, longitude }
+      : undefined;
+  if (!shopCoordinates && address?.trim()) {
+    try {
+      const geocoded = await forwardGeocodeAddress(address);
+      shopCoordinates = geocoded.coordinate;
+    } catch {
+      // Registration remains available if the optional map lookup is unavailable.
+    }
+  }
+
   const vendor = await Vendor.create({
     name,
     email,
@@ -61,6 +96,7 @@ export const registerVendor = async (
     shopName,
     phone,
     address,
+    ...shopCoordinates,
     isApproved: false,
     isActive: true,
     status: "pending",

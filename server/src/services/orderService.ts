@@ -386,7 +386,7 @@ export const getMyOrders = async (
       })
       .populate({
         path: "items.vendor",
-        select: "shopName address",
+        select: "shopName address latitude longitude",
       })
       .sort({ createdAt: -1 })
       .skip(pagination.skip)
@@ -421,7 +421,7 @@ export const getOrderById = async (orderId: string, userId: string) => {
     })
     .populate({
       path: "items.vendor",
-      select: "shopName address",
+      select: "shopName address latitude longitude",
     });
 
   if (!order) {
@@ -451,7 +451,7 @@ export const getVendorOrders = async (
       })
       .populate({
         path: "items.vendor",
-        select: "shopName address",
+        select: "shopName address latitude longitude",
       })
       .sort({ createdAt: -1 })
       .skip(pagination.skip)
