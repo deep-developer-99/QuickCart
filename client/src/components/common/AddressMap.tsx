@@ -3,7 +3,7 @@ import L, { type Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import {
-  reverseGeocode,
+  reverseGeocodeFromBackend,
   type DetectedLocation,
 } from "../../services/locationService";
 
@@ -59,7 +59,8 @@ const AddressMap = ({
   const geocodeRequestRef = useRef(0);
   const hasInitialisedRef = useRef(false);
 
-  const [mapError, setMapError] = useState("");
+  const [addressError, setAddressError] = useState("");
+  const [tileError, setTileError] = useState("");
   const [isUpdatingAddress, setIsUpdatingAddress] = useState(false);
 
   useEffect(() => {
@@ -101,24 +102,35 @@ const AddressMap = ({
 
     mapRef.current = map;
 
-    // Carto Voyager gives a clean, Google-Maps-like road/POI appearance
-    // without requiring a Google Maps API key.
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    let successfulTileLoads = 0;
+    let failedTileLoads = 0;
+    const tiles = L.tileLayer(
+      "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       {
-        maxZoom: 20,
+        maxZoom: 19,
         minZoom: 3,
-        subdomains: "abcd",
         attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
+          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>',
       },
     ).addTo(map);
+    tiles.on("tileload", () => {
+      successfulTileLoads += 1;
+      setTileError("");
+    });
+    tiles.on("tileerror", () => {
+      failedTileLoads += 1;
+      if (successfulTileLoads === 0 && failedTileLoads >= 3) {
+        setTileError("Map tiles could not be loaded. Check your connection and try again.");
+      }
+    });
 
     // Google-like vertical zoom controls on the top-left.
     L.control.zoom({ position: "topright" }).addTo(map);
 
     const handleDragStart = () => {
-      setMapError("");
+      geocodeRequestRef.current += 1;
+      setIsUpdatingAddress(false);
+      setAddressError("");
     };
 
     const handleDragEnd = async () => {
@@ -144,10 +156,12 @@ const AddressMap = ({
       }
 
       setIsUpdatingAddress(true);
-      setMapError("");
+      setAddressError("");
 
       try {
-        const address = await reverseGeocode(nextLatitude, nextLongitude);
+        await new Promise((resolve) => window.setTimeout(resolve, 450));
+        if (requestId !== geocodeRequestRef.current) return;
+        const address = await reverseGeocodeFromBackend(nextLatitude, nextLongitude);
 
         if (requestId !== geocodeRequestRef.current) {
           return;
@@ -165,7 +179,7 @@ const AddressMap = ({
         }
 
         console.error("Map reverse geocoding failed:", error);
-        setMapError("Unable to update the address for this location.");
+        setAddressError("Unable to update the address for this location.");
       } finally {
         if (requestId === geocodeRequestRef.current) {
           setIsUpdatingAddress(false);
@@ -230,7 +244,7 @@ const AddressMap = ({
   ]);
 
   const handleLocateButton = () => {
-    setMapError("");
+    setAddressError("");
     onDetectLocation();
   };
 
@@ -274,9 +288,15 @@ const AddressMap = ({
         <div className="address-map-status">Updating address...</div>
       )}
 
-      {mapError && <div className="address-map-error">{mapError}</div>}
+      {addressError && <div className="address-map-error">{addressError}</div>}
 
-      {!hasCoordinates && !mapError && (
+      {tileError && (
+        <div className="address-map-tile-error" role="alert">
+          {tileError}
+        </div>
+      )}
+
+      {!hasCoordinates && !addressError && (
         <div className="address-map-empty">
           <strong>{emptyTitle}</strong>
           <span>{emptyDescription}</span>

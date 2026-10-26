@@ -1,0 +1,231 @@
+.shop-location-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shop-location-search {
+  position: relative;
+  display: flex;
+  min-height: 48px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.08);
+  z-index: 700;
+}
+
+.shop-location-search:focus-within {
+  border-color: #4caf50;
+  outline: 2px solid rgba(76, 175, 80, 0.16);
+}
+
+.shop-location-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  outline: 0;
+  background: transparent;
+  color: #172033;
+  font: inherit;
+  font-size: 14px;
+}
+
+.shop-location-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.shop-location-search-clear,
+.shop-location-search-submit {
+  display: inline-flex;
+  width: 46px;
+  flex: 0 0 46px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #516075;
+  cursor: pointer;
+}
+
+.shop-location-search-clear {
+  width: 36px;
+  flex-basis: 36px;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.shop-location-search-submit {
+  border-left: 1px solid #e2e8f0;
+  color: #256c31;
+}
+
+.shop-location-search-submit:hover:not(:disabled),
+.shop-location-search-clear:hover:not(:disabled) {
+  background: #f0fdf4;
+}
+
+.shop-location-search-submit:disabled,
+.shop-location-search-clear:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.shop-location-search-submit svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.shop-location-search-results {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 5px;
+  border: 1px solid #d7dee8;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(31, 41, 55, 0.17);
+  list-style: none;
+}
+
+.shop-location-search-results button {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: #fff;
+  color: #273043;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.shop-location-search-results button:hover,
+.shop-location-search-results button:focus-visible {
+  outline: 0;
+  background: #f0fdf4;
+}
+
+.shop-location-result-icon {
+  flex: 0 0 auto;
+  color: #347d31;
+  font-size: 18px;
+}
+
+.shop-location-picker-actions {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.shop-location-current-button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 15px;
+  border: 1px solid #b8d8ba;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #256c31;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.shop-location-current-button:hover:not(:disabled) {
+  background: #e3f7e8;
+}
+
+.shop-location-current-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.shop-location-picker-actions > span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.shop-location-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: shop-location-spin 0.75s linear infinite;
+}
+
+@keyframes shop-location-spin {
+  to { transform: rotate(360deg); }
+}
+
+.shop-location-feedback {
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 7px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.shop-location-feedback.error {
+  border: 1px solid #fecaca;
+  background: #fff1f1;
+  color: #b42318;
+}
+
+.shop-location-feedback.success {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.shop-location-picker-selected,
+.shop-location-picker-unselected {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.shop-location-picker-selected { color: #166534; }
+.shop-location-picker-unselected { color: #9a6700; }
+
+.shop-location-picker.disabled .address-map,
+.shop-location-picker.disabled .shop-location-search {
+  pointer-events: none;
+  opacity: 0.72;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 520px) {
+  .shop-location-search input { font-size: 13px; }
+  .shop-location-current-button { width: 100%; }
+}

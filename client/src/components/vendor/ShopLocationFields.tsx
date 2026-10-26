@@ -16,12 +16,14 @@ interface ShopLocationFieldsProps {
   value: ShopLocationDraft;
   onChange: (value: ShopLocationDraft) => void;
   disabled?: boolean;
+  enableLocationTools?: boolean;
 }
 
 const ShopLocationFields = ({
   value,
   onChange,
   disabled = false,
+  enableLocationTools = false,
 }: ShopLocationFieldsProps) => {
   const updateText =
     (field: "address" | "city" | "state" | "pincode") =>
@@ -117,8 +119,11 @@ const ShopLocationFields = ({
               }
             : null
         }
-        onChange={(coordinates) => onChange({ ...value, ...coordinates })}
+        onChange={(coordinates, address) =>
+          onChange({ ...value, ...coordinates, ...address })
+        }
         disabled={disabled}
+        enableLocationTools={enableLocationTools}
       />
     </section>
   );

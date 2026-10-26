@@ -1,8 +1,7 @@
-export interface CurrentLocation {
-  latitude: number;
-  longitude: number;
-  accuracy: number;
-}
+import api from "./api";
+import { getCurrentLocation } from "./browserLocation";
+import type { CurrentLocation } from "./browserLocation";
+export { getCurrentLocation } from "./browserLocation";
 
 export interface ReverseGeocodedAddress {
   addressLine: string;
@@ -16,106 +15,76 @@ export interface DetectedLocation extends CurrentLocation {
   address: ReverseGeocodedAddress;
 }
 
+export interface LocationSearchResult {
+  latitude: number;
+  longitude: number;
+  displayName: string;
+  address: Record<string, string | undefined>;
+}
+
 const STORAGE_KEY = "quickcart_current_location";
-
-export const getCurrentLocation = (): Promise<CurrentLocation> => {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error("Geolocation is not supported by this browser."));
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        });
-      },
-      (error) => {
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            reject(
-              new Error(
-                "Location permission was denied. Please allow location access.",
-              ),
-            );
-            break;
-
-          case error.POSITION_UNAVAILABLE:
-            reject(new Error("Your current location is unavailable."));
-            break;
-
-          case error.TIMEOUT:
-            reject(new Error("Location request timed out. Please try again."));
-            break;
-
-          default:
-            reject(new Error("Unable to get your current location."));
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0,
-      },
-    );
-  });
-};
 
 export const reverseGeocode = async (
   latitude: number,
   longitude: number,
 ): Promise<ReverseGeocodedAddress> => {
-  const url =
-    `https://nominatim.openstreetmap.org/reverse` +
-    `?format=jsonv2` +
-    `&lat=${encodeURIComponent(latitude)}` +
-    `&lon=${encodeURIComponent(longitude)}` +
-    `&zoom=18` +
-    `&addressdetails=1`;
-
-  const response = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-    },
-  });
-
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&zoom=18&addressdetails=1`,
+    { headers: { Accept: "application/json" } },
+  );
   if (!response.ok) {
     throw new Error("Unable to find an address for your current location.");
   }
+  return extractAddressComponents(await response.json());
+};
 
-  const data = await response.json();
+export const extractAddressComponents = (data: {
+  display_name?: string;
+  address?: Record<string, string | undefined>;
+}): ReverseGeocodedAddress => {
   const address = data.address ?? {};
-
-  const addressLine = [
-    address.house_number,
-    address.road,
-    address.street,
-    address.neighbourhood,
-    address.suburb,
-  ]
-    .filter(Boolean)
-    .filter(
-      (value: string, index: number, array: string[]) =>
-        array.indexOf(value) === index,
-    )
+  const street = [address.house_number, address.road || address.street || address.pedestrian || address.residential]
+    .filter((part): part is string => Boolean(part?.trim()))
+    .filter((part, index, parts) => parts.indexOf(part) === index)
     .join(", ");
-
+  const city =
+    address.city || address.town || address.village || address.municipality;
+  const postcode = address.postcode?.trim() ?? "";
   return {
-    addressLine: addressLine || data.display_name || "",
-    city:
-      address.city ||
-      address.town ||
-      address.village ||
-      address.municipality ||
-      address.county ||
-      "",
-    state: address.state || "",
-    pincode: address.postcode || "",
-    displayName: data.display_name || "",
+    addressLine: street,
+    city: city?.trim() ?? "",
+    state: address.state?.trim() ?? "",
+    pincode: /^\d{6}$/.test(postcode) ? postcode : "",
+    displayName: data.display_name ?? "",
   };
+};
+
+export const reverseGeocodeFromBackend = async (
+  latitude: number,
+  longitude: number,
+  signal?: AbortSignal,
+): Promise<ReverseGeocodedAddress> => {
+  const response = await api.get("/location/reverse", {
+    params: { lat: latitude, lon: longitude },
+    signal,
+  });
+  return extractAddressComponents(response.data?.data ?? {});
+};
+
+export const searchLocations = async (
+  query: string,
+  signal?: AbortSignal,
+): Promise<LocationSearchResult[]> => {
+  const response = await api.post(
+    "/location/search",
+    { query },
+    { signal },
+  );
+  const results: unknown = response.data?.data;
+  if (!Array.isArray(results)) {
+    throw new Error("The location service returned an invalid response.");
+  }
+  return results as LocationSearchResult[];
 };
 
 export const detectCurrentLocation = async (): Promise<DetectedLocation> => {

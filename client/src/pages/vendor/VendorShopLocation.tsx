@@ -178,6 +178,7 @@ const VendorShopLocation = () => {
         <form className="vendor-shop-location-card" onSubmit={handleSave}>
           <ShopLocationFields
             value={location}
+            enableLocationTools
             onChange={(next) => {
               setError("");
               setLocation(next);

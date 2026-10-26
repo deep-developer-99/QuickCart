@@ -3,6 +3,7 @@ import {
   forwardGeocodeAddress,
   LocationLookupError,
   reverseGeocodeCoordinates,
+  searchLocations,
 } from "../services/locationService";
 
 const errorResponse = (error: unknown, res: Response): void => {
@@ -56,6 +57,18 @@ export const reverseGeocodeController = async (
   try {
     const result = await reverseGeocodeCoordinates(latitude, longitude);
     res.json({ success: true, data: result });
+  } catch (error) {
+    errorResponse(error, res);
+  }
+};
+
+export const searchLocationsController = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const results = await searchLocations(req.body?.query);
+    res.status(200).json({ success: true, data: results });
   } catch (error) {
     errorResponse(error, res);
   }

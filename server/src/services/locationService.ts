@@ -11,6 +11,15 @@ export interface NominatimResult {
   address?: Record<string, string | undefined>;
 }
 
+export interface LocationSearchResult {
+  latitude: number;
+  longitude: number;
+  displayName: string;
+  address: Record<string, string | undefined>;
+}
+
+type NominatimValue = NominatimResult | NominatimResult[] | null;
+
 export type LocationLookupErrorCode =
   | "INVALID_INPUT"
   | "NOT_FOUND"
@@ -30,9 +39,9 @@ const MAX_CACHE_ENTRIES = 1000;
 const MIN_REQUEST_INTERVAL_MS = 1100;
 const RESULT_CACHE = new Map<
   string,
-  { value: NominatimResult | null; expiresAt: number }
+  { value: NominatimValue; expiresAt: number }
 >();
-const IN_FLIGHT = new Map<string, Promise<NominatimResult | null>>();
+const IN_FLIGHT = new Map<string, Promise<NominatimValue>>();
 
 let lastNominatimRequestAt = 0;
 let requestQueue: Promise<void> = Promise.resolve();
@@ -56,7 +65,7 @@ const waitForNominatimSlot = async (): Promise<void> => {
   }
 };
 
-const remember = (key: string, value: NominatimResult | null): void => {
+const remember = (key: string, value: NominatimValue): void => {
   RESULT_CACHE.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
   if (RESULT_CACHE.size > MAX_CACHE_ENTRIES) {
     const oldestKey = RESULT_CACHE.keys().next().value;
@@ -68,7 +77,8 @@ const requestNominatim = async (
   endpoint: "search" | "reverse",
   params: URLSearchParams,
   stage?: string,
-): Promise<NominatimResult | null> => {
+  returnAllSearchResults = false,
+): Promise<NominatimValue> => {
   await waitForNominatimSlot();
   const contact = process.env.NOMINATIM_CONTACT_EMAIL?.trim();
   const userAgent = contact
@@ -142,11 +152,12 @@ const requestNominatim = async (
           resultCount: results.length,
         });
       }
-      const candidate = results[0] as NominatimResult | undefined;
-      if (!candidate) return null;
-      const coordinate = toCoordinate(candidate);
-      if (!coordinate) throw new LocationLookupError("PROVIDER_ERROR");
-      return candidate;
+      const candidates = (results as NominatimResult[]).filter(
+        (candidate) => toCoordinate(candidate) !== null,
+      );
+      if (returnAllSearchResults) return candidates;
+      const candidate = candidates[0];
+      return candidate ?? null;
     }
 
     const result: unknown = await response.json();
@@ -173,13 +184,18 @@ const getCachedOrRequest = async (
   endpoint: "search" | "reverse",
   params: URLSearchParams,
   stage?: string,
-): Promise<NominatimResult | null> => {
+  returnAllSearchResults = false,
+): Promise<NominatimValue> => {
   const cached = RESULT_CACHE.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     if (stage) {
       console.info("[Nominatim] lookup cache hit", {
         stage,
-        resultCount: cached.value ? 1 : 0,
+        resultCount: Array.isArray(cached.value)
+          ? cached.value.length
+          : cached.value
+            ? 1
+            : 0,
       });
     }
     return cached.value;
@@ -189,7 +205,12 @@ const getCachedOrRequest = async (
   const inFlight = IN_FLIGHT.get(cacheKey);
   if (inFlight) return inFlight;
 
-  const request = requestNominatim(endpoint, params, stage)
+  const request = requestNominatim(
+    endpoint,
+    params,
+    stage,
+    returnAllSearchResults,
+  )
     .then((value) => {
       remember(cacheKey, value);
       return value;
@@ -297,11 +318,16 @@ export const forwardGeocodeAddress = async (
       addressdetails: "1",
       limit: "1",
     });
-    return getCachedOrRequest(cacheKey, "search", params, stage);
+    const result = await getCachedOrRequest(cacheKey, "search", params, stage);
+    if (Array.isArray(result)) throw new LocationLookupError("PROVIDER_ERROR");
+    return result;
   };
 
   const fullResult = await search(fullQuery, "full-address");
   if (fullResult) {
+    if (Array.isArray(fullResult)) {
+      throw new LocationLookupError("PROVIDER_ERROR");
+    }
     const coordinate = toCoordinate(fullResult);
     if (!coordinate) throw new LocationLookupError("PROVIDER_ERROR");
     return { coordinate, displayName: fullResult.display_name ?? null };
@@ -351,6 +377,42 @@ export const forwardGeocodeAddress = async (
   return { coordinate, displayName: fallbackResult.display_name ?? null };
 };
 
+export const searchLocations = async (
+  value: unknown,
+): Promise<LocationSearchResult[]> => {
+  if (typeof value !== "string") throw new LocationLookupError("INVALID_INPUT");
+  const query = value.trim().replace(/\s+/g, " ");
+  if (query.length < 2 || query.length > 200) {
+    throw new LocationLookupError("INVALID_INPUT");
+  }
+  const params = new URLSearchParams({
+    q: query,
+    format: "jsonv2",
+    addressdetails: "1",
+    limit: "5",
+  });
+  const rawResults = await getCachedOrRequest(
+    `search:${query.toLocaleLowerCase("en-IN")}`,
+    "search",
+    params,
+    "place-search",
+    true,
+  );
+  if (!Array.isArray(rawResults)) {
+    if (rawResults === null) return [];
+    throw new LocationLookupError("PROVIDER_ERROR");
+  }
+  return rawResults.flatMap((result) => {
+    const coordinate = toCoordinate(result);
+    if (!coordinate || !result.display_name) return [];
+    return [{
+      ...coordinate,
+      displayName: result.display_name,
+      address: result.address ?? {},
+    }];
+  });
+};
+
 export const reverseGeocodeCoordinates = async (
   latitude: number,
   longitude: number,
@@ -375,5 +437,6 @@ export const reverseGeocodeCoordinates = async (
   });
   const result = await getCachedOrRequest(cacheKey, "reverse", params);
   if (!result) throw new LocationLookupError("NOT_FOUND");
+  if (Array.isArray(result)) throw new LocationLookupError("PROVIDER_ERROR");
   return result;
 };
