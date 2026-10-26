@@ -99,6 +99,17 @@ const VendorShopLocation = () => {
       return;
     }
 
+    if (import.meta.env.DEV) {
+      console.debug("[shop-location] form submitted", {
+        address: location.address.trim(),
+        city: location.city.trim(),
+        state: location.state.trim(),
+        pincode: location.pincode.trim(),
+        latitude: location.latitude,
+        longitude: location.longitude,
+      });
+    }
+
     try {
       setIsSaving(true);
       const response = await updateVendorShopLocation({

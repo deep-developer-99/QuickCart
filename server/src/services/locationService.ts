@@ -199,6 +199,13 @@ const requestNominatim = async (
     if (!result || typeof result !== "object") {
       throw new LocationLookupError("PROVIDER_ERROR");
     }
+    if (stage) {
+      console.info("[Nominatim] lookup completed", {
+        stage,
+        providerHttpStatus: response.status,
+        resultCount: 1,
+      });
+    }
     return result as NominatimResult;
   } catch (error) {
     if (stage) {
@@ -238,7 +245,15 @@ const getCachedOrRequest = async (
   if (cached) RESULT_CACHE.delete(cacheKey);
 
   const inFlight = IN_FLIGHT.get(cacheKey);
-  if (inFlight) return inFlight;
+  if (inFlight) {
+    if (stage) {
+      console.info("[Nominatim] lookup deduplicated", {
+        stage,
+        resultCount: null,
+      });
+    }
+    return inFlight;
+  }
 
   const request = requestNominatim(
     endpoint,
@@ -462,7 +477,9 @@ export const reverseGeocodeCoordinates = async (
   ) {
     throw new LocationLookupError("INVALID_INPUT");
   }
-  const cacheKey = `reverse:${latitude.toFixed(4)},${longitude.toFixed(4)}`;
+  // Six decimals keeps nearby shop entrances distinct (~0.11 m) while still
+  // allowing exact-coordinate cache hits and in-flight request deduplication.
+  const cacheKey = `reverse:${latitude.toFixed(6)},${longitude.toFixed(6)}`;
   const params = new URLSearchParams({
     format: "jsonv2",
     lat: String(latitude),
@@ -470,7 +487,12 @@ export const reverseGeocodeCoordinates = async (
     zoom: "18",
     addressdetails: "1",
   });
-  const result = await getCachedOrRequest(cacheKey, "reverse", params);
+  const result = await getCachedOrRequest(
+    cacheKey,
+    "reverse",
+    params,
+    "reverse",
+  );
   if (!result) throw new LocationLookupError("NOT_FOUND");
   if (Array.isArray(result)) throw new LocationLookupError("PROVIDER_ERROR");
   return result;

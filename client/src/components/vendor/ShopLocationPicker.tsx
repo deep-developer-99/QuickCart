@@ -23,6 +23,12 @@ export interface ShopCoordinates {
 
 type AddressFields = Pick<ShopLocationDraft, "address" | "city" | "state" | "pincode">;
 
+const traceShopLocation = (event: string, details: Record<string, unknown>) => {
+  if (import.meta.env.DEV) {
+    console.debug("[shop-location]", event, details);
+  }
+};
+
 interface ShopLocationPickerProps {
   coordinates: ShopCoordinates | null;
   onChange: (coordinates: ShopCoordinates, address?: Partial<AddressFields>) => void;
@@ -99,6 +105,7 @@ const ShopLocationPicker = ({
   const [retryNotBefore, setRetryNotBefore] = useState<number | null>(null);
   const [retrySecondsRemaining, setRetrySecondsRemaining] = useState(0);
   const debounceRef = useRef<number | null>(null);
+  const addressLookupTimerRef = useRef<number | null>(null);
   const requestRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0);
   const selectionIdRef = useRef(0);
@@ -106,6 +113,9 @@ const ShopLocationPicker = ({
   useEffect(
     () => () => {
       if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
+      if (addressLookupTimerRef.current !== null) {
+        window.clearTimeout(addressLookupTimerRef.current);
+      }
       requestRef.current?.abort();
     },
     [],
@@ -121,17 +131,31 @@ const ShopLocationPicker = ({
     return () => window.clearInterval(interval);
   }, [retryNotBefore]);
 
-  const lookupAddressForCoordinates = async (
+  const lookupAddressForCoordinates = useCallback(async (
     selected: ShopCoordinates,
     selectionId?: number,
   ) => {
+    traceShopLocation("reverse lookup requested", { ...selected });
+    setLocationMessage("Looking up address for the selected coordinates...");
     try {
       const address = await reverseGeocodeFromBackend(
         selected.latitude,
         selected.longitude,
       );
-      if (selectionId !== undefined && selectionId !== selectionIdRef.current) return;
+      if (selectionId !== undefined && selectionId !== selectionIdRef.current) {
+        traceShopLocation("reverse response ignored as stale", {
+          requested: selected,
+          currentSelectionId: selectionIdRef.current,
+          requestSelectionId: selectionId,
+        });
+        return;
+      }
       const fields = addressFieldsFromProvider(address);
+      traceShopLocation("reverse response applied", {
+        coordinates: selected,
+        addressComponents: address,
+        appliedFields: fields,
+      });
       onChange(selected, fields);
       setLocationError("");
       setLocationMessage(
@@ -143,7 +167,14 @@ const ShopLocationPicker = ({
       setRetryNotBefore(null);
       setRetrySecondsRemaining(0);
     } catch (error: unknown) {
-      if (selectionId !== undefined && selectionId !== selectionIdRef.current) return;
+      if (selectionId !== undefined && selectionId !== selectionIdRef.current) {
+        traceShopLocation("reverse failure ignored as stale", {
+          requested: selected,
+          requestSelectionId: selectionId,
+          currentSelectionId: selectionIdRef.current,
+        });
+        return;
+      }
       setRetryCoordinates(selected);
       setLocationMessage("");
       const delaySeconds = retryDelaySecondsForError(error);
@@ -157,27 +188,42 @@ const ShopLocationPicker = ({
         }`,
       );
     }
-  };
+  }, [onChange]);
 
   const handleMapLocationChange = useCallback(
     (location: DetectedLocation) => {
-      selectionIdRef.current += 1;
+      const selectionId = ++selectionIdRef.current;
       requestIdRef.current += 1;
       if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
+      if (addressLookupTimerRef.current !== null) {
+        window.clearTimeout(addressLookupTimerRef.current);
+      }
       requestRef.current?.abort();
       setSearchResults([]);
       setIsSearching(false);
       setRetryCoordinates(null);
       setRetryNotBefore(null);
       setRetrySecondsRemaining(0);
-      onChange({
+      const selected = {
         latitude: location.latitude,
         longitude: location.longitude,
-      });
-      setLocationMessage("");
+      };
+      onChange(selected);
+      traceShopLocation("map center selected", { ...selected });
       setLocationError("");
+      setLocationMessage(
+        enableLocationTools
+          ? "Pin moved. Address lookup will start shortly."
+          : "",
+      );
+      if (enableLocationTools) {
+        addressLookupTimerRef.current = window.setTimeout(() => {
+          if (selectionId !== selectionIdRef.current) return;
+          void lookupAddressForCoordinates(selected, selectionId);
+        }, 500);
+      }
     },
-    [onChange],
+    [enableLocationTools, lookupAddressForCoordinates, onChange],
   );
 
   const handleSearch = () => {
@@ -235,6 +281,9 @@ const ShopLocationPicker = ({
   const selectSearchResult = (result: LocationSearchResult) => {
     selectionIdRef.current += 1;
     requestIdRef.current += 1;
+    if (addressLookupTimerRef.current !== null) {
+      window.clearTimeout(addressLookupTimerRef.current);
+    }
     requestRef.current?.abort();
     setSearchResults([]);
     setSearchError("");
@@ -250,6 +299,11 @@ const ShopLocationPicker = ({
         address: result.address,
       }),
     );
+    traceShopLocation("search result applied", {
+      coordinates: { latitude: result.latitude, longitude: result.longitude },
+      addressComponents: result.address,
+      appliedFields: address,
+    });
     onChange(
       { latitude: result.latitude, longitude: result.longitude },
       address,
@@ -260,6 +314,9 @@ const ShopLocationPicker = ({
     const selectionId = ++selectionIdRef.current;
     requestIdRef.current += 1;
     if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
+    if (addressLookupTimerRef.current !== null) {
+      window.clearTimeout(addressLookupTimerRef.current);
+    }
     requestRef.current?.abort();
     setSearchResults([]);
     setIsSearching(false);
@@ -275,10 +332,21 @@ const ShopLocationPicker = ({
         getCurrentLocation,
         reverseGeocodeFromBackend,
         (selected) => {
-          if (selectionId === selectionIdRef.current) onChange(selected);
+          if (selectionId === selectionIdRef.current) {
+            traceShopLocation("current coordinates selected", { ...selected });
+            traceShopLocation("reverse lookup requested", { ...selected });
+            onChange(selected);
+          }
         },
       );
-      if (selectionId !== selectionIdRef.current) return;
+      if (selectionId !== selectionIdRef.current) {
+        traceShopLocation("current location result ignored as stale", {
+          coordinates: result.coordinates,
+          requestSelectionId: selectionId,
+          currentSelectionId: selectionIdRef.current,
+        });
+        return;
+      }
 
       if (result.lookupFailed) {
         const error = result.lookupError;
@@ -295,6 +363,10 @@ const ShopLocationPicker = ({
       }
 
       onChange(result.coordinates, result.addressFields);
+      traceShopLocation("current address fields applied", {
+        coordinates: result.coordinates,
+        appliedFields: result.addressFields,
+      });
       setRetryCoordinates(null);
       setRetryNotBefore(null);
       setRetrySecondsRemaining(0);
@@ -315,9 +387,12 @@ const ShopLocationPicker = ({
   const handleRetryAddressLookup = async () => {
     if (!retryCoordinates || retrySecondsRemaining > 0) return;
     const selectionId = ++selectionIdRef.current;
+    if (addressLookupTimerRef.current !== null) {
+      window.clearTimeout(addressLookupTimerRef.current);
+    }
     setIsRetryingAddress(true);
     setLocationError("");
-    setLocationMessage("Retrying address lookup for the selected coordinatesâ€¦");
+    setLocationMessage("Retrying address lookup for the selected coordinates...");
     try {
       await lookupAddressForCoordinates(retryCoordinates, selectionId);
     } finally {

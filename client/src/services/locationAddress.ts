@@ -18,9 +18,12 @@ export const extractAddressComponents = (data: {
   address?: Record<string, string | undefined>;
 }): ReverseGeocodedAddress => {
   const address = data.address ?? {};
+  const streetName =
+    address.road || address.street || address.pedestrian || address.residential;
+  const building = address.house_name || address.building;
   const street = [
-    address.house_number,
-    address.road || address.street || address.pedestrian || address.residential,
+    address.house_number || building,
+    streetName,
   ]
     .filter((part): part is string => Boolean(part?.trim()))
     .filter((part, index, parts) => parts.indexOf(part) === index)
