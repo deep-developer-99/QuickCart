@@ -25,6 +25,19 @@ export interface ShopCoordinates {
 
 type AddressFields = Pick<ShopLocationDraft, "address" | "city" | "state" | "pincode">;
 
+const addressFillMessage = (fields: Partial<AddressFields>): string => {
+  const missing: string[] = [];
+  if (!fields.address) missing.push("street address");
+  if (!fields.city) missing.push("city");
+  if (!missing.length) {
+    return "Address details found. Review the address and pin before saving.";
+  }
+  const details = missing.length === 2
+    ? "street address and city"
+    : missing[0];
+  return `The provider did not return the ${details}. Enter ${missing.length === 1 ? "it" : "them"} manually if missing; other available fields were filled.`;
+};
+
 const traceShopLocation = (event: string, details: Record<string, unknown>) => {
   if (import.meta.env.DEV) {
     console.debug("[shop-location]", event, details);
@@ -179,11 +192,7 @@ const ShopLocationPicker = ({
       });
       onChangeRef.current(selected, fields, "reverse");
       setLocationError("");
-      setLocationMessage(
-        Object.keys(fields).length
-          ? "Address details found. Review the address and pin before saving."
-          : "No reliable address components were returned. Existing address fields were kept.",
-      );
+      setLocationMessage(addressFillMessage(fields));
       setRetryCoordinates(null);
       setRetryNotBefore(null);
       setRetrySecondsRemaining(0);
@@ -310,7 +319,6 @@ const ShopLocationPicker = ({
     setSearchError("");
     setSearchQuery(result.displayName);
     setLocationError("");
-    setLocationMessage("Location selected. Review the address and adjust the pin before saving.");
     setRetryCoordinates(null);
     setRetryNotBefore(null);
     setRetrySecondsRemaining(0);
@@ -320,6 +328,7 @@ const ShopLocationPicker = ({
         address: result.address,
       }),
     );
+    setLocationMessage(addressFillMessage(address));
     traceShopLocation("search result applied", {
       coordinates: { latitude: result.latitude, longitude: result.longitude },
       addressComponents: result.address,
@@ -392,11 +401,7 @@ const ShopLocationPicker = ({
       setRetryCoordinates(null);
       setRetryNotBefore(null);
       setRetrySecondsRemaining(0);
-      setLocationMessage(
-        Object.keys(result.addressFields).length
-          ? "Address details found. Review the address and pin before saving."
-          : "No reliable address components were returned. Existing address fields were kept.",
-      );
+      setLocationMessage(addressFillMessage(result.addressFields));
     } catch (error: unknown) {
       if (selectionId !== selectionIdRef.current) return;
       setLocationError(
@@ -519,7 +524,14 @@ const ShopLocationPicker = ({
         {isLocating ? <span role="status">Requesting device location and address…</span> : null}
       </div> : null}
       {enableLocationTools && locationError ? <p className="shop-location-feedback error" role="alert">{locationError}</p> : null}
-      {enableLocationTools && locationMessage ? <p className="shop-location-feedback success" role="status">{locationMessage}</p> : null}
+      {enableLocationTools && locationMessage ? (
+        <p
+          className={`shop-location-feedback ${locationMessage.startsWith("The provider did not return") ? "error" : "success"}`}
+          role="status"
+        >
+          {locationMessage}
+        </p>
+      ) : null}
       {enableLocationTools && retryCoordinates ? (
         <button
           type="button"
