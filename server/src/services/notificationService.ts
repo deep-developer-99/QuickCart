@@ -499,7 +499,9 @@ export const sendManualNotification = async (args: {
 export const getManagedNotificationHistory = async (senderId: string, senderRole: "admin" | "vendor", page?: unknown, limit?: unknown, filters: { search?: unknown; category?: unknown; senderRole?: unknown; campaignId?: unknown; from?: unknown; to?: unknown } = {}) => {
   const pagination = getPagination(page, limit, 20);
   const match: Record<string, any> = { deletedAt: null };
-  if (senderRole === "vendor") Object.assign(match, { sender: senderId, senderRole });
+  // Aggregation pipelines are not schema-cast by Mongoose. `sender` is stored
+  // as an ObjectId, so compare it using the authenticated vendor's ObjectId.
+  if (senderRole === "vendor") Object.assign(match, { sender: new Types.ObjectId(senderId), senderRole });
   else if (filters.senderRole === "admin" || filters.senderRole === "vendor") match.senderRole = filters.senderRole;
   if (filters.category === "offer" || filters.category === "announcement") match.category = filters.category;
   if (typeof filters.campaignId === "string" && filters.campaignId.trim()) match.campaignId = filters.campaignId.trim();

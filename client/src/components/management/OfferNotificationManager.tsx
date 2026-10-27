@@ -349,7 +349,7 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
       setSelectedRecipientIds([]);
       setNotificationTitle("");
       setNotificationMessage("");
-      if (activeTab === "history") await loadHistory(historyPage);
+      await loadHistory(historyPage);
       return true;
     } catch (requestError) {
       setError(
