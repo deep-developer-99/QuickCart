@@ -66,7 +66,7 @@ export const sendManagedNotification = async (
     | {
         audience: "individual";
         kind: "custom";
-        customerId: string;
+        customerIds: string[];
         category: "general";
         title: string;
         message: string;
@@ -76,6 +76,7 @@ export const sendManagedNotification = async (
         kind: "offer";
         category: "offer";
         offerId: string;
+        customerIds?: string[];
         customerId?: string;
       },
   idempotencyKey: string,

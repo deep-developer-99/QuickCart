@@ -28,15 +28,18 @@
 .offer-manager-page input:focus, .offer-manager-page textarea:focus, .offer-manager-page select:focus { outline: 3px solid rgba(95, 166, 83, .16); border-color: #5fa653; }
 .offer-manager-form-grid small { color: #8793a5; font-size: 11px; font-weight: 500; text-align: right; }
 .offer-manager-recipient-field { grid-column: 1 / -1; }
-.offer-manager-selected-recipient { padding: 9px 11px; border: 1px solid #cde8cc; border-radius: 7px; background: #f4fbf3; color: #436a41; font-size: 12px; }
+.offer-manager-selection-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 9px; padding: 9px 11px; border: 1px solid #cde8cc; border-radius: 7px; background: #f4fbf3; color: #436a41; font-size: 12px; }
+.offer-manager-selection-toolbar > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.offer-manager-selection-toolbar button { padding: 6px 9px; border: 1px solid #cde8cc; border-radius: 6px; background: #fff; color: #436a41; font-size: 11px; font-weight: 700; cursor: pointer; }
+.offer-manager-selection-toolbar button:disabled { cursor: not-allowed; opacity: .5; }
 .offer-manager-recipient-list { max-height: 224px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 9px; }
-.offer-manager-recipient { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 12px; border: 0; border-bottom: 1px solid #eef2f7; background: #fff; color: #475569; cursor: pointer; text-align: left; }
+.offer-manager-recipient { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-bottom: 1px solid #eef2f7; background: #fff; color: #475569; cursor: pointer; text-align: left; }
 .offer-manager-recipient:last-child { border-bottom: 0; }
 .offer-manager-recipient:hover, .offer-manager-recipient.selected { background: #f4fbf3; }
-.offer-manager-recipient > span:first-child { display: grid; gap: 3px; min-width: 0; }
+.offer-manager-recipient > input { flex: none; width: 17px; min-height: 17px; height: 17px; padding: 0; accent-color: #4d9f50; }
+.offer-manager-recipient > span { display: grid; gap: 3px; min-width: 0; }
 .offer-manager-recipient strong { color: #172033; font-size: 13px; }
 .offer-manager-recipient small { overflow: hidden; color: #718096; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.offer-manager-recipient > span:last-child { flex: none; color: #4d9f50; font-size: 12px; font-weight: 750; }
 .offer-manager-mini-pagination { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 9px; color: #718096; font-size: 12px; }
 .offer-manager-mini-pagination button { padding: 6px 10px; border: 1px solid #dbe2e8; border-radius: 7px; background: #fff; color: #475569; cursor: pointer; }
 .offer-manager-mini-pagination button:disabled { cursor: not-allowed; opacity: .48; }

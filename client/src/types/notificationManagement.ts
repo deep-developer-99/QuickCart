@@ -94,6 +94,7 @@ export interface PaginatedResponse<T> {
 
 export interface ManualNotificationResult {
   campaignId: string;
+  duplicate?: boolean;
   attempted: number;
   accepted: number;
   failed: number;

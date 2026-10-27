@@ -9,6 +9,7 @@ export interface IUserNotification extends Document {
   sender: Types.ObjectId;
   senderRole: "admin" | "vendor";
   campaignId: string;
+  requestFingerprint?: string;
   type: UserNotificationType;
   category: "offer" | "announcement";
   title: string;
@@ -40,6 +41,7 @@ const userNotificationSchema = new Schema<IUserNotification>({
   sender: { type: Schema.Types.ObjectId, required: true },
   senderRole: { type: String, enum: ["admin", "vendor"], required: true },
   campaignId: { type: String, required: true },
+  requestFingerprint: { type: String, select: false },
   type: { type: String, enum: ["NEW_OFFER", "ORDER_STATUS_UPDATED", "CUSTOM_MESSAGE"], required: true },
   category: { type: String, enum: ["offer", "announcement"], required: true },
   title: { type: String, required: true, trim: true, maxlength: 120 },

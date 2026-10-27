@@ -20,6 +20,10 @@ const isNotificationRole = (role?: string): role is "admin" | "vendor" =>
 const isTokenRole = (role?: string): role is "admin" | "vendor" | "user" =>
   role === "admin" || role === "vendor" || role === "user";
 
+const MAX_TARGETED_RECIPIENTS = 500;
+const isMongoId = (value: unknown): value is string =>
+  typeof value === "string" && /^[a-f\d]{24}$/i.test(value);
+
 export const registerFcmTokenController = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -211,14 +215,21 @@ export const eligibleCustomersController = async (req: AuthenticatedRequest, res
 export const sendManualNotificationController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     if (!req.user || (req.user.role !== "admin" && req.user.role !== "vendor")) { res.status(403).json({ success: false, message: "Access denied" }); return; }
-    const { audience, customerId, kind, title, message, category, offerId } = req.body ?? {};
+    const { audience, customerId, customerIds, kind, title, message, category, offerId } = req.body ?? {};
     if (!(["individual", "all"].includes(audience)) || !(["custom", "offer"].includes(kind))) { res.status(400).json({ success: false, message: "Invalid audience or kind" }); return; }
     if (audience === "all" && kind !== "offer") { res.status(400).json({ success: false, message: "Broadcast is available for offer notifications only" }); return; }
     const normalizedTitle = typeof title === "string" ? title.trim() : "";
     const normalizedMessage = typeof message === "string" ? message.trim() : "";
     if (kind === "custom" && (normalizedTitle.length < 1 || normalizedTitle.length > 120 || normalizedMessage.length < 1 || normalizedMessage.length > 240)) { res.status(400).json({ success: false, message: "Title (1–120) and message (1–240) are required" }); return; }
-    if (audience === "individual" && customerId !== undefined && (typeof customerId !== "string" || !Types.ObjectId.isValid(customerId))) { res.status(400).json({ success: false, message: "customerId must be a valid customer ID" }); return; }
-    if (audience === "all" && customerId !== undefined) { res.status(400).json({ success: false, message: "customerId cannot be used with a broadcast audience" }); return; }
+    if (customerIds !== undefined && !Array.isArray(customerIds)) { res.status(400).json({ success: false, message: "customerIds must be an array of customer IDs" }); return; }
+    if (audience === "individual") {
+      if (customerIds !== undefined && customerId !== undefined) { res.status(400).json({ success: false, message: "Use customerIds or the legacy customerId field, not both" }); return; }
+      if (customerIds !== undefined && (customerIds.length === 0 || customerIds.some((id: unknown) => !isMongoId(id)))) { res.status(400).json({ success: false, message: "customerIds must be a non-empty array of valid MongoDB customer IDs" }); return; }
+      if (customerIds !== undefined && customerIds.length > MAX_TARGETED_RECIPIENTS) { res.status(400).json({ success: false, message: `A targeted campaign can include at most ${MAX_TARGETED_RECIPIENTS} customers` }); return; }
+      if (customerId !== undefined && !isMongoId(customerId)) { res.status(400).json({ success: false, message: "customerId must be a valid customer ID" }); return; }
+      if (customerIds === undefined && customerId === undefined) { res.status(400).json({ success: false, message: "Select at least one customer using customerIds" }); return; }
+    }
+    if (audience === "all" && (customerId !== undefined || customerIds !== undefined)) { res.status(400).json({ success: false, message: "customerId and customerIds cannot be used with a broadcast audience" }); return; }
     let relatedId: string | undefined;
     let sendTitle = normalizedTitle;
     let sendMessage = normalizedMessage;
@@ -242,7 +253,7 @@ export const sendManualNotificationController = async (req: AuthenticatedRequest
       res.status(400).json({ success: false, message: "Custom notification category must be general or custom" }); return;
     }
     const result = await sendManualNotification({
-      senderId: req.user.id, senderRole: req.user.role, recipientId: customerId,
+      senderId: req.user.id, senderRole: req.user.role, recipientId: customerId, recipientIds: customerIds,
       audience, type: kind === "offer" ? "NEW_OFFER" : "CUSTOM", title: sendTitle,
       message: sendMessage, category: kind === "offer" ? "offer" : category,
       relatedId, action: kind === "offer" ? { type: "offer", id: relatedId, redirectType: data.redirectType as "category" | "product", redirectValue: data.redirectValue } : { type: "none" }, data, idempotencyKey: req.get("Idempotency-Key")?.slice(0, 100),
@@ -250,7 +261,7 @@ export const sendManualNotificationController = async (req: AuthenticatedRequest
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to send notification";
-    res.status(message.includes("not ordered") ? 403 : 400).json({ success: false, message });
+    res.status(message.includes("not ordered") || message.includes("not eligible") ? 403 : 400).json({ success: false, message });
   }
 };
 

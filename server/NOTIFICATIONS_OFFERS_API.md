@@ -22,16 +22,18 @@ Accepts an optional `Idempotency-Key` (1–100 characters) and a JSON body:
 {
   "audience": "individual",
   "kind": "custom",
-  "customerId": "<user ObjectId>",
+  "customerIds": ["<user ObjectId>", "<another user ObjectId>"],
   "category": "general",
   "title": "Hello",
   "message": "A message for this customer"
 }
 ```
 
-For an offer notification, use `kind: "offer"`, `category: "offer"`, and `offerId` for an existing published offer. Its stored title/message/navigation are used; caller-supplied title/message are ignored. `audience` may be `individual` or `all`; `all` broadcasts to customer accounts only and is supported only for offer notifications. `customerId` is required for individual delivery and forbidden for broadcast. Vendors can target an individual only when persisted order records show that customer ordered from them.
+`customerIds` must contain 1 to 500 valid customer ObjectIds. IDs are deduplicated before eligibility checks and storage. The older single `customerId` field remains supported for existing callers; send one field only. Every selected ID must belong to an existing customer account. Vendors may send only when every selected customer has a persisted order containing one of their items. A campaign request creates one shared campaign ID and one stored row per unique recipient.
 
-Response `200`: `{ success, data: { campaignId, recipients, stored, attempted, accepted, failed, skipped } }`. `accepted` means accepted by Firebase, not confirmed device delivery. Errors: `400` invalid input/idempotency key, `401` unauthenticated, `403` vendor recipient is ineligible, `404` offer unavailable, `429` rate limit.
+For an offer notification, use `kind: "offer"`, `category: "offer"`, and `offerId` for an existing published offer. Its stored title/message/navigation are used; caller-supplied title/message are ignored. `audience` may be `individual` or `all`; `all` broadcasts to customer accounts only and is supported only for offer notifications. `customerIds` (or legacy `customerId`) is required for individual delivery and forbidden for broadcast. The page-level UI selection action is only an explicit recipient list and never selects the broadcast audience.
+
+Response `200`: `{ success, data: { campaignId, duplicate?, recipients, stored, attempted, accepted, failed, skipped } }`. Repeating an idempotency key with the same request returns the saved campaign summary without dispatching again; reusing it with different content or recipients is rejected. `accepted` means accepted by Firebase, not confirmed device delivery. Errors: `400` invalid input/idempotency key, `401` unauthenticated, `403` vendor recipient is ineligible, `404` offer unavailable, `429` rate limit.
 
 ## Managed notification history
 

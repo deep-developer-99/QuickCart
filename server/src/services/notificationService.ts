@@ -11,7 +11,7 @@ import { createPaginationMeta, getPagination } from "../utils/pagination";
 import { emitNotification } from "../utils/notificationStream";
 import { sendFirebaseNotification } from "./firebaseNotificationService";
 import UserNotification, { IUserNotification, UserNotificationType } from "../models/UserNotification";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import Offer from "../models/Offer";
 import Category from "../models/Category";
 import Product from "../models/Product";
@@ -309,8 +309,27 @@ const createUserCampaign = async (args: {
   senderId: string; senderRole: "admin" | "vendor"; campaignId: string;
   type: UserNotificationType; category: "offer" | "announcement"; title: string; message: string;
   relatedId?: string; action?: IUserNotification["action"]; data?: Record<string, string>;
+  requestFingerprint?: string;
 }) => {
   const totals = { campaignId: args.campaignId, recipients: 0, stored: 0, attempted: 0, accepted: 0, failed: 0, skipped: 0 };
+  const existingCampaign = await UserNotification.find({ campaignId: args.campaignId })
+    .select("+requestFingerprint recipient attemptedCount acceptedCount failedCount skippedCount")
+    .lean();
+  if (existingCampaign.length) {
+    if (!args.requestFingerprint || existingCampaign.some((record) => record.requestFingerprint !== args.requestFingerprint)) {
+      throw new Error("Idempotency-Key was already used for a different campaign or an earlier request");
+    }
+    return {
+      ...totals,
+      duplicate: true,
+      recipients: existingCampaign.length,
+      stored: existingCampaign.length,
+      attempted: existingCampaign.reduce((sum, row) => sum + row.attemptedCount, 0),
+      accepted: existingCampaign.reduce((sum, row) => sum + row.acceptedCount, 0),
+      failed: existingCampaign.reduce((sum, row) => sum + row.failedCount, 0),
+      skipped: existingCampaign.reduce((sum, row) => sum + row.skippedCount, 0),
+    };
+  }
   const sendBatch = async (ids: string[]) => {
     if (!ids.length) return;
     const previouslyStored = await UserNotification.find({ campaignId: args.campaignId, recipient: { $in: ids } }).distinct("recipient");
@@ -321,6 +340,7 @@ const createUserCampaign = async (args: {
     const records = await UserNotification.insertMany(pendingIds.map((recipient) => ({
       recipient: new Types.ObjectId(recipient), recipientRole: "user", sender: new Types.ObjectId(args.senderId), senderRole: args.senderRole,
       campaignId: args.campaignId, type: args.type, category: args.category, title: args.title, message: args.message,
+      requestFingerprint: args.requestFingerprint,
       relatedId: args.relatedId ? new Types.ObjectId(args.relatedId) : undefined, action: args.action ?? { type: "none" }, dispatchStatus: "stored",
     })), { ordered: false });
     totals.recipients += pendingIds.length;
@@ -428,32 +448,51 @@ export const getEligibleCustomers = async (actorRole: "admin" | "vendor", vendor
 };
 
 export const sendManualNotification = async (args: {
-  senderId: string; senderRole: "admin" | "vendor"; recipientId?: string; audience: "individual" | "all";
+  senderId: string; senderRole: "admin" | "vendor"; recipientId?: string; recipientIds?: string[]; audience: "individual" | "all";
   type: "CUSTOM" | "NEW_OFFER"; title: string; message: string; category: string;
   relatedId?: string; data?: Record<string, string>; action?: IUserNotification["action"]; idempotencyKey?: string;
 }) => {
   let recipients: string[] | undefined;
   let recipientCursor: AsyncIterable<{ _id: Types.ObjectId }> | undefined;
+  let requestRecipients: string[] | "all";
   if (args.audience === "individual") {
-    if (!args.recipientId || !Types.ObjectId.isValid(args.recipientId)) throw new Error("A valid customerId is required");
+    const requested = args.recipientIds ?? (args.recipientId ? [args.recipientId] : []);
+    if (!requested.length) throw new Error("At least one customerId is required");
+    if (requested.length > 500) throw new Error("A targeted campaign can include at most 500 customers");
+    if (requested.some((id) => !/^[a-f\d]{24}$/i.test(id))) throw new Error("Every customer ID must be a valid MongoDB ObjectId");
+    recipients = [...new Set(requested.map((id) => new Types.ObjectId(id).toString()))];
+    const foundCustomers = await User.find({ _id: { $in: recipients } }).distinct("_id");
+    if (foundCustomers.length !== recipients.length) throw new Error("One or more selected customers do not exist or are not eligible");
     if (args.senderRole === "vendor") {
-      const eligible = await Order.exists({ user: args.recipientId, "items.vendor": args.senderId });
-      if (!eligible) throw new Error("Customer has not ordered from this vendor");
+      const orderedCustomers = await Order.distinct("user", { user: { $in: recipients }, "items.vendor": args.senderId });
+      if (orderedCustomers.length !== recipients.length) throw new Error("One or more customers are not eligible: they have not ordered from this vendor");
     }
-    const userExists = await User.exists({ _id: args.recipientId });
-    if (!userExists) throw new Error("Customer not found");
-    recipients = [args.recipientId];
+    requestRecipients = recipients;
   } else if (args.senderRole === "vendor") {
     recipients = (await Order.distinct("user", { "items.vendor": args.senderId })).map((id) => id.toString());
+    requestRecipients = "all";
   } else {
     recipientCursor = User.find({}).select("_id").lean().cursor();
+    requestRecipients = "all";
   }
   const campaignId = args.idempotencyKey ? `manual:${args.senderRole}:${args.senderId}:${args.idempotencyKey}` : randomUUID();
+  const requestFingerprint = createHash("sha256").update(JSON.stringify({
+    senderId: args.senderId,
+    senderRole: args.senderRole,
+    audience: args.audience,
+    recipients: typeof requestRecipients === "string" ? requestRecipients : [...requestRecipients].sort(),
+    type: args.type,
+    category: args.category,
+    title: args.title,
+    message: args.message,
+    relatedId: args.relatedId,
+  })).digest("hex");
   return createUserCampaign({
     recipients, recipientCursor, senderId: args.senderId, senderRole: args.senderRole, campaignId,
     type: args.type === "CUSTOM" ? "CUSTOM_MESSAGE" : args.type,
     category: args.category === "offer" ? "offer" : "announcement", title: args.title, message: args.message,
     relatedId: args.relatedId, action: args.action, data: args.data,
+    requestFingerprint,
   });
 };
 

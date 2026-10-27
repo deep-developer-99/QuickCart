@@ -106,8 +106,7 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
     pageInfo(1, 20),
   );
   const [recipientSearch, setRecipientSearch] = useState("");
-  const [selectedRecipient, setSelectedRecipient] =
-    useState<CustomerRecipient | null>(null);
+  const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>([]);
   const [audience, setAudience] = useState<Audience>("individual");
   const [kind, setKind] = useState<NotificationKind>("custom");
   const [selectedOfferId, setSelectedOfferId] = useState("");
@@ -127,6 +126,7 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
     null,
   );
   const [isConfirming, setIsConfirming] = useState(false);
+  const isSendingRef = useRef(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const sendIdempotencyRef = useRef<{ signature: string; key: string } | null>(
@@ -285,9 +285,9 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
   };
 
   const sendNotification = async () => {
-    if (isSending) return;
-    if (audience === "individual" && !selectedRecipient) {
-      setError("Choose an eligible customer first.");
+    if (isSendingRef.current || isSending) return;
+    if (audience === "individual" && selectedRecipientIds.length === 0) {
+      setError("Select at least one eligible customer first.");
       return;
     }
     if (kind === "offer" && !selectedOffer) {
@@ -309,7 +309,8 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
   };
 
   const performSend = async (): Promise<boolean> => {
-    if (isSending) return false;
+    if (isSendingRef.current || isSending) return false;
+    isSendingRef.current = true;
     try {
       setIsSending(true);
       setError("");
@@ -321,15 +322,15 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
               kind: "offer",
               category: "offer",
               offerId: selectedOfferId,
-              ...(audience === "individual" && selectedRecipient
-                ? { customerId: selectedRecipient._id }
+              ...(audience === "individual"
+                ? { customerIds: [...new Set(selectedRecipientIds)].sort() }
                 : {}),
             } as const)
           : ({
               audience: "individual",
               kind: "custom",
               category: "general",
-              customerId: selectedRecipient!._id,
+              customerIds: [...new Set(selectedRecipientIds)].sort(),
               title: notificationTitle.trim(),
               message: notificationMessage.trim(),
             } as const);
@@ -343,8 +344,9 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
       );
       sendIdempotencyRef.current = null;
       setSuccess(
-        `Saved for ${result.data.stored} customer(s). Firebase accepted ${result.data.accepted}; failed ${result.data.failed}; skipped ${result.data.skipped}.`,
+        `Campaign saved for ${result.data.recipients} recipient(s) (${result.data.stored} stored). Firebase accepted ${result.data.accepted}; failed ${result.data.failed}; skipped ${result.data.skipped}.${result.data.duplicate ? " This repeated request was safely ignored." : ""}`,
       );
+      setSelectedRecipientIds([]);
       setNotificationTitle("");
       setNotificationMessage("");
       if (activeTab === "history") await loadHistory(historyPage);
@@ -355,6 +357,7 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
       );
       return false;
     } finally {
+      isSendingRef.current = false;
       setIsSending(false);
     }
   };
@@ -545,7 +548,7 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
                   setError("");
                 }}
               >
-                <option value="individual">One customer</option>
+                <option value="individual">Selected customers</option>
                 <option value="all">All Users (customer accounts)</option>
               </select>
             </label>
@@ -578,14 +581,27 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
                     setRecipientPage(1);
                   }}
                 />
-                {selectedRecipient && (
-                  <div className="offer-manager-selected-recipient">
-                    Selected: <strong>{selectedRecipient.name}</strong>
-                    {selectedRecipient.email
-                      ? ` · ${selectedRecipient.email}`
-                      : ""}
+                <div className="offer-manager-selection-toolbar">
+                  <strong aria-live="polite">
+                    {selectedRecipientIds.length} {selectedRecipientIds.length === 1 ? "customer" : "customers"} selected
+                  </strong>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRecipientIds((current) => [...new Set([...current, ...recipients.map((recipient) => recipient._id)])])}
+                      disabled={isLoadingRecipients || recipients.length === 0}
+                    >
+                      Select All on This Page
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRecipientIds([])}
+                      disabled={selectedRecipientIds.length === 0}
+                    >
+                      Deselect All
+                    </button>
                   </div>
-                )}
+                </div>
                 <div
                   className="offer-manager-recipient-list"
                   aria-live="polite"
@@ -599,26 +615,28 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
                       No eligible customers found.
                     </p>
                   ) : (
-                    recipients.map((recipient) => (
-                      <button
-                        type="button"
-                        key={recipient._id}
-                        className={`offer-manager-recipient${selectedRecipient?._id === recipient._id ? " selected" : ""}`}
-                        onClick={() => setSelectedRecipient(recipient)}
-                      >
-                        <span>
-                          <strong>{recipient.name}</strong>
-                          <small>
-                            {recipient.email || recipient.phone || "Customer"}
-                          </small>
-                        </span>
-                        <span>
-                          {selectedRecipient?._id === recipient._id
-                            ? "Selected"
-                            : "Select"}
-                        </span>
-                      </button>
-                    ))
+                    recipients.map((recipient) => {
+                      const selected = selectedRecipientIds.includes(recipient._id);
+                      return (
+                        <label
+                          key={recipient._id}
+                          className={`offer-manager-recipient${selected ? " selected" : ""}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={(event) => setSelectedRecipientIds((current) => event.target.checked
+                              ? [...new Set([...current, recipient._id])]
+                              : current.filter((id) => id !== recipient._id))}
+                          />
+                          <span>
+                            <strong>{recipient.name}</strong>
+                            <small>{recipient.email || "Email unavailable"}</small>
+                            <small>{recipient.phone || "Phone unavailable"}</small>
+                          </span>
+                        </label>
+                      );
+                    })
                   )}
                 </div>
                 <div className="offer-manager-mini-pagination">
@@ -720,7 +738,11 @@ const OfferNotificationManager = ({ role }: { role: ManagerRole }) => {
               type="button"
               className="offer-manager-primary"
               onClick={() => void sendNotification()}
-              disabled={isSending || (kind === "offer" && !selectedOfferId)}
+              disabled={
+                isSending ||
+                (kind === "offer" && !selectedOfferId) ||
+                (audience === "individual" && selectedRecipientIds.length === 0)
+              }
             >
               {isSending
                 ? "Sending…"
