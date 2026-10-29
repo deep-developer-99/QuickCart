@@ -28,7 +28,7 @@
 .navbar-logo {
   display: inline-flex;
   align-items: center;
-  color: #25802b;
+  color: var(--color-primary-hover);
   font-size: 25px;
   font-weight: 850;
   letter-spacing: -0.8px;
@@ -40,7 +40,7 @@
 }
 
 .navbar-logo::before {
-  content: "⚡";
+  content: "?";
   margin-right: 6px;
   font-size: 17px;
 }
@@ -71,7 +71,7 @@
   justify-content: center;
   padding: 0 11px;
   border-radius: 9px;
-  color: #475569;
+  color: var(--color-body-text);
   text-decoration: none;
   font-size: 13px;
   font-weight: 700;
@@ -83,25 +83,25 @@
 .navbar-action:hover,
 .navbar-action.active {
   background: #f0f8f0;
-  color: #25802b;
+  color: var(--color-primary-hover);
 }
 
 .navbar-cart-action {
   padding: 0 14px;
-  background: #4d9f50;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-card-background);
   box-shadow: 0 7px 16px rgba(77, 159, 80, 0.18);
 }
 
 .navbar-cart-action:hover,
 .navbar-cart-action.active {
-  background: #3f8b43;
-  color: #ffffff;
+  background: var(--color-primary-hover);
+  color: var(--color-card-background);
 }
 
 .navbar-cart-disabled {
   opacity: 0.45;
-  color: #ffffff;
+  color: var(--color-card-background);
   cursor: not-allowed;
   pointer-events: auto;
   user-select: none;
@@ -138,7 +138,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #4d9f50;
+  background: var(--color-primary);
   color: white;
   text-decoration: none;
   box-shadow: 0 7px 16px rgba(77, 159, 80, 0.2);
@@ -146,14 +146,14 @@
 
 .navbar-login:hover,
 .navbar-login.active {
-  background: #3f8b43;
+  background: var(--color-primary-hover);
   color: white;
 }
 
 .navbar-logout {
   border: 1px solid #fecaca;
   background: #fff5f5;
-  color: #dc2626;
+  color: var(--color-error);
   cursor: pointer;
 }
 
@@ -186,7 +186,7 @@
   height: 2px;
   margin: 5px 0;
   border-radius: 2px;
-  background: #334155;
+  background: var(--color-body-text);
 }
 
 .mobile-menu {
@@ -261,7 +261,7 @@
   .mobile-menu-link {
     padding: 13px 10px;
     border-bottom: 1px solid #eef2ef;
-    color: #334155;
+    color: var(--color-body-text);
     font-size: 15px;
     font-weight: 650;
     text-decoration: none;
@@ -270,7 +270,7 @@
 
   .mobile-menu-link:hover,
   .mobile-menu-link.active {
-    color: #25802b;
+    color: var(--color-primary-hover);
     background: #f1f8f1;
   }
 
@@ -289,14 +289,14 @@
   }
 
   .mobile-menu-login {
-    background: #4d9f50;
+    background: var(--color-primary);
     color: white;
   }
 
   .mobile-menu-logout {
     border: 1px solid #fecaca;
     background: #fff5f5;
-    color: #dc2626;
+    color: var(--color-error);
     cursor: pointer;
   }
 }
@@ -317,7 +317,7 @@
   border: 1px solid #d8e5da;
   border-radius: 12px;
   background: #fff;
-  color: #475569;
+  color: var(--color-body-text);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
   cursor: pointer;
 }
@@ -396,7 +396,7 @@
 
 .profile-dropdown-header strong {
   overflow: hidden;
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -423,14 +423,14 @@
   padding: 13px 16px;
   border: 0;
   background: #fff;
-  color: #475569;
+  color: var(--color-body-text);
   text-align: left;
   cursor: pointer;
 }
 
 .profile-dropdown-item:hover {
   background: #f5faf5;
-  color: #438c46;
+  color: var(--color-primary);
 }
 
 .profile-dropdown-item > span:first-child {
@@ -456,7 +456,7 @@
 }
 
 .profile-dropdown-item small {
-  color: #8a94a3;
+  color: var(--color-muted-text);
   font-size: 10px;
 }
 
@@ -492,7 +492,7 @@
 
 .mobile-cart-button.navbar-cart-disabled {
   background: transparent;
-  color: #94a3b8;
+  color: var(--color-disabled-text);
   cursor: not-allowed;
   opacity: 0.6;
 }

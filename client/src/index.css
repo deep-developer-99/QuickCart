@@ -2,6 +2,46 @@
   box-sizing: border-box;
 }
 
+:root {
+  --color-primary: #4d9f50;
+  --color-primary-hover: #3f8b43;
+  --color-primary-active: #2f7133;
+  --color-secondary: #21d4b4;
+  --color-accent: #f5a623;
+  --color-page-background: #f8fafc;
+  --color-secondary-background: #f6f8f7;
+  --color-card-background: #ffffff;
+  --color-surface-background: #ffffff;
+  --color-modal-background: #ffffff;
+  --color-heading-text: #172033;
+  --color-body-text: #334155;
+  --color-muted-text: #64748b;
+  --color-link: #15803d;
+  --color-link-hover: #166534;
+  --color-on-primary: #ffffff;
+  --color-primary-button-background: #4d9f50;
+  --color-primary-button-text: #ffffff;
+  --color-secondary-button-background: #f0fdf4;
+  --color-secondary-button-text: #166534;
+  --color-input-background: #ffffff;
+  --color-input-text: #172033;
+  --color-input-placeholder: #94a3b8;
+  --color-input-border: #cbd5e1;
+  --color-input-focus-border: #4d9f50;
+  --color-border: #e2e8f0;
+  --color-active-navigation: #4d9f50;
+  --color-selected-tab: #4d9f50;
+  --color-badge-background: #dcfce7;
+  --color-badge-text: #166534;
+  --color-disabled-background: #f1f5f9;
+  --color-disabled-text: #94a3b8;
+  --color-focus-ring: #86efac;
+  --color-success: #16a34a;
+  --color-warning: #a16207;
+  --color-error: #dc2626;
+  --color-info: #2563eb;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -11,8 +51,8 @@ body {
 
   font-family: Arial, Helvetica, sans-serif;
 
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: var(--color-page-background);
+  color: var(--color-body-text);
 }
 
 button,
@@ -20,6 +60,36 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+input,
+textarea,
+select {
+  background: var(--color-input-background);
+  color: var(--color-input-text);
+  border-color: var(--color-input-border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-input-placeholder);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-focus-ring) 60%, transparent);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--color-link);
+}
+
+a:hover {
+  color: var(--color-link-hover);
 }
 
 img {

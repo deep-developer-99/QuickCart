@@ -36,6 +36,11 @@ import {
   publishOfferController,
   updateOfferController,
 } from "../controllers/offerController";
+import {
+  getAdminThemeController,
+  resetAdminThemeController,
+  updateAdminThemeController,
+} from "../controllers/themeController";
 
 const router = Router();
 
@@ -75,6 +80,11 @@ router.get("/offers", validatePagination, getAdminOffersController);
 router.post("/offers", createOfferController);
 router.put("/offers/:id", updateOfferController);
 router.put("/offers/:id/publish", publishOfferController);
+
+// Global theme
+router.get("/theme", getAdminThemeController);
+router.patch("/theme", updateAdminThemeController);
+router.post("/theme/reset", resetAdminThemeController);
 
 // Orders
 router.get("/orders", getAllOrdersAdminController);

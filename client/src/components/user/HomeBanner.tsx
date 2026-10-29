@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { getCategories } from "../../services/productService";
 import type { Banner } from "../../types/banner";
 import type { Category } from "../../types/product";
+import { useTheme } from "../../theme/ThemeContext";
 
 import "./HomeBanner.css";
 
@@ -20,8 +21,8 @@ const FALLBACK_BANNER: Banner = {
   buttonText: "Shop Now",
   redirectType: "category",
   order: 0,
-  backgroundColor: "#e9f6e7",
-  textColor: "#172033",
+  backgroundColor: "",
+  textColor: "",
   isActive: true,
 };
 
@@ -30,6 +31,7 @@ const AUTOPLAY_DELAY = 5000;
 
 const HomeBanner = ({ banners }: HomeBannerProps) => {
   const navigate = useNavigate();
+  const { colors } = useTheme();
   const [activeIndex, setActiveIndex] = useState(0);
   const [previousIndex, setPreviousIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -194,8 +196,14 @@ const HomeBanner = ({ banners }: HomeBannerProps) => {
     <section
       className="home-banner"
       style={{
-        backgroundColor: activeBanner.backgroundColor || "#e9f6e7",
-        color: activeBanner.textColor || "#172033",
+        backgroundColor:
+          activeBanner.backgroundColor ||
+          (banners.length === 0
+            ? colors.secondaryButtonBackground
+            : colors.cardBackground),
+        color:
+          activeBanner.textColor ||
+          (banners.length === 0 ? colors.headingText : colors.bodyText),
       }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}

@@ -15,7 +15,7 @@
   border: 1px solid #e4ebe5;
   border-radius: 18px;
 
-  background: linear-gradient(180deg, #ffffff 0%, #fbfdfb 100%);
+  background: linear-gradient(180deg, var(--color-card-background) 0%, #fbfdfb 100%);
 
   cursor: pointer;
   overflow: hidden;
@@ -66,7 +66,7 @@
 
   border-color: #b8ddb9;
 
-  background: linear-gradient(180deg, #ffffff 0%, #f5fbf5 100%);
+  background: linear-gradient(180deg, var(--color-card-background) 0%, #f5fbf5 100%);
 
   box-shadow: 0 16px 32px rgba(15, 23, 42, 0.1);
 }
@@ -132,7 +132,7 @@
 }
 
 .category-card-image {
-  background: #ffffff;
+  background: var(--color-card-background);
 }
 
 .category-card-placeholder {
@@ -142,7 +142,7 @@
 
   background: linear-gradient(135deg, #e9f8ea, #d5efd7);
 
-  color: #3f8b43;
+  color: var(--color-primary-hover);
 
   font-size: 28px;
   font-weight: 800;
@@ -158,7 +158,7 @@
   margin: 0;
   padding: 0 5px;
 
-  color: #172033;
+  color: var(--color-heading-text);
 
   font-size: 14px;
   line-height: 1.3;
@@ -175,7 +175,7 @@
 }
 
 .category-card:hover h3 {
-  color: #3f8b43;
+  color: var(--color-primary-hover);
 }
 
 /* Keyboard Accessibility */

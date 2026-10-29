@@ -1,7 +1,7 @@
 .checkout-page {
   min-height: 80vh;
   padding: 40px 20px 70px;
-  background: #f8fafc;
+  background: var(--color-page-background);
 }
 
 .checkout-container {
@@ -15,7 +15,7 @@
 
 .checkout-heading p {
   margin: 0 0 5px;
-  color: #16a34a;
+  color: var(--color-success);
   font-size: 12px;
   font-weight: 700;
 }
@@ -40,7 +40,7 @@
 .checkout-section,
 .checkout-summary {
   padding: 25px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   background: #fff;
 }
@@ -64,7 +64,7 @@
 .checkout-section-header button {
   border: 0;
   background: transparent;
-  color: #16a34a;
+  color: var(--color-success);
   font-weight: 700;
   cursor: pointer;
 }
@@ -77,17 +77,17 @@
   padding: 13px 15px;
   border: 1px solid #bbf7d0;
   border-radius: 8px;
-  background: #f0fdf4;
+  background: var(--color-secondary-button-background);
 }
 
 .selected-address-summary strong {
-  color: #166534;
+  color: var(--color-link-hover);
 }
 
 .selected-address-summary span,
 .selected-address-summary small,
 .no-selected-address {
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 13px;
 }
 
@@ -105,19 +105,19 @@
   border: 1px solid #86efac;
   border-radius: 8px;
   background: #fff;
-  color: #15803d;
+  color: var(--color-link);
   font-weight: 700;
   cursor: pointer;
 }
 
 .change-address-button:hover {
-  background: #f0fdf4;
+  background: var(--color-secondary-button-background);
 }
 
 .address-picker-panel {
   margin-top: 10px;
   padding: 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   background: #fff;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
@@ -130,19 +130,19 @@
 .address-picker-message {
   margin: 0;
   padding: 12px;
-  color: #64748b;
+  color: var(--color-muted-text);
   text-align: center;
 }
 
 .address-picker-message.error {
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .address-picker-message button {
   padding: 8px 12px;
   border: 0;
   border-radius: 7px;
-  background: #16a34a;
+  background: var(--color-success);
   color: #fff;
   font-weight: 700;
   cursor: pointer;
@@ -159,7 +159,7 @@
   padding: 0;
 
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   background: #fff;
 }
@@ -187,7 +187,7 @@
   width: calc(100% - 0px);
   padding: 12px;
 
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-input-border);
   border-radius: 7px;
   outline: none;
 
@@ -195,7 +195,7 @@
 }
 
 .address-form > input:focus {
-  border-color: #16a34a;
+  border-color: var(--color-success);
 }
 
 .address-form-row {
@@ -208,7 +208,7 @@
   width: 100%;
   padding: 12px;
 
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-input-border);
   border-radius: 7px;
   outline: none;
 
@@ -216,7 +216,7 @@
 }
 
 .address-form-row input:focus {
-  border-color: #16a34a;
+  border-color: var(--color-success);
 }
 
 .address-form > button[type="submit"] {
@@ -226,7 +226,7 @@
   border: 0;
   border-radius: 8px;
 
-  background: #16a34a;
+  background: var(--color-success);
   color: #fff;
 
   font-weight: 800;
@@ -244,8 +244,8 @@
   border: 1px solid #86efac;
   border-radius: 8px;
 
-  background: #f0fdf4;
-  color: #15803d;
+  background: var(--color-secondary-button-background);
+  color: var(--color-link);
 
   font-size: 13px;
   font-weight: 800;
@@ -272,21 +272,21 @@
   border: 1px solid #bbf7d0;
   border-radius: 8px;
 
-  background: #f0fdf4;
+  background: var(--color-secondary-button-background);
 }
 
 .location-captured strong {
-  color: #15803d;
+  color: var(--color-link);
   font-size: 12px;
 }
 
 .location-captured span {
-  color: #334155;
+  color: var(--color-body-text);
   font-size: 12px;
 }
 
 .location-captured small {
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 11px;
 }
 
@@ -305,32 +305,32 @@
 
   padding: 15px;
 
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-input-border);
   border-radius: 8px;
 
   cursor: pointer;
 }
 
 .address-card.selected {
-  border-color: #16a34a;
-  background: #f0fdf4;
+  border-color: var(--color-success);
+  background: var(--color-secondary-button-background);
 }
 
 .address-card p {
   margin: 5px 0;
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 13px;
 }
 
 .address-card span {
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 13px;
 }
 
 .address-location-info {
   display: block;
   margin-top: 6px;
-  color: #16a34a !important;
+  color: var(--color-success) !important;
   font-size: 11px !important;
   font-weight: 700;
 }
@@ -345,7 +345,7 @@
   padding: 15px;
   margin-bottom: 10px;
 
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
 
   cursor: pointer;
@@ -353,7 +353,7 @@
 
 .payment-option p {
   margin: 5px 0 0;
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 13px;
 }
 
@@ -370,13 +370,13 @@
 
   padding: 12px 0;
 
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--color-border);
 
   font-size: 13px;
 }
 
 .checkout-item span {
-  color: #64748b;
+  color: var(--color-muted-text);
 }
 
 .checkout-total {
@@ -396,7 +396,7 @@
   border: 0;
   border-radius: 8px;
 
-  background: #16a34a;
+  background: var(--color-success);
   color: #fff;
 
   font-weight: 800;
@@ -404,7 +404,7 @@
 }
 
 .place-order-button:hover {
-  background: #15803d;
+  background: var(--color-link);
 }
 
 .place-order-button:disabled {

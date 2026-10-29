@@ -5,7 +5,7 @@
 .order-details-back {
   display: inline-flex;
   margin-bottom: 18px;
-  color: #438c46;
+  color: var(--color-primary);
   font-size: 12px;
   font-weight: 750;
   text-decoration: none;
@@ -33,11 +33,11 @@
 
 .status-placed {
   background: #fff7df;
-  color: #a16207;
+  color: var(--color-warning);
 }
 .status-accepted {
   background: #edf5ff;
-  color: #2563eb;
+  color: var(--color-info);
 }
 .status-delivery {
   background: #f3efff;
@@ -45,7 +45,7 @@
 }
 .status-delivered {
   background: #eefaf0;
-  color: #15803d;
+  color: var(--color-link);
 }
 
 .order-details-panel {
@@ -72,7 +72,7 @@
 }
 
 .order-details-panel-heading span {
-  color: #8a94a3;
+  color: var(--color-muted-text);
   font-size: 10px;
 }
 
@@ -110,12 +110,12 @@
 }
 
 .order-progress-step.completed {
-  color: #438c46;
+  color: var(--color-primary);
 }
 .order-progress-step.completed .order-progress-dot {
   border-color: #79b87b;
   background: #f0f8f0;
-  color: #438c46;
+  color: var(--color-primary);
 }
 
 .order-progress-line {
@@ -279,7 +279,7 @@
   font-weight: 800;
 }
 .summary-total strong {
-  color: #438c46;
+  color: var(--color-primary);
   font-size: 15px;
 }
 
@@ -306,7 +306,7 @@
   padding: 0 14px;
   border: 0;
   border-radius: 7px;
-  background: #4f9d50;
+  background: var(--color-primary);
   color: #fff;
   font-size: 11px;
   font-weight: 800;

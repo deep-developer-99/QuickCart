@@ -1,6 +1,6 @@
 .admin-protected-shell {
   min-height: 100vh;
-  background: #f6f8f7;
+  background: var(--color-secondary-background);
 }
 
 .admin-protected-content {
@@ -12,7 +12,7 @@
 .admin-dashboard-page {
   min-height: 75vh;
   padding: 40px 20px 60px;
-  background: #f6f8f7;
+  background: var(--color-secondary-background);
 }
 
 .admin-dashboard-container {
@@ -32,7 +32,7 @@
 .chart-eyebrow {
   display: inline-block;
   margin-bottom: 8px;
-  color: #5fa653;
+  color: var(--color-primary);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 1.4px;
@@ -40,14 +40,14 @@
 
 .admin-dashboard-header h1 {
   margin: 0 0 8px;
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 34px;
   line-height: 1.15;
 }
 
 .admin-dashboard-header p {
   margin: 0;
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 15px;
 }
 
@@ -57,7 +57,7 @@
   border: 1px solid #fecaca;
   border-radius: 8px;
   background: #fef2f2;
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .admin-stats-grid {
@@ -73,8 +73,8 @@
   gap: 15px;
   min-height: 105px;
   padding: 20px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--color-card-background);
+  border: 1px solid var(--color-border);
   border-radius: 14px;
   box-shadow: 0 3px 12px rgba(31, 41, 55, 0.04);
   transition: 0.2s ease;
@@ -115,13 +115,13 @@
 
 .admin-stat-card p {
   margin: 0 0 6px;
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 13px;
 }
 
 .admin-stat-card h2 {
   margin: 0;
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 25px;
   line-height: 1.2;
 }
@@ -129,7 +129,7 @@
 .admin-stat-card span {
   display: block;
   margin-top: 5px;
-  color: #94a3b8;
+  color: var(--color-disabled-text);
   font-size: 11px;
 }
 
@@ -139,8 +139,8 @@
 
 .admin-chart-section {
   padding: 25px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--color-card-background);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   box-shadow: 0 3px 12px rgba(31, 41, 55, 0.04);
 }
@@ -159,7 +159,7 @@
 .admin-chart-header h2,
 .admin-chart-header p {
   margin: 0;
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 13px;
 }
 
@@ -175,7 +175,7 @@
 }
 
 .admin-chart-controls label > span {
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 11px;
   font-weight: 700;
 }
@@ -185,8 +185,8 @@
   padding: 10px 34px 10px 12px;
   border: 1px solid #dce3df;
   border-radius: 8px;
-  background: #ffffff;
-  color: #253047;
+  background: var(--color-card-background);
+  color: var(--color-heading-text);
   font-size: 13px;
   font-weight: 600;
   outline: none;
@@ -194,7 +194,7 @@
 }
 
 .admin-chart-controls select:focus {
-  border-color: #5fa653;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(95, 166, 83, 0.1);
 }
 
@@ -213,12 +213,12 @@
 }
 
 .admin-chart-summary div > span {
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 12px;
 }
 
 .admin-chart-summary strong {
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 25px;
 }
 
@@ -242,7 +242,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: var(--color-disabled-text);
   font-size: 14px;
 }
 
@@ -251,7 +251,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--color-muted-text);
 }
 
 @media (max-width: 1100px) {

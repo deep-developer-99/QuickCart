@@ -7,7 +7,7 @@
 
   padding: 40px 20px;
 
-  background: #f8fafc;
+  background: var(--color-page-background);
 }
 
 .confirmation-card {
@@ -16,7 +16,7 @@
 
   padding: 50px 30px;
 
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 15px;
 
   background: white;
@@ -37,7 +37,7 @@
   border-radius: 50%;
 
   background: #dcfce7;
-  color: #16a34a;
+  color: var(--color-success);
 
   font-size: 35px;
   font-weight: 700;
@@ -46,7 +46,7 @@
 .confirmation-label {
   margin: 0 0 5px;
 
-  color: #16a34a;
+  color: var(--color-success);
 
   font-size: 12px;
   font-weight: 700;
@@ -55,12 +55,12 @@
 .confirmation-card h1 {
   margin: 0 0 15px;
 
-  color: #0f172a;
+  color: var(--color-heading-text);
   font-size: 30px;
 }
 
 .confirmation-card > p:not(.confirmation-label) {
-  color: #64748b;
+  color: var(--color-muted-text);
   line-height: 1.6;
 }
 
@@ -77,7 +77,7 @@
 
   border-radius: 7px;
 
-  background: #16a34a;
+  background: var(--color-success);
   color: white;
 
   font-size: 14px;
@@ -87,8 +87,8 @@
 }
 
 .confirmation-actions .secondary-action {
-  background: #e2e8f0;
-  color: #334155;
+  background: var(--color-border);
+  color: var(--color-body-text);
 }
 
 @media (max-width: 500px) {

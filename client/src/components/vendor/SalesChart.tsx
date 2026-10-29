@@ -12,6 +12,7 @@ import type {
   VendorSalesPoint,
 } from "../../types/vendorDashboard";
 import "./SalesChart.css";
+import { useTheme } from "../../theme/ThemeContext";
 
 interface SalesChartProps {
   data: Array<Pick<VendorSalesPoint, "date"> & { value: number }>;
@@ -70,6 +71,7 @@ const SalesTooltip = ({
 };
 
 const SalesChart = ({ data, metric, isLoading = false }: SalesChartProps) => {
+  const { colors } = useTheme();
   const xAxisTicks = (() => {
     if (data.length <= 7) return data.map((item) => item.date);
 
@@ -139,13 +141,13 @@ const SalesChart = ({ data, metric, isLoading = false }: SalesChartProps) => {
 
               <Tooltip
                 content={<SalesTooltip metric={metric} />}
-                cursor={{ stroke: "#dce8dd", strokeWidth: 1 }}
+                cursor={{ stroke: colors.border, strokeWidth: 1 }}
               />
 
               <Line
                 type="monotone"
                 dataKey="value"
-                stroke="#5fa653"
+                stroke={colors.primary}
                 strokeWidth={3}
                 dot={false}
                 activeDot={{ r: 6 }}

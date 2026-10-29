@@ -59,7 +59,7 @@
 
 .account-user-copy strong {
   overflow: hidden;
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 14px;
   font-weight: 800;
   text-overflow: ellipsis;
@@ -98,12 +98,12 @@
 
 .account-nav-item:hover {
   background: #f7faf7;
-  color: #438c46;
+  color: var(--color-primary);
 }
 
 .account-nav-item.active {
   background: #f4f9f4;
-  color: #438c46;
+  color: var(--color-primary);
   font-weight: 750;
 }
 
@@ -114,7 +114,7 @@
   top: 0;
   bottom: 0;
   width: 3px;
-  background: #4e9d4f;
+  background: var(--color-primary);
 }
 
 .account-nav-icon {
@@ -144,7 +144,7 @@
 
 .account-logout:hover {
   background: #fff8f8;
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .account-logout span {

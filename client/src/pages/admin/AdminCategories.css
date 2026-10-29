@@ -41,7 +41,7 @@
 .admin-categories-page {
   min-height: 75vh;
   padding: 40px 20px;
-  background: #f8fafc;
+  background: var(--color-page-background);
 }
 
 .admin-categories-container {
@@ -59,20 +59,20 @@
 
 .admin-categories-header h1 {
   margin: 0 0 8px;
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 32px;
 }
 
 .admin-categories-header p {
   margin: 0;
-  color: #64748b;
+  color: var(--color-muted-text);
 }
 
 .admin-add-category-button,
 .admin-category-submit-button {
   border: none;
   border-radius: 8px;
-  background: #4d9f50;
+  background: var(--color-primary);
   color: white;
   padding: 12px 20px;
   font-size: 14px;
@@ -82,7 +82,7 @@
 
 .admin-add-category-button:hover,
 .admin-category-submit-button:hover:not(:disabled) {
-  background: #3f8b43;
+  background: var(--color-primary-hover);
 }
 
 .admin-category-message {
@@ -95,20 +95,20 @@
 .admin-category-message.error {
   border: 1px solid #fecaca;
   background: #fef2f2;
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .admin-category-message.success {
   border: 1px solid #bbf7d0;
-  background: #f0fdf4;
-  color: #15803d;
+  background: var(--color-secondary-button-background);
+  color: var(--color-link);
 }
 
 .admin-category-form-card {
   margin-bottom: 30px;
   padding: 25px;
   background: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
 }
 
@@ -122,23 +122,23 @@
 
 .admin-category-form-header h2 {
   margin: 0 0 6px;
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 22px;
 }
 
 .admin-category-form-header p {
   margin: 0;
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 14px;
 }
 
 .admin-category-close-button {
   width: 36px;
   height: 36px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-input-border);
   border-radius: 7px;
   background: white;
-  color: #334155;
+  color: var(--color-body-text);
   font-size: 24px;
   line-height: 1;
   cursor: pointer;
@@ -156,7 +156,7 @@
 .admin-category-form label {
   display: grid;
   gap: 8px;
-  color: #334155;
+  color: var(--color-body-text);
   font-size: 14px;
   font-weight: 700;
 }
@@ -165,10 +165,10 @@
 .admin-category-form input[type="file"] {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-input-border);
   border-radius: 8px;
   background: white;
-  color: #172033;
+  color: var(--color-heading-text);
   padding: 11px 12px;
   font: inherit;
   font-weight: 400;
@@ -176,12 +176,12 @@
 
 .admin-category-form input:focus {
   outline: none;
-  border-color: #4d9f50;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(77, 159, 80, 0.1);
 }
 
 .admin-category-file-help {
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 12px;
   font-weight: 400;
 }
@@ -190,9 +190,9 @@
   width: 150px;
   height: 150px;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: #f8fafc;
+  background: var(--color-page-background);
 }
 
 .admin-category-preview img {
@@ -209,10 +209,10 @@
 }
 
 .admin-category-cancel-button {
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-input-border);
   border-radius: 8px;
   background: white;
-  color: #334155;
+  color: var(--color-body-text);
   padding: 12px 20px;
   font-size: 14px;
   font-weight: 700;
@@ -220,7 +220,7 @@
 }
 
 .admin-category-cancel-button:hover:not(:disabled) {
-  background: #f8fafc;
+  background: var(--color-page-background);
 }
 
 .admin-category-cancel-button:disabled,
@@ -241,14 +241,14 @@
 .admin-category-card {
   overflow: hidden;
   background: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
 }
 
 .admin-category-image-wrapper {
   position: relative;
   height: 190px;
-  background: #f8fafc;
+  background: var(--color-page-background);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -271,7 +271,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 14px;
 }
 
@@ -287,12 +287,12 @@
 
 .admin-category-status.active {
   background: #ecfdf5;
-  color: #15803d;
+  color: var(--color-link);
 }
 
 .admin-category-status.inactive {
   background: #f1f5f9;
-  color: #64748b;
+  color: var(--color-muted-text);
 }
 
 .admin-category-card-body {
@@ -301,7 +301,7 @@
 
 .admin-category-card-body h3 {
   margin: 0 0 14px;
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 17px;
 }
 
@@ -322,19 +322,19 @@
 }
 
 .admin-category-edit-button {
-  border: 1px solid #4d9f50;
+  border: 1px solid var(--color-primary);
   background: white;
-  color: #3f8b43;
+  color: var(--color-primary-hover);
 }
 
 .admin-category-edit-button:hover:not(:disabled) {
-  background: #f0fdf4;
+  background: var(--color-secondary-button-background);
 }
 
 .admin-category-delete-button {
   border: 1px solid #ef4444;
   background: white;
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .admin-category-delete-button:hover:not(:disabled) {
@@ -348,13 +348,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--color-muted-text);
   text-align: center;
 }
 
 .admin-categories-empty {
   background: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
 }
 
@@ -365,7 +365,7 @@
 
 .admin-categories-empty h3 {
   margin: 0 0 6px;
-  color: #172033;
+  color: var(--color-heading-text);
 }
 
 .admin-categories-empty p {

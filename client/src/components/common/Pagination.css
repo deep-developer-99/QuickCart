@@ -1,6 +1,6 @@
 .pagination { width:100%; display:flex; align-items:center; justify-content:center; gap:.45rem; margin:1.5rem 0 0; flex-wrap:wrap; }
 .pagination button { border:1px solid var(--border-color, #d9d9d9); background:var(--card-bg, #fff); color:inherit; border-radius:6px; padding:.5rem .75rem; cursor:pointer; }
-.pagination button.active { background:var(--primary-color, #2563eb); color:#fff; border-color:var(--primary-color, #2563eb); }
+.pagination button.active { background:var(--primary-color, var(--color-info)); color:#fff; border-color:var(--primary-color, var(--color-info)); }
 .pagination button:disabled { opacity:.45; cursor:not-allowed; }
 .pagination-page-wrap { display:inline-flex; align-items:center; gap:.45rem; }
 .pagination-ellipsis { color:#777; }

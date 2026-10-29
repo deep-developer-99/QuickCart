@@ -13,13 +13,13 @@
   padding: 40px;
   background: white;
   border-radius: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 .admin-login-logo {
   text-align: center;
-  color: #4caf50;
+  color: var(--color-primary);
   font-size: 32px;
   font-weight: 800;
 }
@@ -27,12 +27,12 @@
 .admin-login-card h1 {
   text-align: center;
   margin: 12px 0 8px;
-  color: #172033;
+  color: var(--color-heading-text);
 }
 
 .admin-login-subtitle {
   text-align: center;
-  color: #718096;
+  color: var(--color-muted-text);
   margin-bottom: 28px;
 }
 
@@ -50,14 +50,14 @@
 .admin-login-card input {
   padding: 13px 14px;
   margin-bottom: 18px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-input-border);
   border-radius: 8px;
   font-size: 15px;
   outline: none;
 }
 
 .admin-login-card input:focus {
-  border-color: #4caf50;
+  border-color: var(--color-primary);
 }
 
 .admin-login-card button {
@@ -65,7 +65,7 @@
   padding: 14px;
   border: none;
   border-radius: 8px;
-  background: #4caf50;
+  background: var(--color-primary);
   color: white;
   font-size: 16px;
   font-weight: 700;

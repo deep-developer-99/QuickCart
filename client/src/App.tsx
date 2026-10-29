@@ -1,14 +1,17 @@
 import { CartProvider } from "./context/CartProvider";
 import useAuth from "./hooks/useAuth";
 import AppRoutes from "./routes/AppRoutes";
+import { ThemeProvider } from "./theme/ThemeProvider";
 
 function App() {
   useAuth();
 
   return (
-    <CartProvider>
-      <AppRoutes />
-    </CartProvider>
+    <ThemeProvider>
+      <CartProvider>
+        <AppRoutes />
+      </CartProvider>
+    </ThemeProvider>
   );
 }
 

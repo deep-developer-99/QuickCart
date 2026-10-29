@@ -14,13 +14,13 @@
   border: 0;
   background: transparent;
 
-  color: #172033;
+  color: var(--color-heading-text);
   cursor: pointer;
   text-align: left;
 }
 
 .location-selector-button:hover {
-  background: #f8fafc;
+  background: var(--color-page-background);
   border-radius: 8px;
 }
 
@@ -35,7 +35,7 @@
 }
 
 .location-selector-text small {
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 10px;
   font-weight: 600;
   line-height: 1.2;
@@ -45,7 +45,7 @@
   max-width: 170px;
   overflow: hidden;
 
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 13px;
   font-weight: 700;
 
@@ -55,7 +55,7 @@
 
 .location-selector-arrow {
   margin-left: auto;
-  color: #64748b;
+  color: var(--color-muted-text);
 }
 
 /* Blinkit-style overlay */
@@ -101,7 +101,7 @@
 }
 
 .location-selector-header > div > span {
-  color: #16a34a;
+  color: var(--color-success);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -110,7 +110,7 @@
 .location-selector-header h3 {
   margin: 5px 0 0;
 
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 20px;
 }
 
@@ -122,7 +122,7 @@
   border-radius: 50%;
 
   background: #f1f5f9;
-  color: #334155;
+  color: var(--color-body-text);
 
   font-size: 22px;
   line-height: 1;
@@ -131,7 +131,7 @@
 }
 
 .location-close-button:hover {
-  background: #e2e8f0;
+  background: var(--color-border);
 }
 
 .detect-location-button {
@@ -149,8 +149,8 @@
   border: 1px solid #86efac;
   border-radius: 10px;
 
-  background: #f0fdf4;
-  color: #15803d;
+  background: var(--color-secondary-button-background);
+  color: var(--color-link);
 
   font-size: 14px;
   font-weight: 800;
@@ -185,14 +185,14 @@
 }
 
 .current-location-card strong {
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 13px;
 }
 
 .current-location-card p {
   margin: 4px 0 0;
 
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -203,8 +203,8 @@
 
   border-radius: 8px;
 
-  background: #f0fdf4;
-  color: #15803d;
+  background: var(--color-secondary-button-background);
+  color: var(--color-link);
 
   font-size: 12px;
   font-weight: 700;
@@ -217,7 +217,7 @@
 .saved-address-section h4 {
   margin: 8px 0 10px;
 
-  color: #334155;
+  color: var(--color-body-text);
   font-size: 13px;
   font-weight: 800;
 }
@@ -237,12 +237,12 @@
 
   padding: 13px;
 
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
 
   background: #fff;
 
-  color: #172033;
+  color: var(--color-heading-text);
   cursor: pointer;
   text-align: left;
 }
@@ -250,7 +250,7 @@
 .location-option:hover,
 .location-option.selected {
   border-color: #86efac;
-  background: #f0fdf4;
+  background: var(--color-secondary-button-background);
 }
 
 .location-option-icon {
@@ -273,7 +273,7 @@
 .location-option-content span {
   overflow: hidden;
 
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 12px;
 
   white-space: nowrap;
@@ -283,7 +283,7 @@
 .location-option-check {
   margin-left: auto;
 
-  color: #16a34a;
+  color: var(--color-success);
   font-size: 18px;
   font-weight: 800;
 }
@@ -291,7 +291,7 @@
 .location-empty {
   padding: 28px 15px;
 
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--color-input-border);
   border-radius: 10px;
 
   text-align: center;
@@ -304,13 +304,13 @@
 .location-empty p {
   margin: 8px 0 3px;
 
-  color: #334155;
+  color: var(--color-body-text);
   font-size: 13px;
   font-weight: 700;
 }
 
 .location-empty small {
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 11px;
 }
 

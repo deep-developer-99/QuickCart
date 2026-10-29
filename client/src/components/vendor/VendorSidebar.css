@@ -1,7 +1,7 @@
 .vendor-protected-shell {
   min-height: 100vh;
   display: flex;
-  background: #f6f8f7;
+  background: var(--color-secondary-background);
 }
 
 .vendor-protected-content {
@@ -20,7 +20,7 @@
   flex-direction: column;
   padding: 24px 14px;
   box-sizing: border-box;
-  background: #ffffff;
+  background: var(--color-card-background);
   border-right: 1px solid #e5e9e7;
   box-shadow: 3px 0 18px rgba(31, 41, 55, 0.04);
   z-index: 100;
@@ -53,7 +53,7 @@
 }
 
 .vendor-sidebar-brand strong {
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 17px;
 }
 
@@ -136,7 +136,7 @@
   height: 9px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: #5fa653;
+  background: var(--color-primary);
   box-shadow: 0 0 0 4px #eef8ee;
 }
 

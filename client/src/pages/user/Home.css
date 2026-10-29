@@ -2,13 +2,13 @@
   min-height: 100vh;
   padding-bottom: 10px;
   background: #f7faf7;
-  color: #172033;
+  color: var(--color-heading-text);
 }
 
 .home-banner-status {
   width: min(1360px, calc(100% - 40px));
   margin: 8px auto 0;
-  color: #94a3b8;
+  color: var(--color-disabled-text);
   font-size: 11px;
   text-align: right;
 }
@@ -56,12 +56,12 @@
 }
 
 .home-benefit strong {
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 13px;
 }
 
 .home-benefit small {
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 10px;
   line-height: 1.4;
 }
@@ -90,7 +90,7 @@
 
 .section-heading > div > span,
 .home-vendor-banner > div > span {
-  color: #3f8b43;
+  color: var(--color-primary-hover);
   font-size: 10px;
   font-weight: 850;
   letter-spacing: 1.8px;
@@ -98,13 +98,13 @@
 
 .section-heading h2 {
   margin: 5px 0 0;
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 26px;
   letter-spacing: -0.6px;
 }
 
 .section-heading a {
-  color: #3f8b43;
+  color: var(--color-primary-hover);
   text-decoration: none;
   font-size: 13px;
   font-weight: 800;
@@ -123,15 +123,15 @@
 .home-empty {
   padding: 55px 20px;
   text-align: center;
-  color: #64748b;
+  color: var(--color-muted-text);
   border: 1px solid #e3ebe4;
   border-radius: 15px;
-  background: #ffffff;
+  background: var(--color-card-background);
 }
 
 .home-empty h3 {
   margin: 0 0 7px;
-  color: #334155;
+  color: var(--color-body-text);
 }
 
 .home-empty p {
@@ -149,7 +149,7 @@
   position: relative;
   overflow: hidden;
   border-radius: 20px;
-  background: linear-gradient(135deg, #172033, #243149);
+  background: linear-gradient(135deg, var(--color-heading-text), #243149);
   color: white;
 }
 
@@ -160,7 +160,7 @@
 
 .home-vendor-banner p {
   margin: 0;
-  color: #cbd5e1;
+  color: var(--color-input-border);
   font-size: 13px;
 }
 
@@ -172,15 +172,15 @@
   align-items: center;
   justify-content: center;
   border-radius: 9px;
-  background: #4d9f50;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-card-background);
   text-decoration: none;
   font-size: 12px;
   font-weight: 800;
 }
 
 .home-vendor-banner > a:hover {
-  background: #3f8b43;
+  background: var(--color-primary-hover);
 }
 
 @media (max-width: 1000px) {

@@ -9,9 +9,9 @@
   position: relative;
   width: 46px;
   height: 46px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--color-card-background);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
   cursor: pointer;
   display: flex;
@@ -41,13 +41,13 @@
   padding: 0 5px;
   border-radius: 999px;
   background: #ef4444;
-  color: #ffffff;
+  color: var(--color-card-background);
   font-size: 10px;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #ffffff;
+  border: 2px solid var(--color-card-background);
 }
 
 .notification-dropdown {
@@ -58,7 +58,7 @@
   overflow: hidden;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--color-card-background);
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16);
 }
 
@@ -78,14 +78,14 @@
 }
 
 .notification-header span {
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 12px;
 }
 
 .notification-header button {
   border: 0;
   background: transparent;
-  color: #3f8b43;
+  color: var(--color-primary-hover);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -104,13 +104,13 @@
   padding: 14px 16px;
   border: 0;
   border-bottom: 1px solid #f1f5f9;
-  background: #ffffff;
+  background: var(--color-card-background);
   text-align: left;
   cursor: pointer;
 }
 
 .notification-item:hover {
-  background: #f8fafc;
+  background: var(--color-page-background);
 }
 
 .notification-item.unread {
@@ -135,18 +135,18 @@
 }
 
 .notification-item-content strong {
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 13px;
 }
 
 .notification-item-content span {
-  color: #475569;
+  color: var(--color-body-text);
   font-size: 12px;
   line-height: 1.45;
 }
 
 .notification-item-content small {
-  color: #94a3b8;
+  color: var(--color-disabled-text);
   font-size: 10px;
 }
 
@@ -155,13 +155,13 @@
   height: 7px;
   margin-top: 5px;
   border-radius: 50%;
-  background: #3f8b43;
+  background: var(--color-primary-hover);
 }
 
 .notification-empty {
   padding: 40px 20px;
   text-align: center;
-  color: #64748b;
+  color: var(--color-muted-text);
 }
 
 .notification-empty span {
@@ -187,7 +187,7 @@
   padding: 15px;
   border: 1px solid #dcebdc;
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--color-card-background);
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
   text-align: left;
   cursor: pointer;
@@ -204,12 +204,12 @@
 }
 
 .notification-toast strong {
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 13px;
 }
 
 .notification-toast small {
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 12px;
   line-height: 1.4;
 }

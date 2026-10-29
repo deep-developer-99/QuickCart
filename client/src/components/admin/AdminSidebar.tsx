@@ -29,6 +29,7 @@ const AdminSidebar = () => {
     { to: "/admin/banners", label: "Banners", icon: "🖼️" },
     { to: "/admin/offers", label: "Offers & Notifications", icon: "🎁" },
     { to: "/admin/orders", label: "Manage Orders", icon: "🛒" },
+    { to: "/admin/theme", label: "Theme Settings", icon: "🎨" },
   ];
 
   return (

@@ -24,6 +24,7 @@ import type { Cart } from "../../types/cart";
 import { loadRazorpayScript } from "../../utils/razorpay";
 
 import { useAppSelector } from "../../hooks/reduxHooks";
+import { useTheme } from "../../theme/ThemeContext";
 
 import "./Checkout.css";
 
@@ -41,6 +42,7 @@ const normalizePhone = (phone?: string) => {
 const Checkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { colors } = useTheme();
 
   const user = useAppSelector((state) => state.auth.user);
 
@@ -409,7 +411,7 @@ const Checkout = () => {
           contact: selectedAddressData?.phone,
         },
         theme: {
-          color: "#3f8b43",
+          color: colors.primary,
         },
         handler: async (paymentResponse) => {
           try {

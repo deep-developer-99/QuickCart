@@ -14,6 +14,7 @@ import wishlistRoutes from "./routes/wishlistRoutes";
 import offerRoutes from "./routes/offerRoutes";
 import locationRoutes from "./routes/locationRoutes";
 import vendorRegistrationLocationRoutes from "./routes/vendorRegistrationLocationRoutes";
+import themeRoutes from "./routes/themeRoutes";
 import { apiErrorHandler, apiRequestLogger } from "./middleware/apiRequestLogging";
 
 const app = express();
@@ -45,6 +46,7 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/offers", offerRoutes);
 app.use("/api/location", locationRoutes);
 app.use("/api/location/registration", vendorRegistrationLocationRoutes);
+app.use("/api/theme", themeRoutes);
 
 app.use(apiErrorHandler);
 

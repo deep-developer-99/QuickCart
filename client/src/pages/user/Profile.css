@@ -12,7 +12,7 @@
 
 .account-eyebrow {
   margin: 0 0 6px;
-  color: #438c46;
+  color: var(--color-primary);
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.16em;
@@ -20,7 +20,7 @@
 
 .account-section-header h1 {
   margin: 0;
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 31px;
   line-height: 1.1;
   letter-spacing: -0.035em;
@@ -38,7 +38,7 @@
   border: 1px solid #cde1ce;
   border-radius: 9px;
   background: #fbfdfb;
-  color: #438c46;
+  color: var(--color-primary);
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
@@ -74,7 +74,7 @@
 
 .profile-information-heading p {
   margin: 5px 0 0;
-  color: #8a94a3;
+  color: var(--color-muted-text);
   font-size: 11px;
 }
 
@@ -82,7 +82,7 @@
   padding: 6px 9px;
   border-radius: 5px;
   background: #f0f7f0;
-  color: #438c46;
+  color: var(--color-primary);
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -149,7 +149,7 @@
 .profile-detail-field strong {
   display: block;
   overflow: hidden;
-  color: #253047;
+  color: var(--color-heading-text);
   font-size: 13px;
   font-weight: 800;
   text-overflow: ellipsis;
@@ -171,7 +171,7 @@
   border: 1px solid #cfd9d0;
   border-radius: 7px;
   outline: none;
-  color: #253047;
+  color: var(--color-heading-text);
   font-size: 13px;
 }
 
@@ -184,7 +184,7 @@
   display: flex !important;
   align-items: center;
   gap: 6px;
-  color: #438c46 !important;
+  color: var(--color-primary) !important;
 }
 
 .account-type-value i {
@@ -204,13 +204,13 @@
 .profile-alert.error {
   border: 1px solid #fecaca;
   background: #fff6f6;
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .profile-alert.success {
   border: 1px solid #bbf7d0;
   background: #f1fbf2;
-  color: #15803d;
+  color: var(--color-link);
 }
 
 .profile-edit-actions {
@@ -239,8 +239,8 @@
 }
 
 .profile-save-button {
-  border: 1px solid #4f9d50;
-  background: #4f9d50;
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
   color: #fff;
 }
 

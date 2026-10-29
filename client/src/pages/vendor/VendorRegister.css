@@ -19,7 +19,7 @@
 
 .vendor-register-logo {
   text-align: center;
-  color: #4caf50;
+  color: var(--color-primary);
   font-size: 32px;
   font-weight: 800;
   margin-bottom: 8px;
@@ -28,12 +28,12 @@
 .vendor-register-card h1 {
   text-align: center;
   margin: 10px 0 8px;
-  color: #172033;
+  color: var(--color-heading-text);
 }
 
 .vendor-register-subtitle {
   text-align: center;
-  color: #718096;
+  color: var(--color-muted-text);
   margin-bottom: 28px;
 }
 
@@ -46,20 +46,20 @@
   margin-bottom: 7px;
   font-size: 14px;
   font-weight: 600;
-  color: #273043;
+  color: var(--color-heading-text);
 }
 
 .vendor-register-card input {
   padding: 13px 14px;
   margin-bottom: 18px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-input-border);
   border-radius: 8px;
   font-size: 15px;
   outline: none;
 }
 
 .vendor-register-card input:focus {
-  border-color: #4caf50;
+  border-color: var(--color-primary);
 }
 
 .vendor-register-card button {
@@ -67,7 +67,7 @@
   padding: 14px;
   border: none;
   border-radius: 8px;
-  background: #4caf50;
+  background: var(--color-primary);
   color: white;
   font-size: 16px;
   font-weight: 700;
@@ -94,8 +94,8 @@
 }
 
 .vendor-register-success {
-  color: #166534;
-  background: #f0fdf4;
+  color: var(--color-link-hover);
+  background: var(--color-secondary-button-background);
   border: 1px solid #bbf7d0;
 }
 
@@ -105,13 +105,13 @@
   border-top: 1px solid #e5e7eb;
   text-align: center;
   font-size: 14px;
-  color: #718096;
+  color: var(--color-muted-text);
 }
 
 .vendor-register-footer a {
   display: block;
   margin-top: 8px;
-  color: #4caf50;
+  color: var(--color-primary);
   font-weight: 600;
   text-decoration: none;
 }

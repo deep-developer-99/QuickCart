@@ -10,7 +10,7 @@
 
   border: 1px solid #e5e7eb;
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--color-card-background);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 
   transition:
@@ -90,7 +90,7 @@
 
 .low-stock-badge {
   background: #fff7df;
-  color: #a16207;
+  color: var(--color-warning);
   border: 1px solid #fde68a;
 }
 
@@ -120,7 +120,7 @@
 
 .product-card-name {
   margin: 0 0 5px;
-  color: #172033;
+  color: var(--color-heading-text);
   font-size: 16px;
   line-height: 1.25;
   font-weight: 750;
@@ -133,7 +133,7 @@
 .product-card-description {
   height: 34px;
   margin: 0;
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 12px;
   line-height: 1.45;
 
@@ -170,7 +170,7 @@
 }
 
 .product-card-old-price {
-  color: #94a3b8;
+  color: var(--color-disabled-text);
   font-size: 11px;
   text-decoration: line-through;
 }
@@ -182,11 +182,11 @@
   height: 32px;
   padding: 0 14px;
 
-  border: 1px solid #4d9f50;
+  border: 1px solid var(--color-primary);
   border-radius: 7px;
 
-  background: #ffffff;
-  color: #3f8b43;
+  background: var(--color-card-background);
+  color: var(--color-primary-hover);
 
   font-size: 12px;
   font-weight: 800;
@@ -199,8 +199,8 @@
 }
 
 .product-add-button:hover:not(:disabled) {
-  background: #4d9f50;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-card-background);
 }
 
 .product-add-button:disabled {
@@ -216,9 +216,9 @@
   height: 32px;
   overflow: hidden;
 
-  border: 1px solid #4d9f50;
+  border: 1px solid var(--color-primary);
   border-radius: 7px;
-  background: #4d9f50;
+  background: var(--color-primary);
 }
 
 .product-quantity-button {
@@ -227,7 +227,7 @@
   padding: 0;
   border: none;
   background: transparent;
-  color: #ffffff;
+  color: var(--color-card-background);
   font-size: 17px;
   line-height: 1;
   font-weight: 700;
@@ -235,7 +235,7 @@
 }
 
 .product-quantity-button:hover:not(:disabled) {
-  background: #3f8b43;
+  background: var(--color-primary-hover);
 }
 
 .product-quantity-button:disabled {
@@ -245,7 +245,7 @@
 
 .product-quantity-value {
   min-width: 27px;
-  color: #ffffff;
+  color: var(--color-card-background);
   font-size: 12px;
   font-weight: 800;
   text-align: center;
@@ -255,7 +255,7 @@
   padding: 5px 8px;
   border-radius: 999px;
   background: #f1f5f9;
-  color: #64748b;
+  color: var(--color-muted-text);
   font-size: 10px;
   font-weight: 700;
 }

@@ -11,6 +11,7 @@ import {
 } from "recharts";
 
 import api from "../../services/api";
+import { useTheme } from "../../theme/ThemeContext";
 import "./AdminDashboard.css";
 
 interface TrendData {
@@ -33,6 +34,7 @@ interface AdminDashboardData {
 type ChartMetric = "sales" | "users";
 
 const AdminDashboard = () => {
+  const { colors } = useTheme();
   const [dashboard, setDashboard] = useState<AdminDashboardData | null>(null);
   const [chartMetric, setChartMetric] = useState<ChartMetric>("sales");
   const [selectedDays, setSelectedDays] = useState(30);
@@ -253,7 +255,7 @@ const AdminDashboard = () => {
                   <Line
                     type="monotone"
                     dataKey="value"
-                    stroke="#5fa653"
+                    stroke={colors.primary}
                     strokeWidth={3}
                     dot={false}
                     activeDot={{ r: 6 }}
