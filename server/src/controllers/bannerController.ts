@@ -15,7 +15,6 @@ import {
   deleteImageFromCloudinary,
   uploadImageToCloudinary,
 } from "../services/cloudinaryService";
-import type { BannerRedirectType } from "../models/Banner";
 
 const parseBoolean = (value: unknown, defaultValue = true) => {
   if (value === undefined || value === null || value === "") {
@@ -37,16 +36,6 @@ const parseOrder = (value: unknown) => {
   }
 
   return order;
-};
-
-const getRedirectType = (value: unknown): BannerRedirectType => {
-  const redirectType = String(value || "category").trim();
-
-  if (!["category", "product", "url"].includes(redirectType)) {
-    throw new Error("Invalid banner redirect type");
-  }
-
-  return redirectType as BannerRedirectType;
 };
 
 export const getActiveBannersController = async (
@@ -106,11 +95,9 @@ export const createBannerController = async (
       return;
     }
 
-    const redirectType = getRedirectType(req.body.redirectType);
-    const redirectValue = String(req.body.redirectValue || "").trim();
     const order = parseOrder(req.body.order);
-    const backgroundColor = "#e9f6e7";
-    const textColor = "#172033";
+    const redirectType = req.body.redirectType as "category" | "product" | undefined;
+    const redirectValue = String(req.body.redirectValue || "").trim() || undefined;
     const isActive = parseBoolean(req.body.isActive, true);
     const startDate = parseBannerDate(req.body.startDate);
     const endDate = parseBannerDate(req.body.endDate);
@@ -124,12 +111,9 @@ export const createBannerController = async (
 
     try {
       const banner = await createBanner({
-        title: `QuickCart Banner ${order || ""}`.trim(),
+        order,
         redirectType,
         redirectValue,
-        order,
-        backgroundColor,
-        textColor,
         isActive,
         startDate,
         endDate,
@@ -174,11 +158,9 @@ export const updateBannerController = async (
     const { id } = req.params as { id: string };
     const currentBanner = await getBannerById(id);
 
-    const redirectType = getRedirectType(req.body.redirectType);
-    const redirectValue = String(req.body.redirectValue || "").trim();
     const order = parseOrder(req.body.order);
-    const backgroundColor = "#e9f6e7";
-    const textColor = "#172033";
+    const redirectType = req.body.redirectType as "category" | "product" | undefined;
+    const redirectValue = String(req.body.redirectValue || "").trim() || undefined;
     const isActive = parseBoolean(req.body.isActive, true);
     const startDate = parseBannerDate(req.body.startDate);
     const endDate = parseBannerDate(req.body.endDate);
@@ -199,11 +181,9 @@ export const updateBannerController = async (
 
     try {
       const banner = await updateBanner(id, {
+        order,
         redirectType,
         redirectValue,
-        order,
-        backgroundColor,
-        textColor,
         isActive,
         startDate,
         endDate,

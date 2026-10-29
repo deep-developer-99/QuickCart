@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import axios from "axios";
 
@@ -9,10 +9,7 @@ import {
   toggleAdminBannerStatus,
   updateAdminBanner,
 } from "../../services/bannerService";
-import {
-  getAdminCategories,
-  getAdminProducts,
-} from "../../services/adminService";
+import { getAdminCategories, getAdminProducts } from "../../services/adminService";
 import type { Banner, BannerRedirectType } from "../../types/banner";
 import type { Category, Product } from "../../types/product";
 import Pagination from "../../components/common/Pagination";
@@ -29,28 +26,18 @@ const ALLOWED_IMAGE_TYPES = [
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 type BannerFormState = {
-  title: string;
-  subtitle: string;
-  buttonText: string;
   redirectType: BannerRedirectType;
   redirectValue: string;
   order: string;
-  backgroundColor: string;
-  textColor: string;
   isActive: boolean;
   startDate: string;
   endDate: string;
 };
 
 const initialForm: BannerFormState = {
-  title: "",
-  subtitle: "",
-  buttonText: "Shop Now",
   redirectType: "category",
   redirectValue: "",
   order: "0",
-  backgroundColor: "#e9f6e7",
-  textColor: "#172033",
   isActive: true,
   startDate: "",
   endDate: "",
@@ -91,20 +78,6 @@ const AdminBanners = () => {
 
   const isEditing = Boolean(editingBanner);
 
-  const redirectOptions = useMemo(() => {
-    if (form.redirectType === "category") {
-      return categories.map((category) => ({
-        value: category._id,
-        label: category.name,
-      }));
-    }
-
-    return products.map((product) => ({
-      value: product._id,
-      label: product.name,
-    }));
-  }, [categories, products, form.redirectType]);
-
   const fetchBanners = async (requestedPage = page) => {
     try {
       setIsLoading(true);
@@ -133,27 +106,22 @@ const AdminBanners = () => {
     }
   };
 
-  const fetchBannerOptions = async () => {
+  const fetchRedirectOptions = async () => {
     try {
       const [categoryResponse, productResponse] = await Promise.all([
-        getAdminCategories(1, 50),
-        getAdminProducts(1, 50),
+        getAdminCategories(1, 100),
+        getAdminProducts(1, 100),
       ]);
-
-      if (categoryResponse?.success) {
-        setCategories(categoryResponse.data || []);
-      }
-
-      if (productResponse?.success) {
-        setProducts(productResponse.data || []);
-      }
+      if (categoryResponse?.success) setCategories(categoryResponse.data || []);
+      if (productResponse?.success) setProducts(productResponse.data || []);
     } catch (error) {
       console.error("Get banner redirect options error:", error);
+      setError("Failed to load banner redirect options.");
     }
   };
 
   useEffect(() => {
-    void Promise.all([fetchBanners(), fetchBannerOptions()]);
+    void Promise.all([fetchBanners(), fetchRedirectOptions()]);
     }, [page]);
 
   const resetForm = () => {
@@ -179,14 +147,9 @@ const AdminBanners = () => {
     setSuccess("");
     setEditingBanner(banner);
     setForm({
-      title: banner.title,
-      subtitle: banner.subtitle || "",
-      buttonText: banner.buttonText || "Shop Now",
-      redirectType: banner.redirectType,
+      redirectType: banner.redirectType === "product" ? "product" : "category",
       redirectValue: banner.redirectValue || "",
       order: String(banner.order ?? 0),
-      backgroundColor: banner.backgroundColor || "#e9f6e7",
-      textColor: banner.textColor || "#172033",
       isActive: banner.isActive,
       startDate: toDateInputValue(banner.startDate),
       endDate: toDateInputValue(banner.endDate),
@@ -233,28 +196,14 @@ const AdminBanners = () => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!form.title.trim()) {
-      setError("Banner title is required.");
-      return;
-    }
-
     if (!isEditing && !imageFile) {
       setError("Please upload a banner image.");
       return;
     }
 
-    if (form.redirectType !== "url" && !form.redirectValue) {
-      setError("Please select where this banner should redirect.");
+    if (!form.redirectValue) {
+      setError("Please select a banner destination.");
       return;
-    }
-
-    if (form.redirectType === "url" && form.redirectValue) {
-      try {
-        new URL(form.redirectValue);
-      } catch {
-        setError("Please enter a valid redirect URL.");
-        return;
-      }
     }
 
     if (
@@ -272,14 +221,9 @@ const AdminBanners = () => {
       setSuccess("");
 
       const formData = new FormData();
-      formData.append("title", form.title.trim());
-      formData.append("subtitle", form.subtitle.trim());
-      formData.append("buttonText", form.buttonText.trim());
       formData.append("redirectType", form.redirectType);
-      formData.append("redirectValue", form.redirectValue.trim());
+      formData.append("redirectValue", form.redirectValue);
       formData.append("order", form.order || "0");
-      formData.append("backgroundColor", form.backgroundColor);
-      formData.append("textColor", form.textColor);
       formData.append("isActive", String(form.isActive));
       formData.append(
         "startDate",
@@ -339,7 +283,7 @@ const AdminBanners = () => {
 
   const handleDelete = async (banner: Banner) => {
     const confirmed = window.confirm(
-      `Delete the "${banner.title}" banner? This action cannot be undone.`,
+      "Delete this banner? This action cannot be undone.",
     );
 
     if (!confirmed) return;
@@ -468,8 +412,7 @@ const AdminBanners = () => {
                     {isEditing ? "Edit Banner" : "Add New Banner"}
                   </h2>
                   <p>
-                    Configure the banner, image, destination and display
-                    schedule.
+                    Upload an image and control its display schedule.
                   </p>
                 </div>
 
@@ -486,48 +429,6 @@ const AdminBanners = () => {
 
               <form className="admin-banner-form" onSubmit={handleSubmit}>
                 <div className="admin-banner-form-grid">
-                  <label>
-                    Banner Title
-                    <input
-                      type="text"
-                      value={form.title}
-                      onChange={(event) =>
-                        handleFormChange("title", event.target.value)
-                      }
-                      placeholder="Fresh groceries delivered fast"
-                      maxLength={120}
-                      disabled={isSubmitting}
-                    />
-                  </label>
-
-                  <label>
-                    Button Text
-                    <input
-                      type="text"
-                      value={form.buttonText}
-                      onChange={(event) =>
-                        handleFormChange("buttonText", event.target.value)
-                      }
-                      placeholder="Shop Now"
-                      maxLength={40}
-                      disabled={isSubmitting}
-                    />
-                  </label>
-
-                  <label className="full-width">
-                    Subtitle
-                    <textarea
-                      value={form.subtitle}
-                      onChange={(event) =>
-                        handleFormChange("subtitle", event.target.value)
-                      }
-                      placeholder="Fresh products delivered to your doorstep."
-                      maxLength={240}
-                      rows={3}
-                      disabled={isSubmitting}
-                    />
-                  </label>
-
                   <label className="full-width">
                     Banner Image
                     <input
@@ -554,60 +455,46 @@ const AdminBanners = () => {
                     Redirect Type
                     <select
                       value={form.redirectType}
-                      onChange={(event) => {
-                        handleFormChange(
-                          "redirectType",
-                          event.target.value as BannerRedirectType,
-                        );
-                        handleFormChange("redirectValue", "");
-                      }}
+                      onChange={(event) =>
+                        setForm((previous) => ({
+                          ...previous,
+                          redirectType: event.target.value as BannerRedirectType,
+                          redirectValue: "",
+                        }))
+                      }
                       disabled={isSubmitting}
                     >
                       <option value="category">Category</option>
                       <option value="product">Product</option>
-                      <option value="url">External URL</option>
                     </select>
                   </label>
 
-                  {form.redirectType === "url" ? (
-                    <label>
-                      Redirect URL
-                      <input
-                        type="url"
-                        value={form.redirectValue}
-                        onChange={(event) =>
-                          handleFormChange("redirectValue", event.target.value)
-                        }
-                        placeholder="https://example.com/offers"
-                        disabled={isSubmitting}
-                      />
-                    </label>
-                  ) : (
-                    <label>
+                  <label>
+                    Redirect Target
+                    <select
+                      value={form.redirectValue}
+                      onChange={(event) =>
+                        handleFormChange("redirectValue", event.target.value)
+                      }
+                      disabled={isSubmitting}
+                      required
+                    >
+                      <option value="">
+                        Select {form.redirectType}
+                      </option>
                       {form.redirectType === "category"
-                        ? "Category"
-                        : "Product"}
-                      <select
-                        value={form.redirectValue}
-                        onChange={(event) =>
-                          handleFormChange("redirectValue", event.target.value)
-                        }
-                        disabled={isSubmitting}
-                      >
-                        <option value="">
-                          Select{" "}
-                          {form.redirectType === "category"
-                            ? "category"
-                            : "product"}
-                        </option>
-                        {redirectOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
+                        ? categories.map((category) => (
+                            <option key={category._id} value={category._id}>
+                              {category.name}
+                            </option>
+                          ))
+                        : products.map((product) => (
+                            <option key={product._id} value={product._id}>
+                              {product.name} - ₹{product.price}
+                            </option>
+                          ))}
+                    </select>
+                  </label>
 
                   <label>
                     Display Order
@@ -636,58 +523,6 @@ const AdminBanners = () => {
                         disabled={isSubmitting}
                       />
                       Show this banner on the Home Page
-                    </span>
-                  </label>
-
-                  <label>
-                    Background Color
-                    <span className="admin-banner-color-row">
-                      <input
-                        type="color"
-                        value={form.backgroundColor}
-                        onChange={(event) =>
-                          handleFormChange(
-                            "backgroundColor",
-                            event.target.value,
-                          )
-                        }
-                        disabled={isSubmitting}
-                      />
-                      <input
-                        type="text"
-                        value={form.backgroundColor}
-                        onChange={(event) =>
-                          handleFormChange(
-                            "backgroundColor",
-                            event.target.value,
-                          )
-                        }
-                        maxLength={7}
-                        disabled={isSubmitting}
-                      />
-                    </span>
-                  </label>
-
-                  <label>
-                    Text Color
-                    <span className="admin-banner-color-row">
-                      <input
-                        type="color"
-                        value={form.textColor}
-                        onChange={(event) =>
-                          handleFormChange("textColor", event.target.value)
-                        }
-                        disabled={isSubmitting}
-                      />
-                      <input
-                        type="text"
-                        value={form.textColor}
-                        onChange={(event) =>
-                          handleFormChange("textColor", event.target.value)
-                        }
-                        maxLength={7}
-                        disabled={isSubmitting}
-                      />
                     </span>
                   </label>
 
@@ -762,11 +597,9 @@ const AdminBanners = () => {
               <article className="admin-banner-card" key={banner._id}>
                 <div
                   className="admin-banner-card-image"
-                  style={{
-                    backgroundColor: banner.backgroundColor || "#e9f6e7",
-                  }}
+                  style={{ backgroundColor: "var(--color-card-background)" }}
                 >
-                  <img src={banner.image} alt={banner.title} />
+                  <img src={banner.image} alt="QuickCart banner" />
                   <span
                     className={`admin-banner-status ${banner.isActive ? "active" : "inactive"}`}
                   >
@@ -779,11 +612,8 @@ const AdminBanners = () => {
 
                 <div className="admin-banner-card-body">
                   <div>
-                    <span className="admin-banner-card-label">
-                      {banner.redirectType.toUpperCase()}
-                    </span>
-                    <h2>{banner.title}</h2>
-                    {banner.subtitle && <p>{banner.subtitle}</p>}
+                    <span className="admin-banner-card-label">IMAGE BANNER</span>
+                    <h2>QuickCart banner</h2>
                   </div>
 
                   <div className="admin-banner-card-meta">

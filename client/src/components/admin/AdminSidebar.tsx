@@ -30,6 +30,8 @@ const AdminSidebar = () => {
     { to: "/admin/offers", label: "Offers & Notifications", icon: "🎁" },
     { to: "/admin/orders", label: "Manage Orders", icon: "🛒" },
     { to: "/admin/theme", label: "Theme Settings", icon: "🎨" },
+    { to: "/admin/promotional-banners", label: "Promotional Banners", icon: "📣" },
+    { to: "/admin/footer", label: "Footer Management", icon: "🧾" },
   ];
 
   return (
@@ -42,25 +44,27 @@ const AdminSidebar = () => {
         </div>
       </div>
 
-      <div className="admin-sidebar-divider" />
+      <div className="admin-sidebar-menu">
+        <div className="admin-sidebar-divider" />
 
-      <p className="admin-sidebar-label">MENU</p>
+        <p className="admin-sidebar-label">MENU</p>
 
-      <nav className="admin-sidebar-nav">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === "/admin/dashboard"}
-            className={({ isActive }) =>
-              `admin-sidebar-link${isActive ? " active" : ""}`
-            }
-          >
-            <span className="admin-sidebar-icon">{item.icon}</span>
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
-      </nav>
+        <nav className="admin-sidebar-nav">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/admin/dashboard"}
+              className={({ isActive }) =>
+                `admin-sidebar-link${isActive ? " active" : ""}`
+              }
+            >
+              <span className="admin-sidebar-icon">{item.icon}</span>
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+      </div>
 
       <div className="admin-sidebar-bottom">
         <div className="admin-account">

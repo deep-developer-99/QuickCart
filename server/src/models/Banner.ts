@@ -3,18 +3,18 @@ import mongoose, { Document, Schema } from "mongoose";
 export type BannerRedirectType = "category" | "product" | "url";
 
 export interface IBanner extends Document {
-  title?: string;
-  subtitle?: string;
   image: string;
   imagePublicId?: string;
   mobileImage?: string;
   mobileImagePublicId?: string;
+  title?: string;
+  subtitle?: string;
   buttonText?: string;
-  redirectType: BannerRedirectType;
+  redirectType?: BannerRedirectType;
   redirectValue?: string;
   order: number;
-  backgroundColor: string;
-  textColor: string;
+  backgroundColor?: string;
+  textColor?: string;
   isActive: boolean;
   startDate?: Date;
   endDate?: Date;
@@ -28,7 +28,6 @@ const bannerSchema = new Schema<IBanner>(
       type: String,
       trim: true,
       maxlength: 120,
-      default: "QuickCart Banner",
     },
 
     subtitle: {
@@ -63,7 +62,6 @@ const bannerSchema = new Schema<IBanner>(
     redirectType: {
       type: String,
       enum: ["category", "product", "url"],
-      default: "category",
     },
 
     redirectValue: {
@@ -79,13 +77,11 @@ const bannerSchema = new Schema<IBanner>(
 
     backgroundColor: {
       type: String,
-      default: "#e9f6e7",
       trim: true,
     },
 
     textColor: {
       type: String,
-      default: "#172033",
       trim: true,
     },
 

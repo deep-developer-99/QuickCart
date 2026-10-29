@@ -1,16 +1,13 @@
 import Banner from "../models/Banner";
-import type { BannerRedirectType } from "../models/Banner";
+import Category from "../models/Category";
+import Product from "../models/Product";
 import { createPaginationMeta, getPagination } from "../utils/pagination";
+import type { BannerRedirectType } from "../models/Banner";
 
 export interface BannerInput {
-  title?: string;
-  subtitle?: string;
-  buttonText?: string;
-  redirectType: BannerRedirectType;
+  redirectType?: BannerRedirectType;
   redirectValue?: string;
   order?: number;
-  backgroundColor?: string;
-  textColor?: string;
   isActive?: boolean;
   startDate?: Date;
   endDate?: Date;
@@ -30,36 +27,39 @@ const validateBannerData = (data: BannerInput) => {
     throw new Error("Banner image is required");
   }
 
-  if (!["category", "product", "url"].includes(data.redirectType)) {
-    throw new Error("Invalid banner redirect type");
-  }
-
-  if (data.redirectType !== "url" && !data.redirectValue) {
-    throw new Error("A redirect value is required for this banner");
-  }
-
-  if (data.redirectType === "url" && data.redirectValue) {
-    try {
-      new URL(data.redirectValue);
-    } catch {
-      throw new Error("Please enter a valid redirect URL");
-    }
-  }
-
   if (data.startDate && data.endDate && data.endDate < data.startDate) {
     throw new Error("End date cannot be earlier than start date");
   }
 };
 
+const validateRedirect = async (data: BannerInput, required: boolean) => {
+  if (!data.redirectType && !data.redirectValue) {
+    if (required) throw new Error("A banner redirect target is required");
+    return;
+  }
+
+  if (!data.redirectType || !["category", "product"].includes(data.redirectType)) {
+    throw new Error("Banner redirect type must be category or product");
+  }
+
+  if (!data.redirectValue || !/^[a-f\d]{24}$/i.test(data.redirectValue)) {
+    throw new Error("A valid banner redirect target is required");
+  }
+
+  const targetExists =
+    data.redirectType === "category"
+      ? await Category.exists({ _id: data.redirectValue, isActive: true })
+      : await Product.exists({ _id: data.redirectValue, isActive: true });
+
+  if (!targetExists) {
+    throw new Error("The selected banner redirect target was not found");
+  }
+};
+
 const buildBannerData = (data: BannerInput) => ({
-  title: normalizeOptionalString(data.title) || "QuickCart Banner",
-  subtitle: normalizeOptionalString(data.subtitle),
-  buttonText: normalizeOptionalString(data.buttonText),
   redirectType: data.redirectType,
-  redirectValue: normalizeOptionalString(data.redirectValue),
+  redirectValue: data.redirectValue,
   order: Number.isFinite(data.order) ? Number(data.order) : 0,
-  backgroundColor: normalizeOptionalString(data.backgroundColor) || "#e9f6e7",
-  textColor: normalizeOptionalString(data.textColor) || "#172033",
   isActive: data.isActive ?? true,
   startDate: data.startDate,
   endDate: data.endDate,
@@ -111,6 +111,7 @@ export const getBannerById = async (bannerId: string) => {
 
 export const createBanner = async (data: BannerInput) => {
   validateBannerData(data);
+  await validateRedirect(data, true);
   return Banner.create(buildBannerData(data));
 };
 
@@ -118,19 +119,11 @@ export const updateBanner = async (bannerId: string, data: BannerInput) => {
   const currentBanner = await getBannerById(bannerId);
 
   validateBannerData(data);
+  await validateRedirect(data, true);
 
-  if (data.title?.trim()) {
-    currentBanner.title = data.title.trim();
-  }
-  currentBanner.subtitle = normalizeOptionalString(data.subtitle);
-  currentBanner.buttonText = normalizeOptionalString(data.buttonText);
   currentBanner.redirectType = data.redirectType;
-  currentBanner.redirectValue = normalizeOptionalString(data.redirectValue);
+  currentBanner.redirectValue = data.redirectValue;
   currentBanner.order = Number.isFinite(data.order) ? Number(data.order) : 0;
-  currentBanner.backgroundColor =
-    normalizeOptionalString(data.backgroundColor) || "#e9f6e7";
-  currentBanner.textColor =
-    normalizeOptionalString(data.textColor) || "#172033";
   currentBanner.isActive = data.isActive ?? true;
   currentBanner.startDate = data.startDate;
   currentBanner.endDate = data.endDate;

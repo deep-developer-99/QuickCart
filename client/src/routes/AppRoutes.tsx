@@ -38,6 +38,8 @@ import AdminBanners from "../pages/admin/AdminBanners";
 import AdminOffers from "../pages/admin/AdminOffers";
 import AdminOrders from "../pages/admin/AdminOrders";
 import AdminTheme from "../pages/admin/AdminTheme";
+import AdminPromotionalBanners from "../pages/admin/AdminPromotionalBanners";
+import AdminFooter from "../pages/admin/AdminFooter";
 
 import ScrollToTop from "../components/ScrollToTop";
 
@@ -112,6 +114,8 @@ const AppRoutes = () => {
           <Route path="/admin/offers" element={<AdminOffers />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/theme" element={<AdminTheme />} />
+          <Route path="/admin/promotional-banners" element={<AdminPromotionalBanners />} />
+          <Route path="/admin/footer" element={<AdminFooter />} />
         </Route>
       </Routes>
     </BrowserRouter>

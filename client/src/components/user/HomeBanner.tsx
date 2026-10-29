@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import { getCategories } from "../../services/productService";
 import type { Banner } from "../../types/banner";
-import type { Category } from "../../types/product";
-import { useTheme } from "../../theme/ThemeContext";
 
 import "./HomeBanner.css";
 
@@ -14,15 +10,8 @@ interface HomeBannerProps {
 
 const FALLBACK_BANNER: Banner = {
   _id: "quickcart-fallback-banner",
-  title: "Your everyday essentials, delivered fast.",
-  subtitle:
-    "Fresh groceries, fruits, dairy, snacks and household essentials — all in one place.",
   image: "",
-  buttonText: "Shop Now",
-  redirectType: "category",
   order: 0,
-  backgroundColor: "",
-  textColor: "",
   isActive: true,
 };
 
@@ -31,7 +20,6 @@ const AUTOPLAY_DELAY = 5000;
 
 const HomeBanner = ({ banners }: HomeBannerProps) => {
   const navigate = useNavigate();
-  const { colors } = useTheme();
   const [activeIndex, setActiveIndex] = useState(0);
   const [previousIndex, setPreviousIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -77,59 +65,16 @@ const HomeBanner = ({ banners }: HomeBannerProps) => {
 
   const activeBanner = slides[activeIndex] || slides[0];
   const previousBanner = slides[previousIndex] || activeBanner;
-
-  const handleBannerAction = async () => {
-    if (activeBanner.redirectValue) {
-      if (activeBanner.redirectType === "category") {
-        navigate(`/category/${activeBanner.redirectValue}`);
-        return;
-      }
-
-      if (activeBanner.redirectType === "product") {
-        navigate(`/products/${activeBanner.redirectValue}`);
-        return;
-      }
-
-      if (/^https?:\/\//i.test(activeBanner.redirectValue)) {
-        window.location.href = activeBanner.redirectValue;
-        return;
-      }
-
-      navigate(activeBanner.redirectValue);
-      return;
+  const getBannerTarget = (banner: Banner) => {
+    if (banner.redirectValue && banner.redirectType === "category") {
+      return `/category/${banner.redirectValue}`;
     }
 
-    try {
-      const response = await getCategories();
-
-      if (!response?.success) {
-        console.error("Failed to load categories for the Shop Now action.");
-        return;
-      }
-
-      const categories = (response.data || []) as Category[];
-
-      const groceryCategory = categories.find((category) => {
-        const normalizedName = category.name
-          .trim()
-          .toLowerCase()
-          .replace(/&/g, "and")
-          .replace(/\s+/g, " ");
-
-        return (
-          normalizedName === "grocery" || normalizedName.startsWith("grocery ")
-        );
-      });
-
-      if (groceryCategory) {
-        navigate(`/category/${groceryCategory._id}`);
-        return;
-      }
-
-      console.error("Grocery category was not found.");
-    } catch (error) {
-      console.error("Failed to find the Grocery category:", error);
+    if (banner.redirectValue && banner.redirectType === "product") {
+      return `/products/${banner.redirectValue}`;
     }
+
+    return "/search";
   };
 
   const changeSlide = (nextIndex: number) => {
@@ -176,13 +121,17 @@ const HomeBanner = ({ banners }: HomeBannerProps) => {
         className={`home-banner-image-button ${className} ${
           isVisible ? "is-visible" : "is-hidden"
         }`}
-        onClick={() => void handleBannerAction()}
-        aria-label={banner.buttonText || banner.title}
+        onClick={() => navigate(getBannerTarget(banner))}
+        aria-label={
+          banner.redirectType === "product"
+            ? "View featured product"
+            : "Browse featured category"
+        }
         tabIndex={isVisible ? 0 : -1}
       >
         <img
           src={banner.image}
-          alt={banner.title}
+          alt="QuickCart banner"
           className="home-banner-image"
         />
       </button>
@@ -195,16 +144,6 @@ const HomeBanner = ({ banners }: HomeBannerProps) => {
   return (
     <section
       className="home-banner"
-      style={{
-        backgroundColor:
-          activeBanner.backgroundColor ||
-          (banners.length === 0
-            ? colors.secondaryButtonBackground
-            : colors.cardBackground),
-        color:
-          activeBanner.textColor ||
-          (banners.length === 0 ? colors.headingText : colors.bodyText),
-      }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       aria-label="QuickCart promotional banners"
@@ -229,29 +168,7 @@ const HomeBanner = ({ banners }: HomeBannerProps) => {
           )}
         </>
       ) : (
-        <>
-          <div className="home-banner-fallback-art" aria-hidden="true">
-            <span>🥦</span>
-            <span>🍎</span>
-            <span>🥛</span>
-            <span>🥕</span>
-            <div>🛍️</div>
-          </div>
-
-          <div className="home-banner-content">
-            <span className="home-banner-eyebrow">
-              QUICKCART • SPECIAL OFFER
-            </span>
-            <h1>{activeBanner.title}</h1>
-            {activeBanner.subtitle && <p>{activeBanner.subtitle}</p>}
-            {activeBanner.buttonText && (
-              <button type="button" onClick={() => void handleBannerAction()}>
-                {activeBanner.buttonText}
-                <span aria-hidden="true">→</span>
-              </button>
-            )}
-          </div>
-        </>
+        <div className="home-banner-empty" aria-label="No banner available" />
       )}
 
       {slides.length > 1 && (

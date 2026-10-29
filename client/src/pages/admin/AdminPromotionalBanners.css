@@ -1,0 +1,9 @@
+.admin-promo-page { min-height: 100vh; padding: 40px 20px; background: var(--color-secondary-background); color: var(--color-body-text); }
+.admin-promo-page > header, .admin-promo-form, .admin-promo-list { max-width: 1000px; margin: 0 auto 20px; }
+.admin-promo-page h1, .admin-promo-page h2 { color: var(--color-heading-text); }
+.admin-promo-page header span { color: var(--color-primary); font-size: 11px; font-weight: 800; letter-spacing: 1px; }
+.admin-promo-form, .admin-promo-list { display: grid; gap: 12px; padding: 22px; background: var(--color-card-background); border: 1px solid var(--color-border); border-radius: 12px; }
+.admin-promo-form input:not([type="checkbox"]), .admin-promo-form select { min-height: 40px; padding: 8px; border: 1px solid var(--color-input-border); border-radius: 7px; }
+.admin-promo-form button, .admin-promo-list button { width: fit-content; padding: 9px 13px; border: 0; border-radius: 7px; background: var(--color-primary); color: var(--color-on-primary); cursor: pointer; }
+.admin-promo-list article { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--color-border); }
+.admin-promo-list img { width: 90px; height: 55px; object-fit: cover; border-radius: 6px; }.admin-promo-list article div { flex: 1; }.admin-promo-list small { display: block; color: var(--color-muted-text); margin-top: 4px; }.admin-promo-feedback, .admin-promo-error { max-width: 1000px; margin: 0 auto 15px; padding: 10px; border-radius: 7px; }.admin-promo-feedback { color: var(--color-success); }.admin-promo-error { color: var(--color-error); }

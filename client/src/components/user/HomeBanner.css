@@ -38,6 +38,12 @@
   outline-offset: -3px;
 }
 
+.home-banner-empty {
+  position: absolute;
+  inset: 0;
+  background: var(--color-card-background);
+}
+
 .home-banner-image {
   width: 100%;
   height: 100%;

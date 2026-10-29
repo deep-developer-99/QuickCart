@@ -41,6 +41,17 @@ import {
   resetAdminThemeController,
   updateAdminThemeController,
 } from "../controllers/themeController";
+import {
+  getAdminPromotionalBannersController,
+  createPromotionalBannerController,
+  updatePromotionalBannerController,
+  deletePromotionalBannerController,
+  togglePromotionalBannerController,
+} from "../controllers/promotionalBannerController";
+import {
+  getAdminFooterSettingsController,
+  updateAdminFooterSettingsController,
+} from "../controllers/footerSettingsController";
 
 const router = Router();
 
@@ -85,6 +96,17 @@ router.put("/offers/:id/publish", publishOfferController);
 router.get("/theme", getAdminThemeController);
 router.patch("/theme", updateAdminThemeController);
 router.post("/theme/reset", resetAdminThemeController);
+
+// Promotional banners
+router.get("/promotional-banners", getAdminPromotionalBannersController);
+router.post("/promotional-banners", upload.single("image"), createPromotionalBannerController);
+router.put("/promotional-banners/:id", upload.single("image"), updatePromotionalBannerController);
+router.delete("/promotional-banners/:id", deletePromotionalBannerController);
+router.put("/promotional-banners/:id/status", togglePromotionalBannerController);
+
+// Footer settings
+router.get("/footer-settings", getAdminFooterSettingsController);
+router.patch("/footer-settings", updateAdminFooterSettingsController);
 
 // Orders
 router.get("/orders", getAllOrdersAdminController);

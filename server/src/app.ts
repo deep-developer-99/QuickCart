@@ -15,6 +15,8 @@ import offerRoutes from "./routes/offerRoutes";
 import locationRoutes from "./routes/locationRoutes";
 import vendorRegistrationLocationRoutes from "./routes/vendorRegistrationLocationRoutes";
 import themeRoutes from "./routes/themeRoutes";
+import promotionalBannerRoutes from "./routes/promotionalBannerRoutes";
+import footerSettingsRoutes from "./routes/footerSettingsRoutes";
 import { apiErrorHandler, apiRequestLogger } from "./middleware/apiRequestLogging";
 
 const app = express();
@@ -47,6 +49,8 @@ app.use("/api/offers", offerRoutes);
 app.use("/api/location", locationRoutes);
 app.use("/api/location/registration", vendorRegistrationLocationRoutes);
 app.use("/api/theme", themeRoutes);
+app.use("/api/promotional-banners", promotionalBannerRoutes);
+app.use("/api/footer-settings", footerSettingsRoutes);
 
 app.use(apiErrorHandler);
 

@@ -93,7 +93,9 @@
   position: relative;
   z-index: 1;
   border-top: 1px solid #293548;
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
   color: #7f8da1;
   font-size: 12px;
 }
@@ -101,6 +103,11 @@
 .footer-bottom p {
   margin: 0;
 }
+
+.footer-bottom small { display: block; margin-top: 6px; color: #7f8da1; }
+.footer-socials { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
+.footer-socials a { color: #aeb9c9; text-decoration: none; font-size: 12px; }
+.footer-socials a:hover { color: var(--color-primary); }
 
 @media (max-width: 900px) {
   .footer-container {
@@ -123,6 +130,8 @@
     grid-column: 1 / -1;
     max-width: 100%;
   }
+  .footer-bottom { flex-direction: column; text-align: center; }
+  .footer-socials { justify-content: center; }
 }
 
 @media (max-width: 420px) {

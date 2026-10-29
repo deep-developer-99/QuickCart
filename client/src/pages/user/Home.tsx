@@ -3,13 +3,16 @@ import { Link } from "react-router-dom";
 
 import { getCategories, getProducts } from "../../services/productService";
 import { getActiveBanners } from "../../services/bannerService";
+import { getPromotionalBanners } from "../../services/promotionalBannerService";
 
-import CategoryCarousel from "../../components/user/CategoryCarousel";
+import CategoryGrid from "../../components/user/CategoryGrid";
+import PromotionalBanners from "../../components/user/PromotionalBanners";
 import HomeBanner from "../../components/user/HomeBanner";
 import ProductCard from "../../components/user/ProductCard";
 import HomeShimmer from "../../components/user/HomeShimmer";
 
 import type { Banner } from "../../types/banner";
+import type { PromotionalBanner } from "../../types/promotionalBanner";
 import type { Category, Product } from "../../types/product";
 
 import "./Home.css";
@@ -18,6 +21,7 @@ const Home = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
+  const [promotionalBanners, setPromotionalBanners] = useState<PromotionalBanner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [bannerError, setBannerError] = useState("");
 
@@ -27,11 +31,12 @@ const Home = () => {
         setIsLoading(true);
         setBannerError("");
 
-        const [categoryResponse, productResponse, bannerResponse] =
+        const [categoryResponse, productResponse, bannerResponse, promotionalResponse] =
           await Promise.all([
             getCategories(),
             getProducts(),
             getActiveBanners(),
+            getPromotionalBanners(),
           ]);
 
         if (categoryResponse?.success) {
@@ -47,6 +52,7 @@ const Home = () => {
         } else {
           setBannerError("Unable to load promotional banners.");
         }
+        if (promotionalResponse?.success) setPromotionalBanners(promotionalResponse.data || []);
       } catch (error) {
         console.error("Failed to load home page:", error);
         setBannerError("Unable to load promotional banners.");
@@ -86,6 +92,7 @@ const Home = () => {
   return (
     <div className="home-page">
       <HomeBanner banners={banners} />
+      <PromotionalBanners banners={promotionalBanners} />
 
       {bannerError && (
         <p className="home-banner-status" role="status">
@@ -102,7 +109,7 @@ const Home = () => {
           <Link to="/search">View all →</Link>
         </div>
 
-        <CategoryCarousel categories={categories} />
+        <CategoryGrid categories={categories} />
       </section>
 
       {categorySections.length > 0 ? (

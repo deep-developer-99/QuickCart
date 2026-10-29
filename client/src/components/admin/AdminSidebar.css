@@ -3,12 +3,38 @@
   inset: 0 auto 0 0;
   z-index: 100;
   width: 255px;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   padding: 28px 15px 18px;
   background: var(--color-card-background);
   border-right: 1px solid var(--color-border);
   box-sizing: border-box;
+}
+
+.admin-sidebar-menu {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.admin-sidebar-menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-sidebar-menu::-webkit-scrollbar-thumb {
+  border: 2px solid var(--color-card-background);
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.admin-sidebar-menu {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
 }
 
 .admin-sidebar-brand {
@@ -163,7 +189,9 @@
   .admin-sidebar {
     position: static;
     width: 100%;
+    height: auto;
     min-height: auto;
+    overflow: visible;
     padding: 16px;
     border-right: none;
     border-bottom: 1px solid var(--color-border);
@@ -172,6 +200,10 @@
   .admin-sidebar-nav {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-sidebar-menu {
+    overflow: visible;
   }
 
   .admin-sidebar-bottom {
