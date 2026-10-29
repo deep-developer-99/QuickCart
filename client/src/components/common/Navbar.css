@@ -39,12 +39,6 @@
     color 0.2s ease;
 }
 
-.navbar-logo::before {
-  content: "?";
-  margin-right: 6px;
-  font-size: 17px;
-}
-
 .navbar-logo:hover {
   color: #176b1d;
   transform: translateY(-1px);

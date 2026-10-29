@@ -42,12 +42,6 @@
   transition: color 0.2s ease;
 }
 
-.footer-logo::before {
-  content: "?";
-  margin-right: 7px;
-  font-size: 16px;
-}
-
 .footer-logo:hover {
   color: #86efac;
 }
