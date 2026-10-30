@@ -1,10 +1,10 @@
 .home-banner {
-  width: min(1360px, calc(100% - 40px));
-  height: 380px;
-  margin: 20px auto 0;
+  width: min(1264px, calc(100% - 32px));
+  height: 242px;
+  margin: 16px auto;
   position: relative;
   overflow: hidden;
-  border-radius: 20px;
+  border-radius: 12px;
   background: #e9f6e7;
   box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
 }
@@ -292,16 +292,16 @@
 
 @media (max-width: 900px) {
   .home-banner {
-    width: min(100% - 30px, 760px);
-    height: 330px;
+    width: min(1264px, calc(100% - 30px));
+    height: 200px;
   }
 }
 
 @media (max-width: 720px) {
   .home-banner {
     width: calc(100% - 24px);
-    height: 300px;
-    border-radius: 16px;
+    height: 155px;
+    border-radius: 12px;
   }
 
   .home-banner-content {
@@ -329,7 +329,7 @@
 @media (max-width: 480px) {
   .home-banner {
     width: calc(100% - 20px);
-    height: 240px;
+    height: 145px;
   }
 
   .home-banner-content {
