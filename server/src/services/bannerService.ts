@@ -72,7 +72,7 @@ const buildBannerData = (data: BannerInput) => ({
 export const getActiveBanners = async () => {
   const now = new Date();
 
-  return Banner.find({
+  const banner = await Banner.findOne({
     isActive: true,
     $and: [
       {
@@ -91,6 +91,8 @@ export const getActiveBanners = async () => {
       },
     ],
   }).sort({ order: 1, createdAt: -1 });
+
+  return banner ? [banner] : [];
 };
 
 export const getAllBannersAdmin = async (page?: unknown, limit?: unknown) => {
@@ -112,6 +114,11 @@ export const getBannerById = async (bannerId: string) => {
 export const createBanner = async (data: BannerInput) => {
   validateBannerData(data);
   await validateRedirect(data, true);
+
+  if (data.isActive) {
+    await deactivateOtherBanners();
+  }
+
   return Banner.create(buildBannerData(data));
 };
 
@@ -120,6 +127,10 @@ export const updateBanner = async (bannerId: string, data: BannerInput) => {
 
   validateBannerData(data);
   await validateRedirect(data, true);
+
+  if (data.isActive) {
+    await deactivateOtherBanners(bannerId);
+  }
 
   currentBanner.redirectType = data.redirectType;
   currentBanner.redirectValue = data.redirectValue;
@@ -151,9 +162,25 @@ export const deleteBanner = async (bannerId: string) => {
 
 export const toggleBannerStatus = async (bannerId: string) => {
   const banner = await getBannerById(bannerId);
-  banner.isActive = !banner.isActive;
+
+  if (banner.isActive) {
+    banner.isActive = false;
+    await banner.save();
+    return banner;
+  }
+
+  await deactivateOtherBanners(bannerId);
+  banner.isActive = true;
   await banner.save();
   return banner;
+};
+
+const deactivateOtherBanners = async (exceptBannerId?: string) => {
+  const filter = exceptBannerId
+    ? { isActive: true, _id: { $ne: exceptBannerId } }
+    : { isActive: true };
+
+  await Banner.updateMany(filter, { $set: { isActive: false } });
 };
 
 export const parseBannerDate = (value: unknown) => {

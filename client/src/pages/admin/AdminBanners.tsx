@@ -330,12 +330,15 @@ const AdminBanners = () => {
         throw new Error(response?.message || "Failed to update banner status.");
       }
 
+      const nextIsActive = response.data?.isActive ?? !banner.isActive;
+
       setBanners((previous) =>
-        previous.map((item) =>
-          item._id === banner._id
-            ? { ...item, isActive: response.data?.isActive ?? !item.isActive }
-            : item,
-        ),
+        previous.map((item) => ({
+          ...item,
+          isActive: nextIsActive ? item._id === banner._id : item._id === banner._id
+            ? false
+            : item.isActive,
+        })),
       );
       setSuccess(response.message || "Banner status updated successfully.");
     } catch (error: unknown) {

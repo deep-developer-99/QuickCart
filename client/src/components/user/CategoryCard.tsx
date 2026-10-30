@@ -3,7 +3,7 @@ import "./CategoryCard.css";
 
 interface CategoryCardProps {
   category: Category;
-  onClick: (categoryName: string) => void;
+  onClick: () => void;
 }
 
 const CategoryCard = ({ category, onClick }: CategoryCardProps) => {
@@ -11,7 +11,7 @@ const CategoryCard = ({ category, onClick }: CategoryCardProps) => {
     <button
       type="button"
       className="category-card"
-      onClick={() => onClick(category.name)}
+      onClick={onClick}
     >
       <div className="category-card-image-wrapper">
         {category.image ? (

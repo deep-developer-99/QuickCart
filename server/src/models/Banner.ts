@@ -104,6 +104,14 @@ const bannerSchema = new Schema<IBanner>(
 );
 
 bannerSchema.index({ isActive: 1, order: 1, startDate: 1, endDate: 1 });
+bannerSchema.index(
+  { isActive: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { isActive: true },
+    name: "one_active_main_banner",
+  },
+);
 
 const Banner =
   mongoose.models.Banner || mongoose.model<IBanner>("Banner", bannerSchema);
