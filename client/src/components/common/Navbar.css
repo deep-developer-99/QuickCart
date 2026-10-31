@@ -53,7 +53,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 15px;
+  gap: 18px;
 }
 
 .navbar-action,
@@ -93,11 +93,24 @@
   color: var(--color-card-background);
 }
 
+.navbar-cart-action.navbar-cart-disabled,
+.navbar-cart-action.navbar-cart-disabled:hover {
+  border: 0;
+  background: #c9cfcd;
+  color: #ffffff;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 1;
+  pointer-events: none;
+}
+
+.navbar-cart-action.navbar-cart-disabled .navbar-cart-copy strong {
+  font-size: 13px;
+}
+
 .navbar-cart-disabled {
-  opacity: 0.45;
   color: var(--color-card-background);
   cursor: not-allowed;
-  pointer-events: auto;
   user-select: none;
 }
 
@@ -301,25 +314,33 @@
 
 .navbar-profile-action {
   position: relative;
-  width: 44px;
+  min-width: auto;
   height: 44px;
-  padding: 3px;
+  padding: 0 2px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0;
-  border: 1px solid #d8e5da;
+  gap: 5px;
+  border: 0;
   border-radius: 12px;
-  background: #fff;
+  background: transparent;
   color: var(--color-body-text);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  box-shadow: none;
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .navbar-profile-action:hover,
 .navbar-profile-action.active {
-  border-color: #b9dcb9;
-  background: #f2f9f2;
+  background: transparent;
+  color: var(--color-primary-hover);
+}
+
+.navbar-profile-action:focus,
+.navbar-profile-action:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .navbar-profile-avatar,
@@ -334,11 +355,78 @@
 }
 
 .navbar-profile-avatar {
-  width: 34px;
-  height: 34px;
+  width: 31px;
+  height: 31px;
   font-size: 15px;
   line-height: 1;
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.28);
+}
+
+.navbar-profile-arrow {
+  color: var(--color-muted-text);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.navbar-cart-action {
+  min-width: 112px;
+  min-height: 44px;
+  padding: 5px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: var(--color-card-background);
+  text-decoration: none;
+  box-shadow: 0 7px 16px rgba(77, 159, 80, 0.18);
+}
+
+.navbar-cart-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.navbar-cart-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  line-height: 1.1;
+}
+
+.navbar-cart-copy strong,
+.navbar-cart-copy span {
+  color: inherit;
+  white-space: nowrap;
+}
+
+.navbar-cart-copy strong {
+  font-size: 11px;
+}
+
+.navbar-cart-copy span {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.navbar-cart-action:hover,
+.navbar-cart-action.active {
+  background: var(--color-primary-hover);
+  color: var(--color-card-background);
+}
+
+.navbar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.28);
+  cursor: default;
 }
 
 .profile-dropdown {
@@ -350,7 +438,7 @@
   overflow: hidden;
   border: 1px solid #e2e8e3;
   border-radius: 13px;
-  background: #fff;
+  background: var(--color-card-background);
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.15);
   animation: profileDropdownIn 0.16s ease-out;
 }
@@ -371,7 +459,7 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: #fbfdfb;
+  background: var(--color-secondary-background);
 }
 
 .profile-dropdown-avatar {
@@ -416,7 +504,7 @@
   gap: 13px;
   padding: 13px 16px;
   border: 0;
-  background: #fff;
+  background: var(--color-card-background);
   color: var(--color-body-text);
   text-align: left;
   cursor: pointer;
@@ -468,12 +556,37 @@
   color: #dc4f4f;
 }
 
+.mobile-profile-dropdown {
+  padding: 0 10px 8px;
+}
+
+.mobile-profile-dropdown .profile-dropdown {
+  display: block;
+  position: static;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: none;
+}
+
 .mobile-account-button {
   width: 100%;
   border: 0;
   background: transparent;
   text-align: left;
   cursor: pointer;
+}
+
+.mobile-account-button:hover,
+.mobile-account-button:focus,
+.mobile-account-button:focus-visible {
+  background: transparent;
+  outline: none;
+}
+
+.mobile-account-arrow {
+  float: right;
+  color: var(--color-muted-text);
+  font-size: 16px;
 }
 
 .mobile-cart-button {
@@ -485,10 +598,11 @@
 }
 
 .mobile-cart-button.navbar-cart-disabled {
-  background: transparent;
-  color: var(--color-disabled-text);
+  background: #c9cfcd;
+  color: #ffffff;
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 1;
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {
