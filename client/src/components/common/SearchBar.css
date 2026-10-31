@@ -15,9 +15,9 @@
 }
 
 .quickcart-search:focus-within {
-  border-color: #8bc78e;
-  background: var(--color-card-background);
-  box-shadow: 0 0 0 4px rgba(77, 159, 80, 0.09);
+  border-color: #e1e8e2;
+  background: #f7faf7;
+  box-shadow: none;
 }
 
 .quickcart-search-icon {
@@ -35,6 +35,12 @@
   color: var(--color-heading-text);
   font: inherit;
   font-size: 13px;
+}
+
+.quickcart-search input:focus,
+.quickcart-search input:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .quickcart-search input::placeholder {
