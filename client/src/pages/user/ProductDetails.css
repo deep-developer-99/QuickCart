@@ -23,11 +23,15 @@
 
 .product-details-card {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 55px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  width: 78%;
+  max-width: 900px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  gap: 34px;
   background: var(--color-card-background);
   border-radius: 18px;
-  padding: 35px;
+  padding: 24px;
   box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
 }
 
@@ -42,8 +46,8 @@
 .product-details-image-wrapper {
   position: relative;
   width: 100%;
-  max-width: 500px;
-  height: 470px;
+  max-width: 380px;
+  height: 350px;
   border-radius: 16px;
   background: var(--color-page-background);
   overflow: hidden;
@@ -53,7 +57,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 25px;
+  padding: 20px;
 }
 
 .product-discount-badge {
@@ -71,12 +75,12 @@
 /* Content */
 
 .product-details-content {
-  padding: 10px 0;
+  padding: 6px 0;
 }
 
 .product-details-category {
   display: inline-block;
-  margin: 0 0 12px;
+  margin: 0 0 9px;
   color: var(--color-primary);
   font-size: 14px;
   font-weight: 700;
@@ -85,13 +89,13 @@
 
 .product-details-content h1 {
   margin: 0;
-  font-size: 38px;
+  font-size: 35px;
   line-height: 1.2;
   color: var(--color-heading-text);
 }
 
 .product-details-vendor {
-  margin: 15px 0 0;
+  margin: 12px 0 0;
   color: var(--color-muted-text);
   font-size: 15px;
 }
@@ -99,12 +103,12 @@
 .product-details-price {
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-top: 25px;
+  gap: 12px;
+  margin-top: 20px;
 }
 
 .current-price {
-  font-size: 32px;
+  font-size: 30px;
   font-weight: 800;
   color: var(--color-primary);
 }
@@ -119,7 +123,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 15px;
+  margin-top: 12px;
   color: #3f9143;
   font-size: 15px;
   font-weight: 600;
@@ -138,34 +142,34 @@
 
 .product-details-divider {
   height: 1px;
-  margin: 25px 0;
+  margin: 20px 0;
   background: var(--color-border);
 }
 
 .product-description h2 {
-  margin: 0 0 10px;
-  font-size: 20px;
+  margin: 0 0 8px;
+  font-size: 19px;
   color: var(--color-heading-text);
 }
 
 .product-description p {
   margin: 0;
   color: var(--color-muted-text);
-  font-size: 16px;
-  line-height: 1.7;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
 /* Purchase */
 
 .product-purchase-section {
-  margin-top: 30px;
+  margin-top: 24px;
 }
 
 .quantity-section {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   color: var(--color-body-text);
   font-weight: 600;
 }
@@ -179,8 +183,8 @@
 }
 
 .quantity-controls button {
-  width: 40px;
-  height: 38px;
+  width: 36px;
+  height: 35px;
   border: none;
   background: #f1f5f9;
   cursor: pointer;
@@ -198,30 +202,30 @@
 }
 
 .quantity-controls span {
-  width: 45px;
+  width: 40px;
   text-align: center;
   font-weight: 700;
 }
 
 .purchase-total {
-  margin-bottom: 18px;
+  margin-bottom: 15px;
   color: var(--color-body-text);
   font-size: 17px;
 }
 
 .purchase-total strong {
   color: var(--color-heading-text);
-  font-size: 20px;
+  font-size: 19px;
 }
 
 .add-to-cart-button {
   width: 100%;
-  padding: 15px 20px;
+  padding: 13px 18px;
   border: none;
   border-radius: 9px;
   background: var(--color-primary);
   color: white;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   transition: 0.2s ease;
@@ -237,14 +241,14 @@
 }
 
 .disabled-button {
-  margin-top: 30px;
+  margin-top: 24px;
   background: var(--color-disabled-text);
 }
 
 .product-success-message,
 .product-error-message {
-  margin-top: 15px;
-  padding: 12px 15px;
+  margin-top: 12px;
+  padding: 10px 13px;
   border-radius: 8px;
   text-align: center;
   font-size: 14px;
@@ -326,20 +330,21 @@
 @media (max-width: 800px) {
   .product-details-card {
     grid-template-columns: 1fr;
-    gap: 30px;
-    padding: 22px;
+    width: 92%;
+    gap: 24px;
+    padding: 20px;
   }
 
   .product-details-image-wrapper {
-    height: 350px;
+    height: 320px;
   }
 
   .product-details-content h1 {
-    font-size: 30px;
+    font-size: 28px;
   }
 
   .current-price {
-    font-size: 28px;
+    font-size: 26px;
   }
 }
 
@@ -349,12 +354,13 @@
   }
 
   .product-details-card {
-    padding: 15px;
+    width: 100%;
+    padding: 14px;
     border-radius: 12px;
   }
 
   .product-details-image-wrapper {
-    height: 280px;
+    height: 250px;
   }
 
   .quantity-section {

@@ -11,9 +11,10 @@ import "./ProductCard.css";
 
 interface ProductCardProps {
   product: Product;
+  variant?: "category";
 }
 
-const ProductCard = ({ product }: ProductCardProps) => {
+const ProductCard = ({ product, variant }: ProductCardProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -90,7 +91,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
   };
 
   return (
-    <article className="product-card">
+    <article className={`product-card${variant ? ` product-card--${variant}` : ""}`}>
       <Link to={`/products/${product._id}`} className="product-card-main">
         <div className="product-card-image-wrapper">
           <img

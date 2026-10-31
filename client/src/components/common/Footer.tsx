@@ -73,7 +73,6 @@ const Footer = () => {
           <div className="footer-link-columns">
             <div>
               <Link to="/">Home</Link>
-              <Link to="/search">All Categories</Link>
               {renderConfiguredLink("About Us")}
               {renderConfiguredLink("Contact Us")}
             </div>
@@ -96,7 +95,6 @@ const Footer = () => {
         <section className="footer-categories">
           <div className="footer-category-heading">
             <h3>Categories</h3>
-            <Link to="/search">see all</Link>
           </div>
           {categoryError ? (
             <p className="footer-category-status" role="status">{categoryError}</p>

@@ -68,8 +68,76 @@
 
 .category-products-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, 235px);
+  grid-auto-rows: 290px;
+  justify-content: start;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.category-products-grid .product-card--category {
+  width: 235px;
+  min-width: 0;
+  height: 290px;
+  box-sizing: border-box;
+  border-radius: 10px;
+}
+
+.category-products-grid .product-card--category .product-card-main {
+  min-height: 0;
+}
+
+.category-products-grid .product-card--category .product-card-image-wrapper {
+  width: 100%;
+  height: 130px;
+  flex: 0 0 130px;
+  align-self: center;
+  padding: 10px 12px;
+}
+
+.category-products-grid .product-card--category .product-card-content {
+  min-height: 0;
+  padding: 8px 12px 4px;
+}
+
+.category-products-grid .product-card--category .product-card-category {
+  margin-bottom: 2px;
+}
+
+.category-products-grid .product-card--category .product-card-name {
+  margin-bottom: 3px;
+  font-size: 14px;
+}
+
+.category-products-grid .product-card--category .product-card-description {
+  height: 32px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.category-products-grid .product-card--category .product-card-footer {
+  gap: 6px;
+  margin-top: auto;
+  padding: 4px 12px 10px;
+}
+
+.category-products-grid .product-card--category .product-card-price {
+  font-size: 16px;
+}
+
+.category-products-grid .product-card--category .product-add-button {
+  min-width: 52px;
+  height: 28px;
+  padding: 0 9px;
+}
+
+.category-products-grid .product-card--category .product-quantity-control,
+.category-products-grid .product-card--category .product-quantity-button {
+  height: 28px;
+}
+
+.category-products-grid .product-card--category .product-quantity-button {
+  width: 24px;
 }
 
 .category-products-loading {
@@ -138,7 +206,12 @@
 
 @media (max-width: 1000px) {
   .category-products-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(210px, 235px));
+  }
+
+  .category-products-grid .product-card--category {
+    width: 210px;
+    height: 290px;
   }
 }
 
@@ -158,7 +231,18 @@
 
   .category-products-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 290px;
     gap: 12px;
+  }
+
+  .category-products-grid .product-card--category {
+    width: 100%;
+    height: 290px;
+  }
+
+  .category-products-grid .product-card--category .product-card-image-wrapper {
+    height: 120px;
+    flex-basis: 120px;
   }
 }
 

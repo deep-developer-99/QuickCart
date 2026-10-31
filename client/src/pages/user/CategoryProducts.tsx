@@ -128,7 +128,7 @@ const CategoryProducts = () => {
         {products.length > 0 ? (
           <div className="category-products-grid">
             {products.map((product) => (
-              <ProductCard key={product._id} product={product} />
+              <ProductCard key={product._id} product={product} variant="category" />
             ))}
           </div>
         ) : (
