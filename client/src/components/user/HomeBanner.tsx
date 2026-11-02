@@ -60,10 +60,7 @@ const HomeBanner = ({ banners }: HomeBannerProps) => {
 
   const hasImage = Boolean(activeBanner.image);
   return (
-    <section
-      className="home-banner"
-      aria-label="QuickCart promotional banners"
-    >
+    <section className="home-banner" aria-label="QuickCart promotional banners">
       {hasImage ? (
         renderBannerImage(activeBanner)
       ) : (
