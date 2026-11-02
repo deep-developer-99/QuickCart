@@ -42,7 +42,7 @@ const SearchBar = () => {
         value={value}
         onChange={(event) => handleChange(event.target.value)}
         onFocus={openSearch}
-        placeholder="Search for milk, bread, fruits & more"
+        placeholder="Search for atta, milk and more"
         aria-label="Search products"
       />
       {value && (

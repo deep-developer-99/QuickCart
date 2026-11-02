@@ -13,7 +13,6 @@ import Login from "../pages/user/Login";
 
 import ProductDetails from "../pages/user/ProductDetails";
 import Cart from "../pages/user/Cart";
-import Checkout from "../pages/user/Checkout";
 import MyOrders from "../pages/user/MyOrders";
 import MyOrderDetails from "../pages/user/MyOrderDetails";
 import OrderConfirmation from "../pages/user/OrderConfirmation";
@@ -65,7 +64,7 @@ const AppRoutes = () => {
 
           <Route element={<ProtectedRoute allowedRole="user" />}>
             <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
+          <Route path="/checkout" element={<Navigate to="/cart" replace />} />
             <Route path="/order-confirmation" element={<OrderConfirmation />} />
 
             <Route path="/account" element={<AccountLayout />}>

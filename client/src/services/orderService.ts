@@ -13,6 +13,21 @@ export const createOrder = async (
   return response.data;
 };
 
+export interface CheckoutSummary {
+  subtotal: number;
+  shippingAmount: number;
+  totalAmount: number;
+}
+
+export const getCheckoutSummary = async (): Promise<{
+  success: boolean;
+  data?: CheckoutSummary;
+  message?: string;
+}> => {
+  const response = await api.get("/orders/checkout-summary");
+  return response.data;
+};
+
 export const createRazorpayOrder = async (addressId: string) => {
   const response = await api.post("/orders/razorpay/create-order", {
     addressId,

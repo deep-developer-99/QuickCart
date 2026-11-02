@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import axios from "axios";
@@ -6,6 +6,7 @@ import axios from "axios";
 import { useAppSelector } from "../hooks/reduxHooks";
 import {
   addToCart,
+  clearCart as clearCartRequest,
   getCart,
   removeCartItem,
   updateCartItem,
@@ -22,90 +23,133 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     isLoading: isAuthLoading,
   } = useAppSelector((state) => state.auth);
 
-  const [cart, setCart] = useState<Cart | null>(null);
+  const [storedCart, setStoredCart] = useState<Cart | null>(null);
+  const [cartOwnerId, setCartOwnerId] = useState<string | null>(null);
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const requestSequenceRef = useRef(0);
+  const mutationQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const isUser = isAuthenticated && user?.role === "user";
+  const userId = isUser ? user?.id ?? null : null;
+  const cart = userId && cartOwnerId === userId ? storedCart : null;
+  const isCartReady = Boolean(userId && loadedUserId === userId);
 
-  const refreshCart = async () => {
-    if (!isUser) {
-      setCart(null);
+  const refreshCart = useCallback(async () => {
+    const requestId = ++requestSequenceRef.current;
+    const requestUserId = userId;
+    if (!requestUserId) {
+      setStoredCart(null);
+      setCartOwnerId(null);
+      setLoadedUserId(null);
+      setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-
       const response = await getCart();
-
+      if (requestId !== requestSequenceRef.current) return;
       if (response?.success) {
-        setCart(response.data || null);
+        setStoredCart(response.data || null);
+        setCartOwnerId(requestUserId);
+        setLoadedUserId(requestUserId);
       }
     } catch (error) {
+      if (requestId !== requestSequenceRef.current) return;
       if (axios.isAxiosError(error) && error.response?.status === 401) {
-        setCart(null);
+        setStoredCart(null);
+        setCartOwnerId(requestUserId);
+        setLoadedUserId(requestUserId);
       } else {
         console.error("Failed to load cart:", error);
       }
     } finally {
-      setIsLoading(false);
+      if (requestId === requestSequenceRef.current) setIsLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
-    if (isAuthLoading) {
+    if (isAuthLoading) return;
+    if (!isUser || !userId) {
+      requestSequenceRef.current += 1;
+      // Clear the old user's cart synchronously so a rapid re-login cannot expose stale items.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStoredCart(null);
+      setCartOwnerId(null);
+      setLoadedUserId(null);
+      setIsLoading(false);
       return;
     }
-
-    if (!isUser) {
-      setCart(null);
-      return;
-    }
-
     void refreshCart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthLoading, isUser]);
+  }, [isAuthLoading, isUser, refreshCart, userId]);
 
-  const addProduct = async (productId: string, quantity = 1) => {
+  const enqueueMutation = useCallback((operation: () => Promise<void>) => {
+    const nextOperation = mutationQueueRef.current.then(operation, operation);
+    mutationQueueRef.current = nextOperation.catch(() => undefined);
+    return nextOperation;
+  }, []);
+
+  const updateLocalCart = useCallback((update: (current: Cart) => Cart) => {
+    if (!userId) return;
+    setStoredCart((current) => current && cartOwnerId === userId ? update(current) : current);
+  }, [cartOwnerId, userId]);
+
+  const getProductId = (product: Cart["items"][number]["product"]) => product?._id;
+
+  const addProduct = useCallback((productId: string, quantity = 1) => enqueueMutation(async () => {
     await addToCart(productId, quantity);
     await refreshCart();
-  };
+  }), [enqueueMutation, refreshCart]);
 
-  const updateProductQuantity = async (productId: string, quantity: number) => {
+  const updateProductQuantity = useCallback((productId: string, quantity: number) => enqueueMutation(async () => {
     if (quantity < 1) {
-      await removeProduct(productId);
-      return;
+      await removeCartItem(productId);
+      updateLocalCart((current) => ({
+        ...current,
+        items: current.items.filter((item) => getProductId(item.product) !== productId),
+      }));
+    } else {
+      await updateCartItem(productId, quantity);
+      updateLocalCart((current) => ({
+        ...current,
+        items: current.items.map((item) => getProductId(item.product) === productId ? { ...item, quantity } : item),
+      }));
     }
-
-    await updateCartItem(productId, quantity);
     await refreshCart();
-  };
+  }), [enqueueMutation, refreshCart, updateLocalCart]);
 
-  const removeProduct = async (productId: string) => {
+  const removeProduct = useCallback((productId: string) => enqueueMutation(async () => {
     await removeCartItem(productId);
+    updateLocalCart((current) => ({
+      ...current,
+      items: current.items.filter((item) => getProductId(item.product) !== productId),
+    }));
     await refreshCart();
-  };
+  }), [enqueueMutation, refreshCart, updateLocalCart]);
+
+  const clearCart = useCallback(() => enqueueMutation(async () => {
+    await clearCartRequest();
+    updateLocalCart((current) => ({ ...current, items: [] }));
+    await refreshCart();
+  }), [enqueueMutation, refreshCart, updateLocalCart]);
 
   const getQuantity = (productId: string) => {
     const item = cart?.items.find((cartItem) => {
-      const itemProductId =
-        typeof cartItem.product === "string"
-          ? cartItem.product
-          : cartItem.product?._id;
-
-      return itemProductId === productId;
+      return getProductId(cartItem.product) === productId;
     });
-
     return item?.quantity ?? 0;
   };
 
   const value = {
     cart,
     isLoading,
+    isCartReady,
     getQuantity,
     addProduct,
     updateProductQuantity,
     removeProduct,
+    clearCart,
     refreshCart,
   };
 

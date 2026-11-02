@@ -5,8 +5,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 import { getCart } from "../../services/cartService";
+import { getCheckoutSummary } from "../../services/orderService";
 
-import { createAddress, getAddresses } from "../../services/addressService";
+import { createAddress, getAddresses, updateAddress } from "../../services/addressService";
 
 import { detectCurrentLocation } from "../../services/locationService";
 import AddressMap from "../../components/common/AddressMap";
@@ -20,6 +21,8 @@ import {
 import type { Address, CreateAddressData } from "../../types/address";
 
 import type { Cart } from "../../types/cart";
+import type { Order } from "../../types/order";
+import type { CheckoutSummary } from "../../services/orderService";
 
 import { loadRazorpayScript } from "../../utils/razorpay";
 
@@ -39,7 +42,15 @@ const normalizePhone = (phone?: string) => {
   return digits.length > 10 ? digits.slice(-10) : digits;
 };
 
-const Checkout = () => {
+interface CheckoutProps {
+  embedded?: boolean;
+  initialSelectedAddress?: string;
+  onBack?: () => void;
+  onAddressChange?: (address: Address | undefined) => void;
+  onOrderSuccess?: (order: Order | undefined, address: Address | undefined) => void;
+}
+
+const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressChange, onOrderSuccess }: CheckoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { colors } = useTheme();
@@ -47,10 +58,12 @@ const Checkout = () => {
   const user = useAppSelector((state) => state.auth.user);
 
   const [cart, setCart] = useState<Cart | null>(null);
+  const [checkoutSummary, setCheckoutSummary] = useState<CheckoutSummary | null>(null);
 
   const [addresses, setAddresses] = useState<Address[]>([]);
 
-  const [selectedAddress, setSelectedAddress] = useState("");
+  const [selectedAddress, setSelectedAddress] = useState(initialSelectedAddress || "");
+  const [editingAddressId, setEditingAddressId] = useState("");
   const [showAddressPicker, setShowAddressPicker] = useState(false);
   const [addressError, setAddressError] = useState("");
   const addressPickerRef = useRef<HTMLDivElement>(null);
@@ -83,19 +96,10 @@ const Checkout = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Keep the address form in sync with the logged-in user.
-  useEffect(() => {
-    if (!user) {
-      return;
-    }
-
-    setAddressForm((previous) => ({
-      ...previous,
-      fullName: previous.fullName || user.name || "",
-      phone: previous.phone || normalizePhone(user.phone),
-    }));
-  }, [user]);
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  const submissionLockRef = useRef(false);
+  const addressSaveLockRef = useRef(false);
 
   useEffect(() => {
     if (!showAddressPicker) return;
@@ -134,11 +138,21 @@ const Checkout = () => {
         setCart(cartData);
         setAddresses(addressData);
 
+        try {
+          const summaryResponse = await getCheckoutSummary();
+          if (summaryResponse?.success && summaryResponse.data) {
+            setCheckoutSummary(summaryResponse.data);
+          }
+        } catch (summaryError) {
+          console.error("Failed to calculate checkout summary:", summaryError);
+          setCheckoutError("The order total could not be calculated. Please review your cart and try again.");
+        }
+
         const defaultAddress = addressData.find(
           (address: Address) => address.isDefault,
         );
 
-        if (defaultAddress) {
+        if (!initialSelectedAddress && defaultAddress) {
           setSelectedAddress(defaultAddress._id);
         }
       } catch (error) {
@@ -150,7 +164,11 @@ const Checkout = () => {
     };
 
     loadCheckout();
-  }, []);
+  }, [initialSelectedAddress]);
+
+  useEffect(() => {
+    onAddressChange?.(addresses.find((address) => address._id === selectedAddress));
+  }, [addresses, onAddressChange, selectedAddress]);
 
   /*
    * Automatically detect the user's current location when the
@@ -164,7 +182,7 @@ const Checkout = () => {
    * - The user must still click "Save Address".
    */
   useEffect(() => {
-    if (isLoading || !showAddressForm) {
+    if (isLoading || !showAddressForm || editingAddressId) {
       return;
     }
 
@@ -221,7 +239,7 @@ const Checkout = () => {
     return () => {
       cancelled = true;
     };
-  }, [isLoading, showAddressForm]);
+  }, [editingAddressId, isLoading, showAddressForm, user?.name, user?.phone]);
 
   const handleGetCurrentLocation = async () => {
     try {
@@ -304,29 +322,56 @@ const Checkout = () => {
     }));
   };
 
+  const startEditingAddress = (address: Address) => {
+    setEditingAddressId(address._id);
+    setAddressForm({
+      fullName: address.fullName,
+      phone: normalizePhone(address.phone),
+      addressLine: address.addressLine,
+      city: address.city,
+      state: address.state,
+      pincode: address.pincode,
+      latitude: address.latitude,
+      longitude: address.longitude,
+      isDefault: address.isDefault,
+    });
+    setShowAddressPicker(false);
+    setShowAddressForm(true);
+  };
+
   const handleCreateAddress = async (
     event: React.FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
+    if (addressSaveLockRef.current) return;
 
     if (!/^\d{10}$/.test(addressForm.phone)) {
-      alert("Phone number must be exactly 10 digits.");
+      const message = "Phone number must be exactly 10 digits.";
+      if (embedded) setCheckoutError(message);
+      else alert(message);
       return;
     }
 
+    addressSaveLockRef.current = true;
+    setIsSavingAddress(true);
     try {
       const dataToSave: CreateAddressData = {
         ...addressForm,
-        isDefault: addresses.length === 0,
+        isDefault: addressForm.isDefault || addresses.length === 0,
       };
 
-      const response = await createAddress(dataToSave);
+      const response = editingAddressId
+        ? await updateAddress(editingAddressId, dataToSave)
+        : await createAddress(dataToSave);
 
       const newAddress = response.data as Address;
 
-      setAddresses((previous) => [...previous, newAddress]);
+      setAddresses((previous) => editingAddressId
+        ? previous.map((address) => address._id === editingAddressId ? newAddress : address)
+        : [...previous, newAddress]);
 
       setSelectedAddress(newAddress._id);
+      setEditingAddressId("");
       setShowAddressPicker(false);
 
       setShowAddressForm(false);
@@ -344,14 +389,17 @@ const Checkout = () => {
       });
 
       setLocationAccuracy(null);
+      setCheckoutError("");
     } catch (error) {
       console.error("Failed to create address:", error);
-
-      if (axios.isAxiosError(error)) {
-        alert(error.response?.data?.message || "Failed to save address.");
-      } else {
-        alert("Failed to save address.");
-      }
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Failed to save address."
+        : error instanceof Error ? error.message : "Failed to save address.";
+      if (embedded) setCheckoutError(message);
+      else alert(message);
+    } finally {
+      addressSaveLockRef.current = false;
+      setIsSavingAddress(false);
     }
   };
 
@@ -359,19 +407,23 @@ const Checkout = () => {
     try {
       setIsSubmitting(true);
 
-      await createOrder(selectedAddress, "COD");
-
-      navigate("/order-confirmation");
+      const response = await createOrder(selectedAddress, "COD");
+      if (embedded && onOrderSuccess) {
+        onOrderSuccess(response?.data?.order as Order | undefined, addresses.find((address) => address._id === selectedAddress));
+      } else {
+        navigate("/order-confirmation");
+      }
+      setCheckoutError("");
     } catch (error) {
       console.error("Failed to place COD order:", error);
-
-      if (axios.isAxiosError(error)) {
-        alert(error.response?.data?.message || "Failed to place order.");
-      } else {
-        alert("Failed to place order.");
-      }
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Failed to place order."
+        : error instanceof Error ? error.message : "Failed to place order.";
+      if (embedded) setCheckoutError(message);
+      else alert(message);
     } finally {
       setIsSubmitting(false);
+      submissionLockRef.current = false;
     }
   };
 
@@ -415,31 +467,35 @@ const Checkout = () => {
         },
         handler: async (paymentResponse) => {
           try {
-            await verifyRazorpayPayment({
+            const verified = await verifyRazorpayPayment({
               addressId: selectedAddress,
               razorpayPaymentId: paymentResponse.razorpay_payment_id,
               razorpayOrderId: paymentResponse.razorpay_order_id,
               razorpaySignature: paymentResponse.razorpay_signature,
             });
 
-            navigate("/order-confirmation");
+            if (embedded && onOrderSuccess) {
+              onOrderSuccess(verified?.data?.order as Order | undefined, selectedAddressData);
+            } else {
+              navigate("/order-confirmation");
+            }
+            setCheckoutError("");
           } catch (error) {
             console.error("Razorpay verification failed:", error);
-
-            if (axios.isAxiosError(error)) {
-              alert(
-                error.response?.data?.message || "Payment verification failed.",
-              );
-            } else {
-              alert("Payment verification failed.");
-            }
+            const message = axios.isAxiosError(error)
+              ? error.response?.data?.message || "Payment verification failed."
+              : error instanceof Error ? error.message : "Payment verification failed.";
+            if (embedded) setCheckoutError(message);
+            else alert(message);
           } finally {
             setIsSubmitting(false);
+            submissionLockRef.current = false;
           }
         },
         modal: {
           ondismiss: () => {
             setIsSubmitting(false);
+            submissionLockRef.current = false;
           },
         },
       });
@@ -447,34 +503,31 @@ const Checkout = () => {
       razorpay.open();
     } catch (error) {
       console.error("Razorpay payment error:", error);
-
-      if (axios.isAxiosError(error)) {
-        alert(
-          error.response?.data?.message || "Unable to start Razorpay payment.",
-        );
-      } else {
-        alert(
-          error instanceof Error
-            ? error.message
-            : "Unable to start Razorpay payment.",
-        );
-      }
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Unable to start Razorpay payment."
+        : error instanceof Error ? error.message : "Unable to start Razorpay payment.";
+      if (embedded) setCheckoutError(message);
+      else alert(message);
 
       setIsSubmitting(false);
+      submissionLockRef.current = false;
     }
   };
 
   const handlePlaceOrder = async () => {
+    if (submissionLockRef.current) return;
     if (!selectedAddress) {
-      alert("Please select a delivery address.");
+      setCheckoutError("Please select a delivery address.");
       return;
     }
 
     if (!cart || cart.items.length === 0) {
-      alert("Your cart is empty.");
+      setCheckoutError("Your cart is empty.");
       return;
     }
 
+    setCheckoutError("");
+    submissionLockRef.current = true;
     if (paymentMethod === "COD") {
       await handleCodOrder();
       return;
@@ -495,23 +548,33 @@ const Checkout = () => {
     );
   }
 
-  const total = cart.items.reduce(
+  const cartSubtotal = cart.items.reduce(
     (sum, item) =>
       sum + (item.product.discountPrice ?? item.product.price) * item.quantity,
     0,
   );
+  const subtotal = checkoutSummary?.subtotal ?? cartSubtotal;
+  const shippingAmount = checkoutSummary?.shippingAmount;
+  const total = checkoutSummary?.totalAmount;
 
   const selectedAddressData = addresses.find(
     (address) => address._id === selectedAddress,
   );
 
   return (
-    <div className="checkout-page">
+    <div className={`checkout-page${embedded ? " checkout-page--drawer" : ""}`}>
       <div className="checkout-container">
         <div className="checkout-heading">
-          <p>QUICKCART</p>
-          <h1>Checkout</h1>
+          {embedded && onBack && (
+            <button type="button" className="checkout-back-button" onClick={onBack} aria-label="Back to cart">←</button>
+          )}
+          <div>
+            <p>QUICKCART</p>
+            <h1>Checkout</h1>
+          </div>
         </div>
+
+        {checkoutError && <p className="checkout-flow-error" role="alert">{checkoutError}</p>}
 
         <div className="checkout-layout">
           <div className="checkout-main">
@@ -524,6 +587,18 @@ const Checkout = () => {
                   onClick={() => {
                     setShowAddressForm((previous) => !previous);
                     setShowAddressPicker(false);
+                    setEditingAddressId("");
+                    setAddressForm({
+                      fullName: user?.name || "",
+                      phone: normalizePhone(user?.phone),
+                      addressLine: "",
+                      city: "",
+                      state: "",
+                      pincode: "",
+                      latitude: undefined,
+                      longitude: undefined,
+                      isDefault: addresses.length === 0,
+                    });
                   }}
                 >
                   {showAddressForm ? "Cancel" : "+ Add Address"}
@@ -577,7 +652,7 @@ const Checkout = () => {
                       </div>
                     ) : (
                       addresses.map((address) => (
-                        <label
+                        <div
                           key={address._id}
                           className={`address-card compact-address-card ${
                             selectedAddress === address._id ? "selected" : ""
@@ -594,14 +669,16 @@ const Checkout = () => {
                             }}
                           />
                           <div>
-                            <strong>{address.fullName}</strong>
+                            <strong>{address.isDefault ? "Home" : "Saved address"}</strong>
+                            <span className="checkout-address-name">{address.fullName}</span>
                             <p>
                               {address.addressLine}, {address.city}, {address.state} -{" "}
                               {address.pincode}
                             </p>
                             <span>{address.phone}</span>
                           </div>
-                        </label>
+                          <button type="button" className="checkout-address-edit" onClick={() => startEditingAddress(address)}>Edit</button>
+                        </div>
                       ))
                     )}
                   </div>
@@ -708,52 +785,10 @@ const Checkout = () => {
                     />
                   </div>
 
-                  <button type="submit">Save Address</button>
+                  <button type="submit" disabled={isSavingAddress}>{isSavingAddress ? "Saving address…" : editingAddressId ? "Save changes" : "Save Address"}</button>
                 </form>
               )}
 
-              {false && <div className="address-list">
-                {addresses.length === 0 ? (
-                  <p>No address found.</p>
-                ) : (
-                  addresses.map((address) => (
-                    <label
-                      key={address._id}
-                      className={`address-card ${
-                        selectedAddress === address._id ? "selected" : ""
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="address"
-                        value={address._id}
-                        checked={selectedAddress === address._id}
-                        onChange={(event) =>
-                          setSelectedAddress(event.target.value)
-                        }
-                      />
-
-                      <div>
-                        <strong>{address.fullName}</strong>
-
-                        <p>
-                          {address.addressLine}, {address.city}, {address.state}{" "}
-                          - {address.pincode}
-                        </p>
-
-                        <span>{address.phone}</span>
-
-                        {address.latitude !== undefined &&
-                          address.longitude !== undefined && (
-                            <small className="address-location-info">
-                              📍 Location saved
-                            </small>
-                          )}
-                      </div>
-                    </label>
-                  ))
-                )}
-              </div>}
             </section>
 
             <section className="checkout-section">
@@ -806,10 +841,20 @@ const Checkout = () => {
               </div>
             ))}
 
+            <div className="checkout-total checkout-subtotal">
+              <span>Items total</span>
+              <strong>₹{subtotal}</strong>
+            </div>
+
+            <div className="checkout-total checkout-shipping">
+              <span>Delivery</span>
+              <strong>{shippingAmount === undefined ? "Unavailable" : shippingAmount > 0 ? `₹${shippingAmount}` : "FREE"}</strong>
+            </div>
+
             <div className="checkout-total">
               <span>Total</span>
 
-              <strong>₹{total}</strong>
+              <strong>{total === undefined ? "Unavailable" : `₹${total}`}</strong>
             </div>
 
             <button

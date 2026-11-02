@@ -11,6 +11,7 @@ import {
   getVendorDashboardController,
   getVendorSalesOverviewController,
   createBuyNowOrderController,
+  getCheckoutSummaryController,
 } from "../controllers/orderController";
 
 import authMiddleware from "../middleware/authMiddleware";
@@ -42,6 +43,7 @@ router.get(
 // User payment/order routes
 router.post("/", authMiddleware("user"), createOrderController);
 router.post("/buy-now", authMiddleware("user"), createBuyNowOrderController);
+router.get("/checkout-summary", authMiddleware("user"), getCheckoutSummaryController);
 
 router.post(
   "/razorpay/create-order",

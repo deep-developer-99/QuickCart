@@ -149,6 +149,33 @@ export const createBuyNowOrderController = async (
   }
 };
 
+export const getCheckoutSummaryController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: "Authentication required" });
+      return;
+    }
+
+    const checkout = await calculateCheckout(req.user.id);
+    res.status(200).json({
+      success: true,
+      data: {
+        subtotal: checkout.subtotal,
+        shippingAmount: checkout.shippingAmount,
+        totalAmount: checkout.totalAmount,
+      },
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Unable to calculate checkout total",
+    });
+  }
+};
+
 export const createRazorpayOrderController = async (
   req: AuthenticatedRequest,
   res: Response,

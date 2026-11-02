@@ -304,15 +304,12 @@ const LocationSelector = () => {
     setIsOpen(false);
   };
 
-  const locationText = currentLocation?.address?.city
-    ? `${currentLocation.address.city}${
-        currentLocation.address.pincode
-          ? `, ${currentLocation.address.pincode}`
-          : ""
-      }`
-    : selectedAddress
-      ? `${selectedAddress.city}, ${selectedAddress.pincode}`
-      : "Detect location";
+  const locationText = currentLocation?.address?.displayName ||
+    (selectedAddress
+      ? [selectedAddress.addressLine, selectedAddress.city, selectedAddress.state, selectedAddress.pincode]
+          .filter(Boolean)
+          .join(", ")
+      : "Detect your location");
 
   return (
     <div className="location-selector" ref={containerRef}>
@@ -323,10 +320,9 @@ const LocationSelector = () => {
         aria-expanded={isOpen}
         aria-label="Select delivery location"
       >
-        <span className="location-selector-icon">📍</span>
 
         <span className="location-selector-text">
-          <small>Deliver to</small>
+          <small>Delivery in minutes</small>
 
           <strong>{locationText}</strong>
         </span>

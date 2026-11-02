@@ -24,10 +24,6 @@
   border-radius: 8px;
 }
 
-.location-selector-icon {
-  font-size: 20px;
-}
-
 .location-selector-text {
   display: flex;
   flex-direction: column;

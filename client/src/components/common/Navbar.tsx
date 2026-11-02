@@ -9,20 +9,24 @@ import LocationSelector from "./LocationSelector";
 
 import "./Navbar.css";
 import { useCart } from "../../context/useCart";
+import { useCartDrawer } from "../../context/useCartDrawer";
+import { getValidCartItems } from "../../utils/hasValidCartItems";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const isCartActive = pathname === "/cart";
   const dispatch = useAppDispatch();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const mobileProfileMenuRef = useRef<HTMLDivElement>(null);
-  const { cart } = useCart();
-  const totalItems =
-    cart?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+  const { cart, isCartReady } = useCart();
+  const { openCart } = useCartDrawer();
+  const validCartItems = getValidCartItems(cart);
+  const totalItems = validCartItems.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal =
-    cart?.items.reduce(
+      validCartItems.reduce(
       (sum, item) =>
         sum + (item.product.discountPrice ?? item.product.price) * item.quantity,
       0,
@@ -30,6 +34,10 @@ const Navbar = () => {
 
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const isUser = isAuthenticated && user?.role === "user";
+  const canOpenCart = isUser && isCartReady && validCartItems.length > 0;
+  const handleOpenCart = () => {
+    if (canOpenCart) openCart();
+  };
 
   useEffect(() => {
     if (!isProfileOpen) return;
@@ -168,66 +176,54 @@ const Navbar = () => {
 
         <nav className="navbar-actions">
           {isUser ? (
-            <>
-              <div className="navbar-profile-wrapper" ref={profileMenuRef}>
-                <button
-                  type="button"
-                  className={`navbar-profile-action${
-                    isProfileOpen ? " active" : ""
-                  }`}
-                  onClick={() => setIsProfileOpen((previous) => !previous)}
-                  aria-label="Open Account menu"
-                  aria-expanded={isProfileOpen}
-                  aria-haspopup="menu"
-                >
-                  <span>Account</span>
-                  <span className="navbar-profile-arrow" aria-hidden="true">⌄</span>
-                </button>
-
-                {isProfileOpen && accountDropdown}
-              </div>
-
-              {totalItems === 0 ? (
-                <button
-                  type="button"
-                  className="navbar-cart-action navbar-cart-disabled"
-                  disabled
-                  aria-label="My Cart is empty"
-                >
-                  <span className="navbar-cart-icon" aria-hidden="true">🛒</span>
-                  <span className="navbar-cart-copy">
-                    <strong>My Cart</strong>
-                  </span>
-                </button>
-              ) : (
-                <NavLink
-                  to="/cart"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "navbar-cart-action active"
-                      : "navbar-cart-action"
-                  }
-                  aria-label={`Cart with ${totalItems} ${
-                    totalItems === 1 ? "item" : "items"
-                  }, total ₹${cartTotal}`}
-                >
-                  <span className="navbar-cart-icon" aria-hidden="true">🛒</span>
-                  <span className="navbar-cart-copy">
-                    <strong>{totalItems} {totalItems === 1 ? "Item" : "Items"}</strong>
-                    <span>₹{cartTotal}</span>
-                  </span>
-                </NavLink>
-              )}
-            </>
+            <div className="navbar-profile-wrapper" ref={profileMenuRef}>
+              <button
+                type="button"
+                className={`navbar-profile-action${isProfileOpen ? " active" : ""}`}
+                onClick={() => setIsProfileOpen((previous) => !previous)}
+                aria-label="Open Account menu"
+                aria-expanded={isProfileOpen}
+                aria-haspopup="menu"
+              >
+                <span>Account</span>
+                <span className="navbar-profile-arrow" aria-hidden="true">⌄</span>
+              </button>
+              {isProfileOpen && accountDropdown}
+            </div>
           ) : (
             <NavLink
               to="/login"
-              className={({ isActive }) =>
-                isActive ? "navbar-login active" : "navbar-login"
-              }
+              className={({ isActive }) => isActive ? "navbar-login active" : "navbar-login"}
             >
               Login
             </NavLink>
+          )}
+
+          {canOpenCart ? (
+            <button
+              type="button"
+              className={`navbar-cart-action${isCartActive ? " active" : ""}`}
+              onClick={handleOpenCart}
+              aria-label={`My Cart, ${totalItems} ${totalItems === 1 ? "item" : "items"}, total ${cartTotal}`}
+            >
+              <span className="navbar-cart-icon" aria-hidden="true">🛒</span>
+              <span className="navbar-cart-copy">
+                <strong>My Cart</strong>
+                <span>{totalItems} {totalItems === 1 ? "item" : "items"} · ₹{cartTotal}</span>
+              </span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="navbar-cart-action navbar-cart-disabled"
+              disabled
+              aria-label="My Cart"
+            >
+              <span className="navbar-cart-icon" aria-hidden="true">🛒</span>
+              <span className="navbar-cart-copy">
+                <strong>My Cart</strong>
+              </span>
+            </button>
           )}
         </nav>
 
@@ -256,12 +252,12 @@ const Navbar = () => {
 
           {isUser ? (
             <>
-              {totalItems === 0 ? (
+              {!canOpenCart ? (
                 <button
                   type="button"
                   className="mobile-menu-link mobile-cart-button navbar-cart-disabled"
                   disabled
-                  aria-label="My Cart is empty"
+                  aria-label="My Cart"
                 >
                   🛒 My Cart
                 </button>
@@ -271,7 +267,7 @@ const Navbar = () => {
                   className="mobile-menu-link mobile-cart-button"
                   onClick={() => {
                     closeMenu();
-                    navigate("/cart");
+                    handleOpenCart();
                   }}
                   aria-label={`Cart with ${totalItems} ${
                     totalItems === 1 ? "item" : "items"

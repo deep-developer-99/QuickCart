@@ -21,7 +21,13 @@ const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
         <h3>{product.name}</h3>
 
         <p className="cart-item-price">
-          ₹{product.discountPrice ?? product.price}
+          {product.discountPrice !== undefined && product.discountPrice < product.price && (
+            <>
+              <span className="cart-item-original-price">₹{product.price}</span>
+              <span className="cart-item-discount">Save {Math.round(((product.price - product.discountPrice) / product.price) * 100)}%</span>
+            </>
+          )}
+          <strong>₹{product.discountPrice ?? product.price}</strong>
         </p>
 
         <div className="cart-item-actions">
@@ -29,7 +35,7 @@ const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
             <button
               type="button"
               onClick={() => onQuantityChange(product._id, quantity - 1)}
-              disabled={quantity <= 1}
+              disabled={quantity <= 0}
             >
               −
             </button>

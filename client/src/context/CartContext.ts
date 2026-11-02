@@ -5,10 +5,12 @@ import type { Cart } from "../types/cart";
 export interface CartContextValue {
   cart: Cart | null;
   isLoading: boolean;
+  isCartReady: boolean;
   getQuantity: (productId: string) => number;
   addProduct: (productId: string, quantity?: number) => Promise<void>;
   updateProductQuantity: (productId: string, quantity: number) => Promise<void>;
   removeProduct: (productId: string) => Promise<void>;
+  clearCart: () => Promise<void>;
   refreshCart: () => Promise<void>;
 }
 
