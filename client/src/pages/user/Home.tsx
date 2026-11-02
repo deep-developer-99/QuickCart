@@ -18,7 +18,9 @@ import "./Home.css";
 const Home = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
-  const [promotionalBanners, setPromotionalBanners] = useState<PromotionalBanner[]>([]);
+  const [promotionalBanners, setPromotionalBanners] = useState<
+    PromotionalBanner[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [bannerError, setBannerError] = useState("");
 
@@ -44,7 +46,8 @@ const Home = () => {
         } else {
           setBannerError("Unable to load promotional banners.");
         }
-        if (promotionalResponse?.success) setPromotionalBanners(promotionalResponse.data || []);
+        if (promotionalResponse?.success)
+          setPromotionalBanners(promotionalResponse.data || []);
       } catch (error) {
         console.error("Failed to load home page:", error);
         setBannerError("Unable to load promotional banners.");
@@ -72,10 +75,6 @@ const Home = () => {
       )}
 
       <section className="home-section home-category-section">
-        <div className="section-heading">
-          <h2>Categories</h2>
-        </div>
-
         <CategoryGrid categories={categories} />
       </section>
     </div>
