@@ -24,11 +24,15 @@ const Navbar = () => {
   const { cart, isCartReady } = useCart();
   const { openCart } = useCartDrawer();
   const validCartItems = getValidCartItems(cart);
-  const totalItems = validCartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const totalItems = validCartItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
   const cartTotal =
-      validCartItems.reduce(
+    validCartItems.reduce(
       (sum, item) =>
-        sum + (item.product.discountPrice ?? item.product.price) * item.quantity,
+        sum +
+        (item.product.discountPrice ?? item.product.price) * item.quantity,
       0,
     ) ?? 0;
 
@@ -161,148 +165,187 @@ const Navbar = () => {
 
   return (
     <>
-      <header className={`navbar${pathname === "/search" ? " navbar--search-page" : ""}`}>
-      <div className="navbar-container">
-        <div className="navbar-brand-area">
-          <Link to="/" className="navbar-logo" onClick={closeMenu}>
-            QuickCart
-          </Link>
-          <LocationSelector />
+      <header
+        className={`navbar${pathname === "/search" ? " navbar--search-page" : ""}`}
+      >
+        <div className="navbar-container">
+          <div className="navbar-brand-area">
+            <Link to="/" className="navbar-logo" onClick={closeMenu}>
+              QuickCart
+            </Link>
+            <LocationSelector />
+          </div>
+
+          <div className="navbar-search-desktop">
+            <SearchBar />
+          </div>
+
+          <nav className="navbar-actions">
+            {isUser ? (
+              <div className="navbar-profile-wrapper" ref={profileMenuRef}>
+                <button
+                  type="button"
+                  className={`navbar-profile-action${isProfileOpen ? " active" : ""}`}
+                  onClick={() => setIsProfileOpen((previous) => !previous)}
+                  aria-label="Open Account menu"
+                  aria-expanded={isProfileOpen}
+                  aria-haspopup="menu"
+                >
+                  <span>Account</span>
+                  <span className="navbar-profile-arrow" aria-hidden="true">
+                    ⌄
+                  </span>
+                </button>
+                {isProfileOpen && accountDropdown}
+              </div>
+            ) : (
+              <NavLink
+                to="/login"
+                className={({ isActive }) =>
+                  isActive ? "navbar-login active" : "navbar-login"
+                }
+              >
+                Login
+              </NavLink>
+            )}
+
+            {canOpenCart ? (
+              <button
+                type="button"
+                className={`navbar-cart-action${isCartActive ? " active" : ""}`}
+                onClick={handleOpenCart}
+                aria-label={`My Cart, ${totalItems} ${totalItems === 1 ? "item" : "items"}, total ${cartTotal}`}
+              >
+                <svg
+                  className="navbar-cart-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 1.9-1.4L22 8H6"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="10" cy="20" r="1.4" fill="currentColor" />
+                  <circle cx="18" cy="20" r="1.4" fill="currentColor" />
+                </svg>
+                <span className="navbar-cart-copy">
+                  <strong>My Cart</strong>
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="navbar-cart-action navbar-cart-disabled"
+                disabled
+                aria-label="My Cart"
+              >
+                <svg
+                  className="navbar-cart-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 1.9-1.4L22 8H6"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="10" cy="20" r="1.4" fill="currentColor" />
+                  <circle cx="18" cy="20" r="1.4" fill="currentColor" />
+                </svg>
+                <span className="navbar-cart-copy">
+                  <strong>My Cart</strong>
+                </span>
+              </button>
+            )}
+          </nav>
+
+          <button
+            type="button"
+            className="navbar-menu-button"
+            onClick={() => setIsMenuOpen((previous) => !previous)}
+            aria-label="Toggle navigation menu"
+            aria-expanded={isMenuOpen}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
         </div>
 
-        <div className="navbar-search-desktop">
+        <div className="navbar-search-mobile">
           <SearchBar />
         </div>
 
-        <nav className="navbar-actions">
-          {isUser ? (
-            <div className="navbar-profile-wrapper" ref={profileMenuRef}>
-              <button
-                type="button"
-                className={`navbar-profile-action${isProfileOpen ? " active" : ""}`}
-                onClick={() => setIsProfileOpen((previous) => !previous)}
-                aria-label="Open Account menu"
-                aria-expanded={isProfileOpen}
-                aria-haspopup="menu"
-              >
-                <span>Account</span>
-                <span className="navbar-profile-arrow" aria-hidden="true">⌄</span>
-              </button>
-              {isProfileOpen && accountDropdown}
-            </div>
-          ) : (
-            <NavLink
-              to="/login"
-              className={({ isActive }) => isActive ? "navbar-login active" : "navbar-login"}
-            >
-              Login
+        {isMenuOpen && (
+          <nav className="mobile-menu">
+            <NavLink to="/" className="mobile-menu-link" onClick={closeMenu}>
+              Home
             </NavLink>
-          )}
 
-          {canOpenCart ? (
-            <button
-              type="button"
-              className={`navbar-cart-action${isCartActive ? " active" : ""}`}
-              onClick={handleOpenCart}
-              aria-label={`My Cart, ${totalItems} ${totalItems === 1 ? "item" : "items"}, total ${cartTotal}`}
-            >
-              <span className="navbar-cart-icon" aria-hidden="true">🛒</span>
-              <span className="navbar-cart-copy">
-                <strong>My Cart</strong>
-                <span>{totalItems} {totalItems === 1 ? "item" : "items"} · ₹{cartTotal}</span>
-              </span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="navbar-cart-action navbar-cart-disabled"
-              disabled
-              aria-label="My Cart"
-            >
-              <span className="navbar-cart-icon" aria-hidden="true">🛒</span>
-              <span className="navbar-cart-copy">
-                <strong>My Cart</strong>
-              </span>
-            </button>
-          )}
-        </nav>
-
-        <button
-          type="button"
-          className="navbar-menu-button"
-          onClick={() => setIsMenuOpen((previous) => !previous)}
-          aria-label="Toggle navigation menu"
-          aria-expanded={isMenuOpen}
-        >
-          <span />
-          <span />
-          <span />
-        </button>
-      </div>
-
-      <div className="navbar-search-mobile">
-        <SearchBar />
-      </div>
-
-      {isMenuOpen && (
-        <nav className="mobile-menu">
-          <NavLink to="/" className="mobile-menu-link" onClick={closeMenu}>
-            Home
-          </NavLink>
-
-          {isUser ? (
-            <>
-              {!canOpenCart ? (
-                <button
-                  type="button"
-                  className="mobile-menu-link mobile-cart-button navbar-cart-disabled"
-                  disabled
-                  aria-label="My Cart"
-                >
-                  🛒 My Cart
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="mobile-menu-link mobile-cart-button"
-                  onClick={() => {
-                    closeMenu();
-                    handleOpenCart();
-                  }}
-                  aria-label={`Cart with ${totalItems} ${
-                    totalItems === 1 ? "item" : "items"
-                  }, total ₹${cartTotal}`}
-                >
-                  🛒 {totalItems} {totalItems === 1 ? "Item" : "Items"} · ₹{cartTotal}
-                </button>
-              )}
-              <div ref={mobileProfileMenuRef} className="mobile-account-section">
-                <button
-                  type="button"
-                  className="mobile-menu-link mobile-account-button"
-                  onClick={() => setIsProfileOpen((previous) => !previous)}
-                  aria-expanded={isProfileOpen}
-                >
-                  Account <span className="mobile-account-arrow">⌄</span>
-                </button>
-                {isProfileOpen && (
-                  <div className="mobile-profile-dropdown">
-                    {accountDropdown}
-                  </div>
+            {isUser ? (
+              <>
+                {!canOpenCart ? (
+                  <button
+                    type="button"
+                    className="mobile-menu-link mobile-cart-button navbar-cart-disabled"
+                    disabled
+                    aria-label="My Cart"
+                  >
+                    🛒 My Cart
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="mobile-menu-link mobile-cart-button"
+                    onClick={() => {
+                      closeMenu();
+                      handleOpenCart();
+                    }}
+                    aria-label={`Cart with ${totalItems} ${
+                      totalItems === 1 ? "item" : "items"
+                    }, total ₹${cartTotal}`}
+                  >
+                    🛒 {totalItems} {totalItems === 1 ? "Item" : "Items"} · ₹
+                    {cartTotal}
+                  </button>
                 )}
-              </div>
-            </>
-          ) : (
-            <NavLink
-              to="/login"
-              className="mobile-menu-login"
-              onClick={closeMenu}
-            >
-              Login
-            </NavLink>
-          )}
-        </nav>
-      )}
+                <div
+                  ref={mobileProfileMenuRef}
+                  className="mobile-account-section"
+                >
+                  <button
+                    type="button"
+                    className="mobile-menu-link mobile-account-button"
+                    onClick={() => setIsProfileOpen((previous) => !previous)}
+                    aria-expanded={isProfileOpen}
+                  >
+                    Account <span className="mobile-account-arrow">⌄</span>
+                  </button>
+                  {isProfileOpen && (
+                    <div className="mobile-profile-dropdown">
+                      {accountDropdown}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <NavLink
+                to="/login"
+                className="mobile-menu-login"
+                onClick={closeMenu}
+              >
+                Login
+              </NavLink>
+            )}
+          </nav>
+        )}
       </header>
       {isProfileOpen && (
         <button

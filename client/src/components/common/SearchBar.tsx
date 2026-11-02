@@ -8,7 +8,9 @@ const SearchBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isSearchPage = location.pathname === "/search";
-  const value = isSearchPage ? new URLSearchParams(location.search).get("q") || "" : "";
+  const value = isSearchPage
+    ? new URLSearchParams(location.search).get("q") || ""
+    : "";
 
   const openSearch = () => {
     if (!isSearchPage) {
@@ -19,7 +21,9 @@ const SearchBar = () => {
 
   const handleChange = (nextValue: string) => {
     const query = nextValue.trim();
-    navigate(query ? `/search?q=${encodeURIComponent(query)}` : "/search", { replace: isSearchPage });
+    navigate(query ? `/search?q=${encodeURIComponent(query)}` : "/search", {
+      replace: isSearchPage,
+    });
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -27,7 +31,9 @@ const SearchBar = () => {
     const query = value.trim();
     if (!query) return;
     addRecentSearch(query);
-    navigate(`/search?q=${encodeURIComponent(query)}`, { replace: isSearchPage });
+    navigate(`/search?q=${encodeURIComponent(query)}`, {
+      replace: isSearchPage,
+    });
   };
 
   const handleClear = () => {
@@ -35,8 +41,32 @@ const SearchBar = () => {
   };
 
   return (
-    <form className="quickcart-search" onSubmit={handleSubmit} role="search" onClick={openSearch}>
-      <span className="quickcart-search-icon" aria-hidden="true">⌕</span>
+    <form
+      className="quickcart-search"
+      onSubmit={handleSubmit}
+      role="search"
+      onClick={openSearch}
+    >
+      <svg
+        className="quickcart-search-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle
+          cx="10.8"
+          cy="10.8"
+          r="6.8"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
+        <path
+          d="m16 16 4.2 4.2"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+      </svg>
       <input
         type="search"
         value={value}
@@ -46,7 +76,12 @@ const SearchBar = () => {
         aria-label="Search products"
       />
       {value && (
-        <button type="button" className="quickcart-search-clear" onClick={handleClear} aria-label="Clear search">
+        <button
+          type="button"
+          className="quickcart-search-clear"
+          onClick={handleClear}
+          aria-label="Clear search"
+        >
           ×
         </button>
       )}
