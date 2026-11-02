@@ -1,73 +1,55 @@
-import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { addRecentSearch } from "../../hooks/useRecentSearches";
 import "./SearchBar.css";
 
 const SearchBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const isSearchPage = location.pathname === "/search";
+  const value = isSearchPage ? new URLSearchParams(location.search).get("q") || "" : "";
 
-  const [value, setValue] = useState("");
-
-  useEffect(() => {
-    if (location.pathname === "/search") {
-      const params = new URLSearchParams(location.search);
-
-      setValue(params.get("q") || "");
-    } else {
-      setValue("");
+  const openSearch = () => {
+    if (!isSearchPage) {
+      const query = value.trim();
+      navigate(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
     }
-  }, [location.pathname, location.search]);
+  };
+
+  const handleChange = (nextValue: string) => {
+    const query = nextValue.trim();
+    navigate(query ? `/search?q=${encodeURIComponent(query)}` : "/search", { replace: isSearchPage });
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    const search = value.trim();
-
-    if (!search) {
-      return;
-    }
-
-    navigate(`/search?q=${encodeURIComponent(search)}`);
+    const query = value.trim();
+    if (!query) return;
+    addRecentSearch(query);
+    navigate(`/search?q=${encodeURIComponent(query)}`, { replace: isSearchPage });
   };
 
   const handleClear = () => {
-    setValue("");
-
-    if (location.pathname === "/search") {
-      navigate("/");
-    }
+    if (isSearchPage) navigate("/search", { replace: true });
   };
 
   return (
-    <form className="quickcart-search" onSubmit={handleSubmit} role="search">
-      <span className="quickcart-search-icon" aria-hidden="true">
-        🔍
-      </span>
-
+    <form className="quickcart-search" onSubmit={handleSubmit} role="search" onClick={openSearch}>
+      <span className="quickcart-search-icon" aria-hidden="true">⌕</span>
       <input
-        type="text"
+        type="search"
         value={value}
-        onChange={(event) => setValue(event.target.value)}
+        onChange={(event) => handleChange(event.target.value)}
+        onFocus={openSearch}
         placeholder="Search for milk, bread, fruits & more"
         aria-label="Search products"
       />
-
       {value && (
-        <button
-          type="button"
-          className="quickcart-search-clear"
-          onClick={handleClear}
-          aria-label="Clear search"
-        >
+        <button type="button" className="quickcart-search-clear" onClick={handleClear} aria-label="Clear search">
           ×
         </button>
       )}
-
-      <button type="submit" className="quickcart-search-submit">
-        Search
-      </button>
     </form>
   );
 };

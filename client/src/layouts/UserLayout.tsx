@@ -1,18 +1,21 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
 import Navbar from "../components/common/Navbar";
 import Footer from "../components/common/Footer";
 
 const UserLayout = () => {
+  const { pathname } = useLocation();
+  const isSearchPage = pathname === "/search";
+
   return (
-    <div className="user-layout">
+    <div className={`user-layout${isSearchPage ? " user-layout--search" : ""}`}>
       <Navbar />
 
       <main className="user-layout-main">
         <Outlet />
       </main>
 
-      <Footer />
+      {!isSearchPage && <Footer />}
     </div>
   );
 };

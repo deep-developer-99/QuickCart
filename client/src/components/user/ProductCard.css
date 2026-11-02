@@ -290,3 +290,109 @@
     width: 26px;
   }
 }
+
+/* Compact search result cards; the default card layout remains unchanged elsewhere. */
+.product-card--compact {
+  min-height: 252px;
+  border-radius: 7px;
+  box-shadow: none;
+}
+
+.product-card--compact .product-card-image-wrapper {
+  flex: 0 0 auto;
+  aspect-ratio: 1.35;
+  padding: 7px;
+}
+
+.product-card--compact .product-card-content {
+  min-height: 70px;
+  padding: 7px 9px 3px;
+}
+
+.product-card--compact .product-card-category {
+  margin-bottom: 3px;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-card--compact .product-card-name {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.product-card--compact .product-card-description {
+  display: none;
+}
+
+.product-card--compact .product-card-footer {
+  min-height: 39px;
+  flex: 0 0 auto;
+  gap: 5px;
+  padding: 5px 8px 8px;
+}
+
+.product-card--compact .product-card-prices {
+  gap: 3px;
+}
+
+.product-card--compact .product-card-price {
+  font-size: 16px;
+}
+
+.product-card--compact .product-card-old-price {
+  font-size: 10px;
+}
+
+.product-card--compact .product-add-button {
+  min-width: 49px;
+  height: 27px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 10px;
+}
+
+.product-card--compact .product-quantity-control,
+.product-card--compact .product-quantity-button {
+  height: 27px;
+}
+
+.product-card--compact .product-quantity-button {
+  width: 22px;
+  font-size: 15px;
+}
+
+.product-card--compact .product-quantity-value {
+  min-width: 21px;
+  font-size: 11px;
+}
+
+.product-card--compact .product-unavailable {
+  padding: 4px 6px;
+  font-size: 9px;
+}
+
+.product-card--compact .low-stock-badge,
+.product-card--compact .out-stock-badge {
+  top: 6px;
+  left: 6px;
+  padding: 4px 6px;
+  font-size: 9px;
+}
+
+@media (max-width: 600px) {
+  .product-card--compact {
+    min-height: 238px;
+    border-radius: 8px;
+  }
+
+  .product-card--compact .product-card-image-wrapper { padding: 6px; }
+  .product-card--compact .product-card-content { padding: 6px 7px 3px; }
+  .product-card--compact .product-card-name { font-size: 12px; }
+  .product-card--compact .product-card-footer { padding: 5px 6px 7px; }
+  .product-card--compact .product-card-price { font-size: 15px; }
+}

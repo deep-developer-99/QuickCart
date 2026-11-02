@@ -1,135 +1,154 @@
-import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { getProducts } from "../../services/productService";
-
 import type { Product } from "../../types/product";
-
 import ProductCard from "../../components/user/ProductCard";
+import { addRecentSearch, useRecentSearches } from "../../hooks/useRecentSearches";
 
 import "./SearchResults.css";
 
 const SearchResults = () => {
-  const [searchParams] = useSearchParams();
-
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const query = (searchParams.get("q") || "").trim();
-
+  const { searches, clearRecentSearches } = useRecentSearches();
   const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [resolvedQuery, setResolvedQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [retryKey, setRetryKey] = useState(0);
+
+  useEffect(() => {
+    const inputSelector = window.matchMedia("(max-width: 768px)").matches
+      ? ".navbar-search-mobile input"
+      : ".navbar-search-desktop input";
+    const input = document.querySelector<HTMLInputElement>(inputSelector);
+    input?.focus();
+    input?.setSelectionRange(input.value.length, input.value.length);
+  }, []);
 
   useEffect(() => {
     if (!query) {
-      setProducts([]);
-      setIsLoading(false);
       return;
     }
 
-    const searchProducts = async () => {
+    let isCurrent = true;
+    const timeout = window.setTimeout(async () => {
       try {
-        setIsLoading(true);
+        const response = await getProducts(query, undefined, 1, 24);
+        if (!isCurrent) return;
+        setResolvedQuery(query);
         setError("");
-
-        const response = await getProducts(query);
-
-        if (response?.success) {
-          setProducts(response.data || []);
-        } else {
-          setProducts([]);
-        }
-      } catch (error) {
-        console.error("Failed to search products:", error);
-
-        setError("Failed to search products. Please try again.");
-
+        setProducts(response?.success ? response.data || [] : []);
+        if (!response?.success) setError("Search is temporarily unavailable. Please try again.");
+      } catch (requestError) {
+        if (!isCurrent) return;
+        console.error("Failed to search products:", requestError);
+        setResolvedQuery(query);
         setProducts([]);
+        setError("We couldn't load search results. Check your connection and try again.");
       } finally {
-        setIsLoading(false);
+        if (isCurrent) setIsLoading(false);
       }
+    }, 300);
+
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(timeout);
     };
+  }, [query, retryKey]);
 
-    searchProducts();
-  }, [query]);
+  const suggestions = useMemo(() => {
+    const normalized = query.toLocaleLowerCase();
+    const seen = new Set<string>();
+    return products.filter((product) => {
+      const name = product.name.trim();
+      const key = name.toLocaleLowerCase();
+      if (!name || !key.includes(normalized) || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 5);
+  }, [products, query]);
+  const showingLoading = Boolean(query) && (isLoading || resolvedQuery !== query);
 
-  if (!query) {
-    return (
-      <div className="search-results-page">
-        <div className="search-results-empty">
-          <div className="search-results-empty-icon">🔍</div>
+  const selectRecentSearch = (term: string) => {
+    setSearchParams({ q: term });
+  };
 
-          <h1>Search Products</h1>
-
-          <p>Search for milk, bread, fruits, snacks and more.</p>
-
-          <Link to="/">Back to Home</Link>
-        </div>
-      </div>
-    );
-  }
+  const openProduct = (product: Product) => {
+    addRecentSearch(product.name);
+    navigate(`/products/${product._id}`);
+  };
 
   return (
     <div className="search-results-page">
       <div className="search-results-container">
-        <div className="search-results-header">
-          <div>
-            <span className="search-results-eyebrow">SEARCH</span>
-
-            <h1>Search Results</h1>
-
-            <p>
-              Showing results for <strong>"{query}"</strong>
-            </p>
-          </div>
-
-          <Link to="/" className="search-results-back">
-            ← Home
-          </Link>
-        </div>
-
-        {isLoading && (
-          <div className="search-results-loading">
-            <div className="search-results-spinner" />
-            <p>Searching products...</p>
-          </div>
-        )}
-
-        {!isLoading && error && (
-          <div className="search-results-error">
-            <div>⚠️</div>
-
-            <h2>Unable to search</h2>
-
-            <p>{error}</p>
-
-            <Link to="/">Go back home</Link>
-          </div>
-        )}
-
-        {!isLoading && !error && products.length > 0 && (
-          <>
-            <div className="search-results-count">
-              {products.length} {products.length === 1 ? "product" : "products"}{" "}
-              found
+        {!query ? (
+          <section className="recent-searches" aria-labelledby="recent-searches-title">
+            <div className="recent-searches-heading">
+              <h1 id="recent-searches-title">Recent searches</h1>
+              {searches.length > 0 && (
+                <button type="button" onClick={clearRecentSearches}>Clear</button>
+              )}
             </div>
+            {searches.length ? (
+              <div className="recent-searches-list">
+                {searches.slice(0, 10).map((term) => (
+                  <button type="button" className="recent-search-chip" key={term} onClick={() => selectRecentSearch(term)}>
+                    <span aria-hidden="true">◷</span>{term}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="recent-searches-empty">Your recent searches will show up here.</p>
+            )}
+          </section>
+        ) : (
+          <section className="search-live-results" aria-live="polite">
+            {showingLoading && (
+              <div className="search-results-grid" aria-label="Loading search results">
+                {Array.from({ length: 8 }, (_, index) => <div className="search-product-skeleton" key={index} />)}
+              </div>
+            )}
 
-            <div className="search-results-grid">
-              {products.map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
-            </div>
-          </>
-        )}
+            {!showingLoading && error && (
+              <div className="search-state search-state-error" role="alert">
+                <div className="search-state-icon" aria-hidden="true">!</div>
+                <h2>Unable to search right now</h2>
+                <p>{error}</p>
+                <button type="button" onClick={() => { setResolvedQuery(""); setRetryKey((current) => current + 1); }}>Try again</button>
+              </div>
+            )}
 
-        {!isLoading && !error && products.length === 0 && (
-          <div className="search-results-empty">
-            <div className="search-results-empty-icon">🛒</div>
+            {!showingLoading && !error && products.length > 0 && (
+              <>
+                {suggestions.length > 0 && (
+                  <div className="search-suggestions" role="listbox" aria-label="Product suggestions">
+                    {suggestions.map((product) => (
+                      <button type="button" role="option" className="search-suggestion" key={product._id} onClick={() => openProduct(product)}>
+                        <img src={product.image} alt="" />
+                        <span>{product.name}</span>
+                        <span className="search-suggestion-arrow" aria-hidden="true">↗</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="search-results-count">{products.length} {products.length === 1 ? "product" : "products"} found</div>
+                <div className="search-results-grid">
+                  {products.map((product) => <ProductCard key={product._id} product={product} variant="compact" />)}
+                </div>
+              </>
+            )}
 
-            <h2>No Products Found</h2>
-
-            <p>We couldn't find any product matching "{query}".</p>
-
-            <Link to="/">Continue Shopping</Link>
-          </div>
+            {!showingLoading && !error && products.length === 0 && (
+              <div className="search-state search-state-empty">
+                <div className="search-state-icon" aria-hidden="true">⌕</div>
+                <h2>No products found.</h2>
+                <p>Try another search or check the spelling.</p>
+              </div>
+            )}
+          </section>
         )}
       </div>
     </div>

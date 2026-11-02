@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { logout } from "../../services/authService";
 import { logoutUser } from "../../store/slice/authSlice";
@@ -12,6 +12,7 @@ import { useCart } from "../../context/useCart";
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const dispatch = useAppDispatch();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -152,7 +153,7 @@ const Navbar = () => {
 
   return (
     <>
-      <header className="navbar">
+      <header className={`navbar${pathname === "/search" ? " navbar--search-page" : ""}`}>
       <div className="navbar-container">
         <div className="navbar-brand-area">
           <Link to="/" className="navbar-logo" onClick={closeMenu}>

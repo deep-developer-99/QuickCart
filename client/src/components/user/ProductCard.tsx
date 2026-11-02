@@ -11,7 +11,7 @@ import "./ProductCard.css";
 
 interface ProductCardProps {
   product: Product;
-  variant?: "category";
+  variant?: "category" | "compact";
 }
 
 const ProductCard = ({ product, variant }: ProductCardProps) => {
