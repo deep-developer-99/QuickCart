@@ -14,21 +14,26 @@ const useAuth = () => {
     // to /me dobara call nahi karna.
     if (!isLoading) return;
 
+    let active = true;
     const checkAuth = async () => {
       try {
         const response = await getCurrentUser();
 
+        if (!active) return;
         if (response?.success && response?.data) {
           dispatch(setCredentials(response.data));
         } else {
           dispatch(logoutUser());
         }
       } catch {
-        dispatch(logoutUser());
+        if (active) dispatch(logoutUser());
       }
     };
 
-    checkAuth();
+    void checkAuth();
+    return () => {
+      active = false;
+    };
   }, [dispatch, isLoading]);
 
   return null;

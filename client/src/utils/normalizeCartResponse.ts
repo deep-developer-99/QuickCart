@@ -1,28 +1,49 @@
 import type { Cart } from "../types/cart";
+import { getEntityId } from "./getEntityId";
 
 export const normalizeCartResponse = (response: unknown, fallbackUserId: string): Cart | null => {
   if (!response || typeof response !== "object") return null;
   const envelope = response as { data?: unknown; items?: unknown };
+  if ("success" in envelope && envelope.success === false) return null;
   const candidate = envelope.data && typeof envelope.data === "object" && Array.isArray((envelope.data as { items?: unknown }).items)
     ? envelope.data as Record<string, unknown>
     : envelope as Record<string, unknown>;
   if (!Array.isArray(candidate.items)) return null;
 
-  const items = candidate.items.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object"))
-    .map((item) => {
-      const rawProduct = item.product;
-      const product = typeof rawProduct === "string"
-        ? rawProduct
-        : rawProduct && typeof rawProduct === "object"
-          ? rawProduct as Cart["items"][number]["product"]
-          : "";
-      return { product, quantity: Number(item.quantity) };
-    })
-    .filter((item) => Boolean(item.product));
+  const responseUserId = getEntityId(candidate.user);
+  if (responseUserId && fallbackUserId && responseUserId !== fallbackUserId) return null;
+
+  const itemByProductId = new Map<string, Cart["items"][number]>();
+  for (const rawItem of candidate.items) {
+    if (!rawItem || typeof rawItem !== "object") continue;
+    const item = rawItem as Record<string, unknown>;
+    const quantity = Number(item.quantity);
+    const productId = getEntityId(item.product);
+    if (!productId || !Number.isFinite(quantity) || quantity <= 0) continue;
+
+    const rawProduct = item.product;
+    const product = rawProduct && typeof rawProduct === "object"
+      ? { ...rawProduct, _id: productId } as Cart["items"][number]["product"]
+      : productId;
+    const existing = itemByProductId.get(productId);
+    if (existing) {
+      const combinedQuantity = existing.quantity + quantity;
+      if (Number.isFinite(combinedQuantity)) {
+        existing.quantity = combinedQuantity;
+        if (typeof existing.product === "string" && typeof product !== "string") {
+          existing.product = product;
+        }
+      }
+    } else {
+      itemByProductId.set(productId, { product, quantity });
+    }
+  }
+
+  const items = [...itemByProductId.values()];
 
   return {
     _id: String(candidate._id ?? candidate.id ?? ""),
-    user: String(candidate.user ?? fallbackUserId),
+    user: responseUserId ?? fallbackUserId,
     items,
   };
 };

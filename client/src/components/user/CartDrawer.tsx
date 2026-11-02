@@ -3,7 +3,7 @@ import type { MouseEvent } from "react";
 
 import { useCart } from "../../context/useCart";
 import { useAppSelector } from "../../hooks/reduxHooks";
-import { getCartProductId, getValidCartItems, hasValidCartItems } from "../../utils/hasValidCartItems";
+import { getCartProductId, getCartSubtotal, getValidCartItems, hasValidCartItems } from "../../utils/hasValidCartItems";
 import { getAddresses } from "../../services/addressService";
 import { getCheckoutSummary } from "../../services/orderService";
 import type { CheckoutSummary } from "../../services/orderService";
@@ -47,14 +47,7 @@ const CartDrawer = ({ isOpen, onClose, onNavigate }: CartDrawerProps) => {
 
   const validItems = getValidCartItems(cart);
   const validItemCount = validItems.reduce((sum, item) => sum + item.quantity, 0);
-  const calculatedItemsTotal = validItems.reduce(
-    (sum, item) => {
-      if (typeof item.product === "string") return sum;
-      const price = item.product.discountPrice ?? item.product.price;
-      return Number.isFinite(price) ? sum + price * Number(item.quantity) : sum;
-    },
-    0,
-  );
+  const calculatedItemsTotal = getCartSubtotal(validItems) ?? 0;
   const cartSummaryKey = validItems.map((item) => typeof item.product === "string"
     ? `${item.product}:${item.quantity}`
     : `${item.product._id}:${item.quantity}:${item.product.price}:${item.product.discountPrice ?? ""}`).join("|");
@@ -90,14 +83,12 @@ const CartDrawer = ({ isOpen, onClose, onNavigate }: CartDrawerProps) => {
     };
     window.addEventListener("keydown", onKeyDown);
 
-    void refreshCart();
-
     return () => {
       document.body.style.overflow = previousOverflow;
       document.body.style.overscrollBehavior = previousOverscroll;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [handleClose, isOpen, isUser, refreshCart]);
+  }, [handleClose, isOpen, isUser]);
 
   useEffect(() => {
     if (!isOpen || !isUser || !isCartReady || stage === "success") return;

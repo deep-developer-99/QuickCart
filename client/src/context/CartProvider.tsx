@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import axios from "axios";
 
-import { useAppSelector } from "../hooks/reduxHooks";
+import { useAppDispatch, useAppSelector } from "../hooks/reduxHooks";
+import { logoutUser } from "../store/slice/authSlice";
 import {
   addToCart,
   clearCart as clearCartRequest,
@@ -14,6 +15,7 @@ import {
 
 import type { Cart } from "../types/cart";
 import { normalizeCartResponse } from "../utils/normalizeCartResponse";
+import { getCartProductId, getCartQuantity } from "../utils/hasValidCartItems";
 
 import { CartContext } from "./CartContext";
 
@@ -23,53 +25,68 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     isAuthenticated,
     isLoading: isAuthLoading,
   } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
 
   const [storedCart, setStoredCart] = useState<Cart | null>(null);
   const [cartOwnerId, setCartOwnerId] = useState<string | null>(null);
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [cartError, setCartError] = useState<{ userId: string; message: string } | null>(null);
   const requestSequenceRef = useRef(0);
+  const currentUserIdRef = useRef<string | null>(null);
   const mutationQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const isUser = isAuthenticated && user?.role === "user";
   const userId = isUser ? user?.id ?? null : null;
+  useLayoutEffect(() => {
+    currentUserIdRef.current = userId;
+  }, [userId]);
   const cart = userId && cartOwnerId === userId ? storedCart : null;
   const isCartReady = Boolean(userId && loadedUserId === userId);
+  const currentCartError = userId && cartError?.userId === userId ? cartError.message : null;
+  const isCartLoading = Boolean(userId && (isLoading || (!isCartReady && !currentCartError)));
 
   const refreshCart = useCallback(async () => {
-    const requestId = ++requestSequenceRef.current;
     const requestUserId = userId;
+    if (requestUserId !== currentUserIdRef.current) return;
+    const requestId = ++requestSequenceRef.current;
     if (!requestUserId) {
       setStoredCart(null);
       setCartOwnerId(null);
       setLoadedUserId(null);
       setIsLoading(false);
+      setCartError(null);
       return;
     }
 
     setIsLoading(true);
+    setCartError(null);
     try {
       const response = await getCart();
-      if (requestId !== requestSequenceRef.current) return;
+      if (requestId !== requestSequenceRef.current || requestUserId !== currentUserIdRef.current) return;
       const normalizedCart = normalizeCartResponse(response, requestUserId);
       if (normalizedCart) {
         setStoredCart(normalizedCart);
         setCartOwnerId(requestUserId);
         setLoadedUserId(requestUserId);
+      } else {
+        throw new Error("The cart response could not be read. Please retry.");
       }
     } catch (error) {
-      if (requestId !== requestSequenceRef.current) return;
+      if (requestId !== requestSequenceRef.current || requestUserId !== currentUserIdRef.current) return;
       if (axios.isAxiosError(error) && error.response?.status === 401) {
-        setStoredCart(null);
-        setCartOwnerId(requestUserId);
-        setLoadedUserId(requestUserId);
+        dispatch(logoutUser());
       } else {
         console.error("Failed to load cart:", error);
+        setCartError({
+          userId: requestUserId,
+          message: error instanceof Error ? error.message : "Unable to load cart. Please retry.",
+        });
       }
     } finally {
       if (requestId === requestSequenceRef.current) setIsLoading(false);
     }
-  }, [userId]);
+  }, [dispatch, userId]);
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -81,6 +98,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       setCartOwnerId(null);
       setLoadedUserId(null);
       setIsLoading(false);
+      setCartError(null);
       return;
     }
     void refreshCart();
@@ -93,30 +111,36 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const updateLocalCart = useCallback((update: (current: Cart) => Cart) => {
-    if (!userId) return;
-    setStoredCart((current) => current && cartOwnerId === userId ? update(current) : current);
+    if (!userId || currentUserIdRef.current !== userId) return;
+    setStoredCart((current) => current && cartOwnerId === userId && currentUserIdRef.current === userId ? update(current) : current);
   }, [cartOwnerId, userId]);
 
-  const getProductId = (product: Cart["items"][number]["product"]) =>
-    typeof product === "string" ? product : product?._id;
-
   const addProduct = useCallback((productId: string, quantity = 1) => enqueueMutation(async () => {
-    await addToCart(productId, quantity);
+    const response = await addToCart(productId, quantity);
+    if (userId && currentUserIdRef.current === userId) {
+      const updatedCart = normalizeCartResponse(response, userId);
+      if (updatedCart) {
+        setStoredCart(updatedCart);
+        setCartOwnerId(userId);
+        setLoadedUserId(userId);
+        setCartError(null);
+      }
+    }
     await refreshCart();
-  }), [enqueueMutation, refreshCart]);
+  }), [enqueueMutation, refreshCart, userId]);
 
   const updateProductQuantity = useCallback((productId: string, quantity: number) => enqueueMutation(async () => {
     if (quantity < 1) {
       await removeCartItem(productId);
       updateLocalCart((current) => ({
         ...current,
-        items: current.items.filter((item) => getProductId(item.product) !== productId),
+        items: current.items.filter((item) => getCartProductId(item.product) !== productId),
       }));
     } else {
       await updateCartItem(productId, quantity);
       updateLocalCart((current) => ({
         ...current,
-        items: current.items.map((item) => getProductId(item.product) === productId ? { ...item, quantity } : item),
+        items: current.items.map((item) => getCartProductId(item.product) === productId ? { ...item, quantity } : item),
       }));
     }
     await refreshCart();
@@ -126,7 +150,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     await removeCartItem(productId);
     updateLocalCart((current) => ({
       ...current,
-      items: current.items.filter((item) => getProductId(item.product) !== productId),
+      items: current.items.filter((item) => getCartProductId(item.product) !== productId),
     }));
     await refreshCart();
   }), [enqueueMutation, refreshCart, updateLocalCart]);
@@ -137,17 +161,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     await refreshCart();
   }), [enqueueMutation, refreshCart, updateLocalCart]);
 
-  const getQuantity = (productId: string) => {
-    const item = cart?.items.find((cartItem) => {
-      return getProductId(cartItem.product) === productId;
-    });
-    return item?.quantity ?? 0;
-  };
+  const getQuantity = (productId: string) => getCartQuantity(cart, productId);
 
   const value = {
     cart,
-    isLoading,
+    isLoading: isCartLoading,
     isCartReady,
+    cartError: currentCartError,
     getQuantity,
     addProduct,
     updateProductQuantity,

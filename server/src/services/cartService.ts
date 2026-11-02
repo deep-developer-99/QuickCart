@@ -48,8 +48,11 @@ export const addToCart = async (
   productId: string,
   quantity: number,
 ) => {
-  if (quantity < 1) {
-    throw new Error("Quantity must be at least 1");
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw new Error("Quantity must be a positive whole number");
+  }
+  if (!Types.ObjectId.isValid(productId)) {
+    throw new Error("Product not found");
   }
 
   const product = await Product.findOne({
@@ -113,8 +116,11 @@ export const updateCartItem = async (
   productId: string,
   quantity: number,
 ) => {
-  if (quantity < 1) {
-    throw new Error("Quantity must be at least 1");
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw new Error("Quantity must be a positive whole number");
+  }
+  if (!Types.ObjectId.isValid(productId)) {
+    throw new Error("Product not found");
   }
   const product = await Product.findOne({
     _id: productId,

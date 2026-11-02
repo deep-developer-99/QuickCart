@@ -26,6 +26,7 @@ import type { CheckoutSummary } from "../../services/orderService";
 
 import { loadRazorpayScript } from "../../utils/razorpay";
 import { normalizeCartResponse } from "../../utils/normalizeCartResponse";
+import { getCartSubtotal } from "../../utils/hasValidCartItems";
 
 import { useAppSelector } from "../../hooks/reduxHooks";
 import { useTheme } from "../../theme/ThemeContext";
@@ -132,7 +133,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
           getAddresses(1, 50),
         ]);
 
-        const cartData = normalizeCartResponse(cartResponse, "");
+        const cartData = normalizeCartResponse(cartResponse, user?.id ?? "");
 
         const addressData = addressResponse.data || [];
 
@@ -165,7 +166,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
     };
 
     loadCheckout();
-  }, [initialSelectedAddress]);
+  }, [initialSelectedAddress, user?.id]);
 
   useEffect(() => {
     onAddressChange?.(addresses.find((address) => address._id === selectedAddress));
@@ -549,14 +550,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
     );
   }
 
-  const cartSubtotal = cart.items.reduce(
-    (sum, item) => {
-      if (typeof item.product === "string") return sum;
-      const price = item.product.discountPrice ?? item.product.price;
-      return Number.isFinite(price) ? sum + price * Number(item.quantity) : sum;
-    },
-    0,
-  );
+  const cartSubtotal = getCartSubtotal(cart.items) ?? 0;
   const subtotal = checkoutSummary?.subtotal ?? cartSubtotal;
   const shippingAmount = checkoutSummary?.shippingAmount;
   const total = checkoutSummary?.totalAmount;

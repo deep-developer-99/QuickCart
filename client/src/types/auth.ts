@@ -38,10 +38,14 @@ export interface Admin {
 
 export interface AuthUser {
   id: string;
+  _id?: string;
   role: UserRole;
   name: string;
   email?: string;
   phone?: string;
   profileImage?: string;
   shopName?: string;
+  isActive?: boolean;
+  isApproved?: boolean;
+  status?: "pending" | "approved" | "rejected";
 }

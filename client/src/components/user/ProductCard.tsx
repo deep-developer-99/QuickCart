@@ -19,7 +19,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   const location = useLocation();
 
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
-  const { getQuantity, addProduct, updateProductQuantity, removeProduct } =
+  const { getQuantity, addProduct, updateProductQuantity, removeProduct, isCartReady, isLoading: isCartLoading, cartError, refreshCart } =
     useCart();
 
   const [isUpdating, setIsUpdating] = useState(false);
@@ -90,6 +90,16 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
     }
   };
 
+  const handleRetryCart = async () => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    try {
+      await refreshCart();
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
     <article className={`product-card${variant ? ` product-card--${variant}` : ""}`}>
       <Link to={`/products/${product._id}`} className="product-card-main">
@@ -130,7 +140,17 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
         </div>
 
         {hasStock ? (
-          quantity > 0 ? (
+          isUser && !isCartReady ? (
+            cartError ? (
+              <button type="button" className="product-add-button" onClick={handleRetryCart} disabled={isUpdating}>
+                {isUpdating ? "..." : "Retry"}
+              </button>
+            ) : (
+              <button type="button" className="product-add-button" disabled aria-label="Loading cart">
+                {isCartLoading ? "..." : "..."}
+              </button>
+            )
+          ) : quantity > 0 ? (
             <div
               className="product-quantity-control"
               aria-label="Product quantity"

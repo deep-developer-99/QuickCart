@@ -8,7 +8,7 @@ import { hasValidCartItems } from "../../utils/hasValidCartItems";
 
 const CartPage = () => {
   const { openCart } = useCartDrawer();
-  const { cart, isCartReady } = useCart();
+  const { cart, isCartReady, cartError, refreshCart } = useCart();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
@@ -17,6 +17,15 @@ const CartPage = () => {
     if (isAuthenticated && user?.role === "user" && hasValidCartItems(cart)) openCart();
     else navigate("/", { replace: true });
   }, [cart, isAuthenticated, isCartReady, navigate, openCart, user?.role]);
+
+  if (!isCartReady && cartError) {
+    return (
+      <main role="alert" className="cart-load-error">
+        <p>{cartError}</p>
+        <button type="button" onClick={() => void refreshCart()}>Retry</button>
+      </main>
+    );
+  }
 
   return null;
 };
