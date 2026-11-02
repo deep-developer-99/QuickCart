@@ -25,6 +25,7 @@ import type { Order } from "../../types/order";
 import type { CheckoutSummary } from "../../services/orderService";
 
 import { loadRazorpayScript } from "../../utils/razorpay";
+import { normalizeCartResponse } from "../../utils/normalizeCartResponse";
 
 import { useAppSelector } from "../../hooks/reduxHooks";
 import { useTheme } from "../../theme/ThemeContext";
@@ -131,7 +132,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
           getAddresses(1, 50),
         ]);
 
-        const cartData = cartResponse.data;
+        const cartData = normalizeCartResponse(cartResponse, "");
 
         const addressData = addressResponse.data || [];
 
@@ -549,8 +550,11 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
   }
 
   const cartSubtotal = cart.items.reduce(
-    (sum, item) =>
-      sum + (item.product.discountPrice ?? item.product.price) * item.quantity,
+    (sum, item) => {
+      if (typeof item.product === "string") return sum;
+      const price = item.product.discountPrice ?? item.product.price;
+      return Number.isFinite(price) ? sum + price * Number(item.quantity) : sum;
+    },
     0,
   );
   const subtotal = checkoutSummary?.subtotal ?? cartSubtotal;
@@ -828,16 +832,16 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
             <h2>Order Summary</h2>
 
             {cart.items.map((item) => (
-              <div className="checkout-item" key={item.product._id}>
+              <div className="checkout-item" key={typeof item.product === "string" ? item.product : item.product._id}>
                 <span>
-                  {item.product.name} × {item.quantity}
+                  {typeof item.product === "string" ? "Product" : item.product.name} × {item.quantity}
                 </span>
 
-                <strong>
+                {typeof item.product !== "string" && <strong>
                   ₹
                   {(item.product.discountPrice ?? item.product.price) *
                     item.quantity}
-                </strong>
+                </strong>}
               </div>
             ))}
 

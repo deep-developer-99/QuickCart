@@ -13,6 +13,7 @@ import {
 } from "../services/cartService";
 
 import type { Cart } from "../types/cart";
+import { normalizeCartResponse } from "../utils/normalizeCartResponse";
 
 import { CartContext } from "./CartContext";
 
@@ -50,8 +51,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await getCart();
       if (requestId !== requestSequenceRef.current) return;
-      if (response?.success) {
-        setStoredCart(response.data || null);
+      const normalizedCart = normalizeCartResponse(response, requestUserId);
+      if (normalizedCart) {
+        setStoredCart(normalizedCart);
         setCartOwnerId(requestUserId);
         setLoadedUserId(requestUserId);
       }
@@ -95,7 +97,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setStoredCart((current) => current && cartOwnerId === userId ? update(current) : current);
   }, [cartOwnerId, userId]);
 
-  const getProductId = (product: Cart["items"][number]["product"]) => product?._id;
+  const getProductId = (product: Cart["items"][number]["product"]) =>
+    typeof product === "string" ? product : product?._id;
 
   const addProduct = useCallback((productId: string, quantity = 1) => enqueueMutation(async () => {
     await addToCart(productId, quantity);

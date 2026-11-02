@@ -3,7 +3,7 @@ import type { MouseEvent } from "react";
 
 import { useCart } from "../../context/useCart";
 import { useAppSelector } from "../../hooks/reduxHooks";
-import { getValidCartItems, hasValidCartItems } from "../../utils/hasValidCartItems";
+import { getCartProductId, getValidCartItems, hasValidCartItems } from "../../utils/hasValidCartItems";
 import { getAddresses } from "../../services/addressService";
 import { getCheckoutSummary } from "../../services/orderService";
 import type { CheckoutSummary } from "../../services/orderService";
@@ -48,10 +48,16 @@ const CartDrawer = ({ isOpen, onClose, onNavigate }: CartDrawerProps) => {
   const validItems = getValidCartItems(cart);
   const validItemCount = validItems.reduce((sum, item) => sum + item.quantity, 0);
   const calculatedItemsTotal = validItems.reduce(
-    (sum, item) => sum + (item.product.discountPrice ?? item.product.price) * item.quantity,
+    (sum, item) => {
+      if (typeof item.product === "string") return sum;
+      const price = item.product.discountPrice ?? item.product.price;
+      return Number.isFinite(price) ? sum + price * Number(item.quantity) : sum;
+    },
     0,
   );
-  const cartSummaryKey = validItems.map((item) => `${item.product._id}:${item.quantity}:${item.product.price}:${item.product.discountPrice ?? ""}`).join("|");
+  const cartSummaryKey = validItems.map((item) => typeof item.product === "string"
+    ? `${item.product}:${item.quantity}`
+    : `${item.product._id}:${item.quantity}:${item.product.price}:${item.product.discountPrice ?? ""}`).join("|");
   const checkoutSummary = summaryResult?.key === cartSummaryKey ? summaryResult.data : null;
   const summaryError = summaryFailure?.key === cartSummaryKey ? summaryFailure.message : "";
   const isLoadingSummary = Boolean(isOpen && validItems.length && !checkoutSummary && !summaryError);
@@ -213,9 +219,9 @@ const CartDrawer = ({ isOpen, onClose, onNavigate }: CartDrawerProps) => {
               ) : (
                 <>
                   <section className="cart-drawer-items" aria-label="Cart products">
-                    {validItems.map((item) => (
-                      <div className="cart-drawer-item-wrap" key={item.product._id}>
-                        {item.product.stock === 0 && <p className="cart-drawer-stock-warning">Out of stock. Remove this item to continue.</p>}
+                    {validItems.map((item, index) => (
+                      <div className="cart-drawer-item-wrap" key={getCartProductId(item.product) || `${index}`}>
+                        {typeof item.product !== "string" && item.product.stock === 0 && <p className="cart-drawer-stock-warning">Out of stock. Remove this item to continue.</p>}
                         <CartItem item={item} onQuantityChange={handleQuantityChange} onRemove={handleRemove} />
                       </div>
                     ))}
@@ -277,7 +283,7 @@ const CartDrawer = ({ isOpen, onClose, onNavigate }: CartDrawerProps) => {
             <div className="cart-drawer-success-items">
               <h4>Order summary</h4>
               {(orderSnapshot.order?.items || orderSnapshot.cart?.items || []).map((item, index) => {
-                const name = "name" in item ? item.name : item.product.name;
+                const name = "name" in item ? item.name : typeof item.product === "string" ? "Product" : item.product.name;
                 const quantity = item.quantity;
                 return <div key={`${name}-${index}`}><span>{name} × {quantity}</span></div>;
               })}

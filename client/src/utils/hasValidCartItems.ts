@@ -1,14 +1,7 @@
 import type { Cart, CartItem } from "../types/cart";
 
 export const isValidCartItem = (item: CartItem) => {
-  const product = item.product;
-  return Boolean(
-    product &&
-    typeof product === "object" &&
-    product._id &&
-    Number.isFinite(item.quantity) &&
-    item.quantity > 0,
-  );
+  return Boolean(item && Number(item.quantity) > 0);
 };
 
 export const getValidCartItems = (cart: Cart | null | undefined) =>
@@ -16,3 +9,6 @@ export const getValidCartItems = (cart: Cart | null | undefined) =>
 
 export const hasValidCartItems = (cart: Cart | null | undefined) =>
   getValidCartItems(cart).length > 0;
+
+export const getCartProductId = (product: CartItem["product"]) =>
+  typeof product === "string" ? product : product?._id;

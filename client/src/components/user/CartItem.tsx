@@ -10,17 +10,19 @@ interface CartItemProps {
 
 const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
   const { product, quantity } = item;
+  const hasProductDetails = typeof product !== "string";
+  const productId = hasProductDetails ? product._id : product;
 
   return (
     <div className="cart-item-card">
       <div className="cart-item-image-wrapper">
-        <img src={product.image} alt={product.name} />
+        {hasProductDetails ? <img src={product.image} alt={product.name} /> : <span aria-hidden="true">🛒</span>}
       </div>
 
       <div className="cart-item-info">
-        <h3>{product.name}</h3>
+        <h3>{hasProductDetails ? product.name : "Product"}</h3>
 
-        <p className="cart-item-price">
+        {hasProductDetails && <p className="cart-item-price">
           {product.discountPrice !== undefined && product.discountPrice < product.price && (
             <>
               <span className="cart-item-original-price">₹{product.price}</span>
@@ -28,13 +30,13 @@ const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
             </>
           )}
           <strong>₹{product.discountPrice ?? product.price}</strong>
-        </p>
+        </p>}
 
         <div className="cart-item-actions">
           <div className="cart-quantity-control">
             <button
               type="button"
-              onClick={() => onQuantityChange(product._id, quantity - 1)}
+              onClick={() => onQuantityChange(productId, quantity - 1)}
               disabled={quantity <= 0}
             >
               −
@@ -44,8 +46,8 @@ const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
 
             <button
               type="button"
-              onClick={() => onQuantityChange(product._id, quantity + 1)}
-              disabled={quantity >= product.stock}
+              onClick={() => onQuantityChange(productId, quantity + 1)}
+              disabled={hasProductDetails && quantity >= product.stock}
             >
               +
             </button>
@@ -54,16 +56,16 @@ const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
           <button
             type="button"
             className="cart-remove-button"
-            onClick={() => onRemove(product._id)}
+            onClick={() => onRemove(productId)}
           >
             Remove
           </button>
         </div>
       </div>
 
-      <div className="cart-item-total">
+      {hasProductDetails && <div className="cart-item-total">
         ₹{(product.discountPrice ?? product.price) * quantity}
-      </div>
+      </div>}
     </div>
   );
 };

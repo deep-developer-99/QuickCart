@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { getProductById } from "../../services/productService";
-import { addToCart } from "../../services/cartService";
+import { useCart } from "../../context/useCart";
 
 import type { Product } from "../../types/product";
 
@@ -12,6 +12,7 @@ import "./ProductDetails.css";
 const ProductDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { addProduct } = useCart();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -75,13 +76,8 @@ const ProductDetails = () => {
       setError("");
       setSuccess("");
 
-      const response = await addToCart(product._id, quantity);
-
-      if (response?.success) {
-        setSuccess("Product added to cart successfully.");
-      } else {
-        setError(response?.message || "Failed to add product to cart.");
-      }
+      await addProduct(product._id, quantity);
+      setSuccess("Product added to cart successfully.");
     } catch (error) {
       console.error("Add to cart error:", error);
 

@@ -30,9 +30,11 @@ const Navbar = () => {
   );
   const cartTotal =
     validCartItems.reduce(
-      (sum, item) =>
-        sum +
-        (item.product.discountPrice ?? item.product.price) * item.quantity,
+      (sum, item) => {
+        if (typeof item.product === "string") return sum;
+        const price = item.product.discountPrice ?? item.product.price;
+        return Number.isFinite(price) ? sum + price * Number(item.quantity) : sum;
+      },
       0,
     ) ?? 0;
 

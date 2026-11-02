@@ -1,7 +1,9 @@
 import type { Product } from "./product";
 
 export interface CartItem {
-  product: Product;
+  // Cart responses may contain only a product id; populated cart responses
+  // include the full product object.
+  product: Product | string;
   quantity: number;
 }
 
