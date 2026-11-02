@@ -37,6 +37,7 @@ const Navbar = () => {
     ) ?? 0;
 
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const contactInfo = user?.phone?.trim() || user?.email?.trim() || "";
   const isUser = isAuthenticated && user?.role === "user";
   const canOpenCart = isUser && isCartReady && validCartItems.length > 0;
   const handleOpenCart = () => {
@@ -92,6 +93,70 @@ const Navbar = () => {
     setIsMenuOpen(false);
     navigate(path);
   };
+
+  const desktopAccountDropdown = (
+    <div className="profile-dropdown profile-dropdown--desktop" role="menu">
+      <div className="profile-dropdown-desktop-header">
+        <strong>My Account</strong>
+        {contactInfo && <span>{contactInfo}</span>}
+      </div>
+
+      <div className="profile-dropdown-divider" />
+
+      <button
+        type="button"
+        role="menuitem"
+        className="profile-dropdown-desktop-item"
+        onClick={() => openAccount("/account/orders")}
+      >
+        My Orders
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        className="profile-dropdown-desktop-item"
+        onClick={() => openAccount("/account/addresses")}
+      >
+        Saved Addresses
+      </button>
+      <span
+        className="profile-dropdown-desktop-item profile-dropdown-desktop-item--unavailable"
+        role="menuitem"
+        aria-disabled="true"
+      >
+        My Prescriptions
+      </span>
+      <span
+        className="profile-dropdown-desktop-item profile-dropdown-desktop-item--unavailable"
+        role="menuitem"
+        aria-disabled="true"
+      >
+        E-Gift Cards
+      </span>
+      <span
+        className="profile-dropdown-desktop-item profile-dropdown-desktop-item--unavailable"
+        role="menuitem"
+        aria-disabled="true"
+      >
+        FAQ's
+      </span>
+      <span
+        className="profile-dropdown-desktop-item profile-dropdown-desktop-item--unavailable"
+        role="menuitem"
+        aria-disabled="true"
+      >
+        Account Privacy
+      </span>
+      <button
+        type="button"
+        role="menuitem"
+        className="profile-dropdown-desktop-item"
+        onClick={handleLogout}
+      >
+        Log Out
+      </button>
+    </div>
+  );
 
   const accountDropdown = (
     <div className="profile-dropdown" role="menu">
@@ -196,7 +261,7 @@ const Navbar = () => {
                     ⌄
                   </span>
                 </button>
-                {isProfileOpen && accountDropdown}
+                {isProfileOpen && desktopAccountDropdown}
               </div>
             ) : (
               <NavLink
