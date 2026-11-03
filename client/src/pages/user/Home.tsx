@@ -65,18 +65,20 @@ const Home = () => {
 
   return (
     <div className="home-page">
-      <HomeBanner banners={banners} />
-      <PromotionalBanners banners={promotionalBanners} />
+      <div className="home-content-container">
+        <HomeBanner banners={banners} />
+        <PromotionalBanners banners={promotionalBanners} />
 
-      {bannerError && (
-        <p className="home-banner-status" role="status">
-          {bannerError}
-        </p>
-      )}
+        {bannerError && (
+          <p className="home-banner-status" role="status">
+            {bannerError}
+          </p>
+        )}
 
-      <section className="home-section home-category-section">
-        <CategoryGrid categories={categories} />
-      </section>
+        <section className="home-section home-category-section">
+          <CategoryGrid categories={categories} />
+        </section>
+      </div>
     </div>
   );
 };

@@ -23,7 +23,13 @@ const PromotionalBanners = ({ banners }: { banners: PromotionalBanner[] }) => {
               : "Browse featured category"
           }
         >
-          <img src={banner.image} alt="QuickCart promotional banner" />
+          <img
+            src={banner.image}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+          />
         </Link>
       ))}
     </section>

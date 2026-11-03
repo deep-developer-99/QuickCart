@@ -443,8 +443,8 @@ const AdminBanners = () => {
                       disabled={isSubmitting}
                     />
                     <small>
-                      JPG, JPEG, PNG or WEBP. Maximum 5 MB. A wide image works
-                      best (recommended around 1000 × 650 px).
+                      JPG, JPEG, PNG or WEBP. Maximum 5 MB. Recommended: 1332
+                      × 257 px (5.18:1) for the homepage hero.
                     </small>
                   </label>
 

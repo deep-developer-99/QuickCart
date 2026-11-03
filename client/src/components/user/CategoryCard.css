@@ -4,7 +4,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   gap: 9px;
   border: 0;
   background: transparent;
@@ -14,14 +14,15 @@
 }
 
 .category-card-image-wrapper {
-  width: 100%;
+  width: min(108px, 100%);
+  flex: 0 0 auto;
   aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: 6px;
-  background: var(--color-secondary-background);
+  border-radius: 12px;
+  background: var(--home-category-tile-background, #f1f5fc);
 }
 
 .category-card-image,
@@ -34,7 +35,7 @@
 }
 
 .category-card-image {
-  padding: 8px;
+  padding: 12px;
 }
 
 .category-card-placeholder {
@@ -48,6 +49,7 @@
 
 .category-card h3 {
   min-height: 36px;
+  width: 100%;
   margin: 0;
   color: var(--color-heading-text);
   font-size: 13px;

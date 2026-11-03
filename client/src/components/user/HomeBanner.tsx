@@ -53,6 +53,7 @@ const HomeBanner = ({ banners }: HomeBannerProps) => {
           src={banner.image}
           alt="QuickCart banner"
           className="home-banner-image"
+          fetchPriority="high"
         />
       </button>
     );

@@ -1,7 +1,7 @@
 .home-shimmer {
   width: 100%;
   min-height: 100%;
-  padding: 28px 0 70px;
+  padding: 0 0 70px;
   background: #f7faf7;
 }
 
@@ -29,15 +29,28 @@
 }
 
 .home-shimmer-banner {
-  width: min(1360px, calc(100% - 40px));
-  height: 300px;
-  margin: 0 auto;
-  border-radius: 18px;
+  width: 100%;
+  aspect-ratio: 5.18 / 1;
+  margin: 20px 0 0;
+  border-radius: 12px;
+}
+
+.home-shimmer-promotions {
+  width: min(1116px, 100%);
+  margin: 21px 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 21px;
+}
+
+.home-shimmer-promotion {
+  aspect-ratio: 1.72 / 1;
+  border-radius: 16px;
 }
 
 .home-shimmer-section {
-  width: min(1220px, calc(100% - 40px));
-  margin: 48px auto 0;
+  width: 100%;
+  margin: 44px 0 0;
 }
 
 .home-shimmer-heading {
@@ -85,9 +98,10 @@
 }
 
 .shimmer-category-image {
-  width: 100%;
+  width: min(108px, 100%);
   aspect-ratio: 1;
-  border-radius: 6px;
+  border-radius: 12px;
+  background: #f1f5fc;
 }
 
 .shimmer-category-name {
@@ -101,15 +115,15 @@
   }
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 1199px) {
   .home-shimmer-categories {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 780px) {
+@media (max-width: 767px) {
   .home-shimmer-banner {
-    height: 220px;
+    aspect-ratio: 3.6 / 1;
   }
 
   .home-shimmer-categories {
@@ -117,31 +131,32 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 479px) {
   .home-shimmer {
-    padding-top: 15px;
-  }
-
-  .home-shimmer-banner,
-  .home-shimmer-section {
-    width: calc(100% - 24px);
+    padding-bottom: 50px;
   }
 
   .home-shimmer-banner {
-    height: 175px;
-    border-radius: 14px;
+    aspect-ratio: 2.1 / 1;
   }
 
   .home-shimmer-section {
-    margin-top: 38px;
+    margin-top: 34px;
   }
 
-  .home-shimmer-categories {
-    gap: 9px;
+  .home-shimmer-promotions {
+    display: flex;
+    gap: 14px;
+    overflow: hidden;
+  }
+
+  .home-shimmer-promotion {
+    flex: 0 0 min(82vw, 358px);
   }
 
   .home-shimmer-categories {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 8px;
   }
 }
 

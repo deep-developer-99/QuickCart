@@ -1,12 +1,11 @@
 .home-banner {
-  width: min(1264px, calc(100% - 32px));
-  height: 242px;
-  margin: 16px auto;
+  width: 100%;
+  aspect-ratio: 5.18 / 1;
+  margin: 20px 0 0;
   position: relative;
   overflow: hidden;
   border-radius: 12px;
   background: #e9f6e7;
-  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
 }
 
 .home-banner-image-button {
@@ -292,16 +291,7 @@
 
 @media (max-width: 900px) {
   .home-banner {
-    width: min(1264px, calc(100% - 30px));
-    height: 200px;
-  }
-}
-
-@media (max-width: 720px) {
-  .home-banner {
-    width: calc(100% - 24px);
-    height: 155px;
-    border-radius: 12px;
+    aspect-ratio: 3.6 / 1;
   }
 
   .home-banner-content {
@@ -328,8 +318,7 @@
 
 @media (max-width: 480px) {
   .home-banner {
-    width: calc(100% - 20px);
-    height: 145px;
+    aspect-ratio: 2.1 / 1;
   }
 
   .home-banner-content {
