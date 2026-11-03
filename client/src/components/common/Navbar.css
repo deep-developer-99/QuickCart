@@ -466,7 +466,7 @@
 
   justify-content: center;
 
-  gap: 5px;
+  gap: 8px;
 
   border: 0;
 
@@ -474,22 +474,24 @@
 
   background: transparent;
 
-  color: var(--color-body-text);
+  color: #1f1f1f;
 
   box-shadow: none;
 
   cursor: pointer;
 
-  font-size: 13px;
+  font-family: inherit;
 
-  font-weight: 700;
+  font-size: 20px;
+
+  font-weight: 500;
 }
 
 .navbar-profile-action:hover,
 .navbar-profile-action.active {
   background: transparent;
 
-  color: var(--color-primary-hover);
+  color: #1f1f1f;
 }
 
 .navbar-profile-action:focus,
@@ -529,11 +531,31 @@
 }
 
 .navbar-profile-arrow {
-  color: var(--color-muted-text);
-
-  font-size: 15px;
-
+  display: inline-flex;
+  flex: 0 0 14px;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: #1f1f1f;
+  font-size: 0;
   line-height: 1;
+  transition: transform 180ms ease;
+}
+
+.navbar-profile-arrow::before,
+.mobile-account-arrow::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-top: 6px solid currentColor;
+  border-right: 5px solid transparent;
+  border-left: 5px solid transparent;
+}
+
+.navbar .navbar-profile-action.active .navbar-profile-arrow,
+.navbar .mobile-account-button[aria-expanded="true"] .mobile-account-arrow {
+  transform: rotate(180deg);
 }
 
 .navbar-cart-action {
@@ -893,32 +915,44 @@
   box-shadow: none;
 }
 
-.mobile-account-button {
+.navbar .mobile-account-button {
   width: 100%;
-
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   border: 0;
-
+  border-bottom: 0;
+  border-radius: 0;
   background: transparent;
-
   text-align: left;
-
   cursor: pointer;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: #1f1f1f;
 }
 
-.mobile-account-button:hover,
-.mobile-account-button:focus,
-.mobile-account-button:focus-visible {
+.navbar .mobile-account-button:hover,
+.navbar .mobile-account-button:focus,
+.navbar .mobile-account-button:focus-visible {
   background: transparent;
-
+  color: #1f1f1f;
   outline: none;
 }
 
 .mobile-account-arrow {
-  float: right;
-
-  color: var(--color-muted-text);
-
-  font-size: 16px;
+  display: inline-flex;
+  flex: 0 0 14px;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: #1f1f1f;
+  font-size: 0;
+  line-height: 1;
+  transition: transform 180ms ease;
 }
 
 .mobile-cart-button {
@@ -1119,17 +1153,19 @@
 
   gap: 8px;
 
-  font-size: 18px;
+  font-size: 20px;
 
-  font-weight: 400;
+  font-weight: 500;
+
+  color: #1f1f1f;
 
   white-space: nowrap;
 }
 
 .navbar .navbar-profile-arrow {
-  color: #263129;
+  color: #1f1f1f;
 
-  font-size: 13px;
+  font-size: 0;
 
   font-weight: 400;
 }
@@ -1564,22 +1600,22 @@
 
     gap: 8px;
 
-    color: #242424;
+    color: #1f1f1f;
 
-    font-size: 18px;
+    font-size: 20px;
 
-    font-weight: 400;
+    font-weight: 500;
   }
 
   .navbar .navbar-profile-action:hover,
   .navbar .navbar-profile-action.active {
-    color: #242424;
+    color: #1f1f1f;
   }
 
   .navbar .navbar-profile-arrow {
-    color: #111;
+    color: #1f1f1f;
 
-    font-size: 15px;
+    font-size: 0;
   }
 
   .navbar .navbar-cart-action,
@@ -1667,7 +1703,9 @@
   }
 
   .navbar .navbar-profile-action {
-    font-size: 16px;
+    font-size: 20px;
+    font-weight: 500;
+    color: #1f1f1f;
   }
 
   .navbar .navbar-cart-action,

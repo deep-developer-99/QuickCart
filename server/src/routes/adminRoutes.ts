@@ -52,6 +52,11 @@ import {
   getAdminFooterSettingsController,
   updateAdminFooterSettingsController,
 } from "../controllers/footerSettingsController";
+import {
+  createSearchSuggestionController, deleteSearchSuggestionController,
+  getAdminSearchSuggestionsController, reorderSearchSuggestionsController,
+  updateSearchSuggestionController, updateSearchSuggestionSettingsController,
+} from "../controllers/searchSuggestionController";
 
 const router = Router();
 
@@ -107,6 +112,14 @@ router.put("/promotional-banners/:id/status", togglePromotionalBannerController)
 // Footer settings
 router.get("/footer-settings", getAdminFooterSettingsController);
 router.patch("/footer-settings", updateAdminFooterSettingsController);
+
+// Search suggestions
+router.get("/search-suggestions", getAdminSearchSuggestionsController);
+router.post("/search-suggestions", createSearchSuggestionController);
+router.patch("/search-suggestions/reorder", reorderSearchSuggestionsController);
+router.patch("/search-suggestions/settings", updateSearchSuggestionSettingsController);
+router.put("/search-suggestions/:id", updateSearchSuggestionController);
+router.delete("/search-suggestions/:id", deleteSearchSuggestionController);
 
 // Orders
 router.get("/orders", getAllOrdersAdminController);

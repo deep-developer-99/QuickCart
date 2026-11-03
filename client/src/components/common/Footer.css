@@ -200,6 +200,123 @@
   color: #e11d48;
 }
 
+body:has(.footer-auth-modal) {
+  overflow: hidden;
+}
+
+.footer-auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(20, 32, 24, 0.48);
+  opacity: 0;
+  overscroll-behavior: contain;
+  transition: opacity 180ms ease;
+}
+
+.footer-auth-modal.is-visible {
+  opacity: 1;
+}
+
+.footer-auth-modal-card {
+  width: min(440px, 100%);
+  box-sizing: border-box;
+  padding: 30px;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.22);
+  text-align: center;
+  opacity: 0;
+  transform: translateY(9px) scale(0.985);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.footer-auth-modal.is-visible .footer-auth-modal-card {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.footer-auth-modal-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 15px;
+  border-radius: 50%;
+  background: #eaf6eb;
+  color: var(--color-primary, #4d9f50);
+}
+
+.footer-auth-modal-icon svg {
+  width: 25px;
+  height: 25px;
+}
+
+.footer-auth-modal-card h2 {
+  margin: 0 0 9px;
+  color: #1f1f1f;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.footer-auth-modal-card p {
+  margin: 0 auto 23px;
+  color: #626b64;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.footer-auth-modal-card button {
+  min-width: 112px;
+  min-height: 42px;
+  padding: 10px 22px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--color-primary, #4d9f50);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.footer-auth-modal-card button:hover {
+  background: var(--color-primary-hover, #3f8b43);
+}
+
+.footer-auth-modal-card button:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 480px) {
+  .footer-auth-modal {
+    padding: 16px;
+  }
+
+  .footer-auth-modal-card {
+    padding: 25px 20px;
+    border-radius: 14px;
+  }
+
+  .footer-auth-modal-card h2 {
+    font-size: 19px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer-auth-modal,
+  .footer-auth-modal-card,
+  .footer-auth-modal-card button {
+    transition-duration: 0.01ms;
+  }
+}
+
 @media (max-width: 1199px) {
   .footer-top {
     grid-template-columns: 1.2fr 160px 1.5fr;

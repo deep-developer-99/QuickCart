@@ -2,6 +2,8 @@ import type { FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { addRecentSearch } from "../../hooks/useRecentSearches";
+import { useSearchSuggestions } from "../../hooks/useSearchSuggestions";
+import RotatingSearchPlaceholder from "./RotatingSearchPlaceholder";
 import "./SearchBar.css";
 
 const SearchBar = () => {
@@ -11,6 +13,8 @@ const SearchBar = () => {
   const value = isSearchPage
     ? new URLSearchParams(location.search).get("q") || ""
     : "";
+  const { config, index } = useSearchSuggestions();
+  const placeholder = "Search for atta, milk and more";
 
   const openSearch = () => {
     if (!isSearchPage) {
@@ -67,12 +71,20 @@ const SearchBar = () => {
           strokeLinecap="round"
         />
       </svg>
+      {!value && (
+        <RotatingSearchPlaceholder
+          suggestions={config?.suggestions || []}
+          index={index}
+          enabled={Boolean(config?.isEnabled)}
+          fallback={placeholder}
+        />
+      )}
       <input
         type="search"
         value={value}
         onChange={(event) => handleChange(event.target.value)}
         onFocus={openSearch}
-        placeholder="Search for atta, milk and more"
+        placeholder={value ? "" : " "}
         aria-label="Search products"
       />
       {value && (

@@ -32,6 +32,7 @@ const AdminSidebar = () => {
     { to: "/admin/theme", label: "Theme Settings", icon: "🎨" },
     { to: "/admin/promotional-banners", label: "Promotional Banners", icon: "📣" },
     { to: "/admin/footer", label: "Footer Management", icon: "🧾" },
+    { to: "/admin/search-suggestions", label: "Search Suggestions", icon: "🔎" },
   ];
 
   return (
