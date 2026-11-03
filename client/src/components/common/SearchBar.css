@@ -1,4 +1,5 @@
 .quickcart-search {
+  --quickcart-search-suggestion-left: 44px;
   position: relative;
   width: min(100%, 680px);
   height: 48px;
@@ -8,24 +9,26 @@
   padding: 0 14px;
   border: 1px solid #e3e8e3;
   border-radius: 12px;
-  background: inherit;
+  background: #f7f8f7;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .quickcart-search-suggestion {
   position: absolute;
   z-index: 2;
-  left: 44px;
-  right: 48px;
+  top: 50%;
+  left: var(--quickcart-search-suggestion-left);
+  right: 14px;
   overflow: hidden;
   color: var(--color-disabled-text);
-  background: #f7f8f7;
+  background: inherit;
   font-size: 14px;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
   pointer-events: none;
   height: 1.35em;
+  transform: translateY(-50%);
 }
 
 .quickcart-search-suggestion-track {

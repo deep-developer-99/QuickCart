@@ -14,7 +14,7 @@ const SearchBar = () => {
   const value = isSearchPage
     ? new URLSearchParams(location.search).get("q") || ""
     : "";
-  const { config, index, setPaused } = useSearchSuggestions();
+  const { config, index, hasRotated, setPaused } = useSearchSuggestions();
   const [isFocused, setIsFocused] = useState(false);
   const placeholder = "Search for atta, milk and more";
 
@@ -90,6 +90,7 @@ const SearchBar = () => {
         <RotatingSearchPlaceholder
           suggestions={config?.suggestions || []}
           index={index}
+          animate={hasRotated}
           enabled={Boolean(config?.isEnabled)}
           fallback={placeholder}
         />

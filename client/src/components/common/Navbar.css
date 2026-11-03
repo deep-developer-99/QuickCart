@@ -1465,6 +1465,10 @@
 /* Blinkit-matched desktop navbar proportions and controls */
 
 @media (min-width: 1121px) {
+  .navbar .navbar-search-desktop .quickcart-search {
+    --quickcart-search-suggestion-left: 48px;
+  }
+
   .navbar {
     background: #fff;
 
