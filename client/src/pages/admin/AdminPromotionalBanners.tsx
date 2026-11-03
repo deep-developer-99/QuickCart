@@ -66,7 +66,7 @@ const AdminPromotionalBanners = () => {
       {message && <div className="admin-promo-feedback">{message}</div>}{error && <div className="admin-promo-error">{error}</div>}
       <form className="admin-promo-form" onSubmit={submit}>
         <h2>{editing ? "Edit promotion" : "Add promotion"}</h2>
-        <label className="admin-promo-image-field">Banner image <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setImage(e.target.files?.[0] || null)} /><small>Recommended: 358 × 208 px (1.72:1) for a promotional card. JPG, PNG or WEBP.</small></label>
+        <label className="admin-promo-image-field">Banner image <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setImage(e.target.files?.[0] || null)} /><small>Recommended: 335 × 195 px (1.72:1) for a promotional card. JPG, PNG or WEBP.</small></label>
         <label>Redirect Type <select value={form.redirectType} onChange={(e) => setForm({ ...form, redirectType: e.target.value as PromotionalRedirectType, redirectValue: "" })}><option value="category">Category</option><option value="product">Product</option></select></label>
         <label>Redirect Target <select value={form.redirectValue} onChange={(e) => setForm({ ...form, redirectValue: e.target.value })} required><option value="">Select {form.redirectType}</option>{form.redirectType === "category" ? categories.map((category) => <option key={category._id} value={category._id}>{category.name}</option>) : products.map((product) => <option key={product._id} value={product._id}>{product.name} - ₹{product.price}</option>)}</select></label>
         <input type="number" min="0" placeholder="Display order" value={form.order} onChange={(e) => setForm({ ...form, order: e.target.value })} />

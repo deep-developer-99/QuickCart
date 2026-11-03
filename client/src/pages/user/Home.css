@@ -6,7 +6,7 @@
 }
 
 .home-content-container {
-  --home-banner-max-width: 1332px;
+  --home-banner-max-width: 1280px;
   width: min(var(--home-banner-max-width), calc(100% - 32px));
   margin-inline: auto;
 }

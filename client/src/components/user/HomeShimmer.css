@@ -30,13 +30,13 @@
 
 .home-shimmer-banner {
   width: 100%;
-  aspect-ratio: 5.18 / 1;
+  aspect-ratio: 4.71 / 1;
   margin: 20px 0 0;
   border-radius: 12px;
 }
 
 .home-shimmer-promotions {
-  width: min(1116px, 100%);
+  width: min(1047px, 100%);
   margin: 21px 0 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

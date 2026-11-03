@@ -18,6 +18,8 @@
 }
 
 .quickcart-search-icon {
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
   font-size: 23px;
   line-height: 1;
