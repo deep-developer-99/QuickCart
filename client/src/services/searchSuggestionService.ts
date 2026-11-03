@@ -14,6 +14,7 @@ export const updateSearchSuggestionSettings = async (input: { isEnabled: boolean
 
 type StoreSnapshot = { config: SearchSuggestionConfig | null; index: number; isLoading: boolean };
 const listeners = new Set<() => void>();
+const pausedConsumers = new Set<symbol>();
 let snapshot: StoreSnapshot = { config: null, index: 0, isLoading: false };
 let pendingRequest: Promise<void> | null = null;
 let rotationTimer: number | undefined;
@@ -25,7 +26,7 @@ const configureTimer = () => {
   if (rotationTimer !== undefined) window.clearInterval(rotationTimer);
   rotationTimer = undefined;
   const config = snapshot.config;
-  if (listeners.size && config?.isEnabled && config.suggestions.length > 1) {
+  if (listeners.size && !pausedConsumers.size && config?.isEnabled && config.suggestions.length > 1) {
     rotationTimer = window.setInterval(() => {
       if (document.visibilityState === "hidden") return;
       const count = snapshot.config?.suggestions.length || 1;
@@ -33,6 +34,12 @@ const configureTimer = () => {
       notify();
     }, config.rotationInterval || FALLBACK_INTERVAL);
   }
+};
+
+export const setSearchSuggestionsPaused = (consumer: symbol, paused: boolean) => {
+  if (paused) pausedConsumers.add(consumer);
+  else pausedConsumers.delete(consumer);
+  configureTimer();
 };
 
 export const loadPublicSearchSuggestions = (force = false): Promise<void> => {

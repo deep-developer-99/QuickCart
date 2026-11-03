@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -13,7 +14,8 @@ const SearchBar = () => {
   const value = isSearchPage
     ? new URLSearchParams(location.search).get("q") || ""
     : "";
-  const { config, index } = useSearchSuggestions();
+  const { config, index, setPaused } = useSearchSuggestions();
+  const [isFocused, setIsFocused] = useState(false);
   const placeholder = "Search for atta, milk and more";
 
   const openSearch = () => {
@@ -44,6 +46,17 @@ const SearchBar = () => {
     if (isSearchPage) navigate("/search", { replace: true });
   };
 
+  const handleFocus = () => {
+    setIsFocused(true);
+    setPaused(true);
+    openSearch();
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    setPaused(false);
+  };
+
   return (
     <form
       className="quickcart-search"
@@ -51,27 +64,29 @@ const SearchBar = () => {
       role="search"
       onClick={openSearch}
     >
-      <svg
-        className="quickcart-search-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-      >
-        <circle
-          cx="10.8"
-          cy="10.8"
-          r="6.8"
-          stroke="currentColor"
-          strokeWidth="1.8"
-        />
-        <path
-          d="m16 16 4.2 4.2"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-      </svg>
-      {!value && (
+      <button type="submit" className="quickcart-search-submit" aria-label="Search">
+        <svg
+          className="quickcart-search-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle
+            cx="10.8"
+            cy="10.8"
+            r="6.8"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          />
+          <path
+            d="m16 16 4.2 4.2"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+      {!value && !isFocused && (
         <RotatingSearchPlaceholder
           suggestions={config?.suggestions || []}
           index={index}
@@ -83,8 +98,9 @@ const SearchBar = () => {
         type="search"
         value={value}
         onChange={(event) => handleChange(event.target.value)}
-        onFocus={openSearch}
-        placeholder={value ? "" : " "}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        placeholder={value ? "" : placeholder}
         aria-label="Search products"
       />
       {value && (
