@@ -1,5 +1,5 @@
 .promotional-banners {
-  width: min(1047px, 100%);
+  width: min(1048.2px, 100%);
   margin: 21px 0 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
