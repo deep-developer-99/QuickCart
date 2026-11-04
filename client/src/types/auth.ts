@@ -44,6 +44,7 @@ export interface AuthUser {
   email?: string;
   phone?: string;
   profileImage?: string;
+  updatedAt?: string;
   shopName?: string;
   isActive?: boolean;
   isApproved?: boolean;
