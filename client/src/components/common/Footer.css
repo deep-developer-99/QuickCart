@@ -132,10 +132,15 @@
   text-align: center;
 }
 
-.footer-app-links h3,
-.footer-social-section h3 {
+.footer-app-links h3 {
   margin-bottom: 10px;
   font-size: 13px;
+}
+
+.footer-social-section h3 {
+  margin: 0;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .footer-app-links > div {
@@ -159,29 +164,69 @@
   text-align: right;
 }
 
+.footer-social-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .footer-socials {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .footer-socials a {
-  width: 29px;
-  height: 29px;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   background: #263238;
   color: #ffffff;
-  font-size: 12px;
-  font-weight: 700;
   text-decoration: none;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.footer-socials svg {
+  width: 20px;
+  height: 20px;
 }
 
 .footer-socials a:hover {
-  background: var(--color-primary-hover);
   color: #ffffff;
+  transform: translateY(-2px) scale(1.06);
+}
+
+.footer-socials .footer-social-link--instagram:hover {
+  background: #d62976;
+}
+
+.footer-socials .footer-social-link--facebook:hover {
+  background: #1877f2;
+}
+
+.footer-socials .footer-social-link--linkedin:hover {
+  background: #0a66c2;
+}
+
+.footer-socials a:focus-visible {
+  outline: 2px solid var(--color-primary-hover);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer-socials a {
+    transition-duration: 0.01ms;
+  }
 }
 
 .footer-copyright {
@@ -232,7 +277,9 @@ body:has(.footer-auth-modal) {
   text-align: center;
   opacity: 0;
   transform: translateY(9px) scale(0.985);
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
 }
 
 .footer-auth-modal.is-visible .footer-auth-modal-card {
@@ -283,7 +330,9 @@ body:has(.footer-auth-modal) {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 160ms ease, transform 160ms ease;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
 }
 
 .footer-auth-modal-card button:hover {
@@ -359,6 +408,10 @@ body:has(.footer-auth-modal) {
 
   .footer-app-links > div,
   .footer-socials {
+    justify-content: flex-start;
+  }
+
+  .footer-social-row {
     justify-content: flex-start;
   }
 }

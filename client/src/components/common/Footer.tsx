@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { Link } from "react-router-dom";
+import { FaFacebookF, FaInstagram, FaLinkedinIn } from "react-icons/fa";
 
 import { getCategories } from "../../services/productService";
 import {
@@ -13,10 +14,32 @@ import { useAppSelector } from "../../hooks/reduxHooks";
 import "./Footer.css";
 
 const CATEGORIES_PER_COLUMN = 10;
+const SOCIAL_LINKS = [
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/18.deep_/",
+    Icon: FaInstagram,
+    className: "footer-social-link--instagram",
+  },
+  {
+    label: "Facebook",
+    href: "https://www.facebook.com/share/1LexHT99ej/",
+    Icon: FaFacebookF,
+    className: "footer-social-link--facebook",
+  },
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/in/deepanshu-rawat-69b795261/",
+    Icon: FaLinkedinIn,
+    className: "footer-social-link--linkedin",
+  },
+];
 
 const Footer = () => {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  const [settings, setSettings] = useState<FooterSettings>(defaultFooterSettings);
+  const [settings, setSettings] = useState<FooterSettings>(
+    defaultFooterSettings,
+  );
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryError, setCategoryError] = useState("");
   const [showPortalWarning, setShowPortalWarning] = useState(false);
@@ -61,10 +84,14 @@ const Footer = () => {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [showPortalWarning, closePortalWarning]);
 
-  useEffect(() => () => {
-    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
-    if (openFrame.current !== null) window.cancelAnimationFrame(openFrame.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+      if (openFrame.current !== null)
+        window.cancelAnimationFrame(openFrame.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     getFooterSettings()
@@ -89,7 +116,11 @@ const Footer = () => {
   const categoryColumns = useMemo(() => {
     const columns: Category[][] = [];
 
-    for (let index = 0; index < categories.length; index += CATEGORIES_PER_COLUMN) {
+    for (
+      let index = 0;
+      index < categories.length;
+      index += CATEGORIES_PER_COLUMN
+    ) {
       columns.push(categories.slice(index, index + CATEGORIES_PER_COLUMN));
     }
 
@@ -100,7 +131,9 @@ const Footer = () => {
     .filter((link) => link.isActive)
     .sort((a, b) => a.order - b.order);
   const findConfiguredLink = (label: string) =>
-    configuredLinks.find((link) => link.label.toLowerCase() === label.toLowerCase());
+    configuredLinks.find(
+      (link) => link.label.toLowerCase() === label.toLowerCase(),
+    );
   const renderConfiguredLink = (label: string) => {
     const link = findConfiguredLink(label);
 
@@ -110,16 +143,25 @@ const Footer = () => {
 
     if (isContactPage) {
       return (
-        <Link to="/contact" key={link.href} target="_blank" rel="noopener noreferrer">
+        <Link
+          to="/contact"
+          key={link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {label}
         </Link>
       );
     }
 
     return /^https?:\/\//i.test(link.href) ? (
-      <a href={link.href} key={link.href}>{label}</a>
+      <a href={link.href} key={link.href}>
+        {label}
+      </a>
     ) : (
-      <Link to={link.href} key={link.href}>{label}</Link>
+      <Link to={link.href} key={link.href}>
+        {label}
+      </Link>
     );
   };
   const copyright = settings.copyright.replace("{year}", "2026");
@@ -146,9 +188,15 @@ const Footer = () => {
 
         <section className="footer-link-group footer-portals">
           <h3>QuickCart Portals</h3>
-          <Link to="/vendor/login" onClick={handlePortalClick}>Vendor Login</Link>
-          <Link to="/vendor/register" onClick={handlePortalClick}>Vendor Registration</Link>
-          <Link to="/admin/login" onClick={handlePortalClick}>Admin Login</Link>
+          <Link to="/vendor/login" onClick={handlePortalClick}>
+            Vendor Login
+          </Link>
+          <Link to="/vendor/register" onClick={handlePortalClick}>
+            Vendor Registration
+          </Link>
+          <Link to="/admin/login" onClick={handlePortalClick}>
+            Admin Login
+          </Link>
         </section>
 
         <section className="footer-categories">
@@ -156,9 +204,13 @@ const Footer = () => {
             <h3>Categories</h3>
           </div>
           {categoryError ? (
-            <p className="footer-category-status" role="status">{categoryError}</p>
+            <p className="footer-category-status" role="status">
+              {categoryError}
+            </p>
           ) : categories.length === 0 ? (
-            <p className="footer-category-status" role="status">No categories available.</p>
+            <p className="footer-category-status" role="status">
+              No categories available.
+            </p>
           ) : (
             <div className="footer-category-columns">
               {categoryColumns.map((column, columnIndex) => (
@@ -179,7 +231,9 @@ const Footer = () => {
 
       <div className="footer-bottom-main">
         <div className="footer-brand">
-          <Link to="/" className="footer-logo">QuickCart</Link>
+          <Link to="/" className="footer-logo">
+            QuickCart
+          </Link>
           <p>Your everyday shopping, delivered fast.</p>
         </div>
 
@@ -187,12 +241,20 @@ const Footer = () => {
           <h3>Download App</h3>
           <div>
             {settings.appLinks.googlePlay && (
-              <a href={settings.appLinks.googlePlay} target="_blank" rel="noreferrer">
+              <a
+                href={settings.appLinks.googlePlay}
+                target="_blank"
+                rel="noreferrer"
+              >
                 Google Play
               </a>
             )}
             {settings.appLinks.appStore && (
-              <a href={settings.appLinks.appStore} target="_blank" rel="noreferrer">
+              <a
+                href={settings.appLinks.appStore}
+                target="_blank"
+                rel="noreferrer"
+              >
                 App Store
               </a>
             )}
@@ -200,20 +262,26 @@ const Footer = () => {
         </div>
 
         <div className="footer-social-section">
-          <h3>Follow Us</h3>
-          <div className="footer-socials" aria-label="Social media">
-            {settings.socialLinks.filter((link) => link.isActive).map((link) => (
-              <a
-                href={link.href}
-                key={link.href}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={link.label}
-                title={link.label}
-              >
-                {link.label.charAt(0).toUpperCase()}
-              </a>
-            ))}
+          <div className="footer-social-row">
+            <h3>Follow Us</h3>
+            <div
+              className="footer-socials"
+              aria-label="Follow QuickCart on social media"
+            >
+              {SOCIAL_LINKS.map(({ label, href, Icon, className }) => (
+                <a
+                  className={className}
+                  href={href}
+                  key={label}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  title={label}
+                >
+                  <Icon aria-hidden="true" />
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -222,7 +290,9 @@ const Footer = () => {
 
       <div className="footer-copyright">
         <p>{copyright}</p>
-        <p>Made with <span aria-label="love">♥</span> in India</p>
+        <p>
+          Made with <span aria-label="love">♥</span> in India
+        </p>
       </div>
 
       {showPortalWarning && (
@@ -247,15 +317,34 @@ const Footer = () => {
           >
             <div className="footer-auth-modal-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
-                <path d="M12 11v5m0-8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="9"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
+                <path
+                  d="M12 11v5m0-8h.01"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
             </div>
             <h2 id="footer-auth-modal-title">Please first logout as a user</h2>
             <p id="footer-auth-modal-description">
-              Please logout from your user account before accessing Admin or Vendor services.
+              Please logout from your user account before accessing Admin or
+              Vendor services.
             </p>
-            <button ref={okayButtonRef} type="button" autoFocus onClick={closePortalWarning}>Okay</button>
+            <button
+              ref={okayButtonRef}
+              type="button"
+              autoFocus
+              onClick={closePortalWarning}
+            >
+              Okay
+            </button>
           </section>
         </div>
       )}
