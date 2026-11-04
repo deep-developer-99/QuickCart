@@ -239,25 +239,17 @@ const Footer = () => {
 
         <div className="footer-app-links">
           <h3>Download App</h3>
-          <div>
-            {settings.appLinks.googlePlay && (
-              <a
-                href={settings.appLinks.googlePlay}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Google Play
-              </a>
-            )}
-            {settings.appLinks.appStore && (
-              <a
-                href={settings.appLinks.appStore}
-                target="_blank"
-                rel="noreferrer"
-              >
-                App Store
-              </a>
-            )}
+          <div className="footer-app-badges">
+            <img
+              className="footer-app-badge"
+              src="/images/app-badges/app-store.svg"
+              alt="Download on the App Store"
+            />
+            <img
+              className="footer-app-badge"
+              src="/images/app-badges/play-store.svg"
+              alt="Get it on Google Play"
+            />
           </div>
         </div>
 
