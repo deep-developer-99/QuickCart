@@ -78,3 +78,46 @@ export const deleteAdminCategory = async (id: string) => {
 
   return response.data;
 };
+
+export interface AdminSubcategoryFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  parentCategory?: string;
+  isActive?: "true" | "false";
+}
+
+export const getAdminSubcategories = async (filters: AdminSubcategoryFilters = {}) => {
+  const response = await api.get("/admin/subcategories", { params: filters });
+  return response.data;
+};
+
+export const createAdminSubcategory = async (
+  data: FormData,
+  onUploadProgress?: (progress: number) => void,
+) => {
+  const response = await api.post("/admin/subcategories", data, {
+    onUploadProgress: (event) => {
+      if (event.total) onUploadProgress?.(Math.round((event.loaded / event.total) * 100));
+    },
+  });
+  return response.data;
+};
+
+export const updateAdminSubcategory = async (
+  id: string,
+  data: FormData,
+  onUploadProgress?: (progress: number) => void,
+) => {
+  const response = await api.put(`/admin/subcategories/${id}`, data, {
+    onUploadProgress: (event) => {
+      if (event.total) onUploadProgress?.(Math.round((event.loaded / event.total) * 100));
+    },
+  });
+  return response.data;
+};
+
+export const deleteAdminSubcategory = async (id: string) => {
+  const response = await api.delete(`/admin/subcategories/${id}`);
+  return response.data;
+};

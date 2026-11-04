@@ -1,10 +1,17 @@
 import api from "./api";
 
-export const getProducts = async (search?: string, category?: string, page = 1, limit = 10) => {
+export const getProducts = async (
+  search?: string,
+  category?: string,
+  page = 1,
+  limit = 10,
+  subCategory?: string,
+) => {
   const response = await api.get("/products", {
     params: {
       search,
       category,
+      subCategory,
       page,
       limit,
     },
@@ -25,8 +32,8 @@ export const getProductById = async (id: string) => {
   return response.data;
 };
 
-export const getProductsByCategory = async (id: string, page = 1, limit = 10) => {
-  const response = await api.get(`/products/category/${id}`, { params: { page, limit } });
+export const getProductsByCategory = async (id: string, page = 1, limit = 10, subCategory?: string) => {
+  const response = await api.get(`/products/category/${id}`, { params: { page, limit, subCategory } });
 
   return response.data;
 };
@@ -34,6 +41,16 @@ export const getProductsByCategory = async (id: string, page = 1, limit = 10) =>
 export const getCategories = async () => {
   const response = await api.get("/categories");
 
+  return response.data;
+};
+
+export const getCategoryById = async (id: string) => {
+  const response = await api.get(`/categories/${id}`);
+  return response.data;
+};
+
+export const getSubcategories = async (mainCategoryId: string) => {
+  const response = await api.get(`/categories/${mainCategoryId}/subcategories`);
   return response.data;
 };
 

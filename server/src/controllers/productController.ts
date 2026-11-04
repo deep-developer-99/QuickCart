@@ -97,6 +97,7 @@ export const createProductController = async (
           discountPrice,
           stock,
           category: String(req.body.category ?? ""),
+          subCategory: String(req.body.subCategory ?? "").trim() || null,
         },
         req.user.id,
       );
@@ -128,13 +129,14 @@ export const getAllProductsController = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { search, category } = req.query;
+    const { search, category, subCategory } = req.query;
 
     const products = await getAllProducts(
       search as string | undefined,
       category as string | undefined,
       req.query.page,
       req.query.limit,
+      subCategory as string | undefined,
     );
 
     res.status(200).json({
@@ -144,9 +146,10 @@ export const getAllProductsController = async (
   } catch (error) {
     console.error("Get products error:", error);
 
-    res.status(500).json({
+    const statusCode = (error as { statusCode?: number })?.statusCode || 500;
+    res.status(statusCode).json({
       success: false,
-      message: "Failed to fetch products",
+      message: error instanceof Error ? error.message : "Failed to fetch products",
     });
   }
 };
@@ -200,7 +203,12 @@ export const getProductsByCategoryController = async (
   try {
     const { categoryId } = req.params as { categoryId: string };
 
-    const products = await getProductsByCategory(categoryId, req.query.page, req.query.limit);
+    const products = await getProductsByCategory(
+      categoryId,
+      req.query.page,
+      req.query.limit,
+      typeof req.query.subCategory === "string" ? req.query.subCategory : undefined,
+    );
 
     res.status(200).json({
       success: true,
@@ -326,6 +334,9 @@ export const updateProductController = async (
       stock,
       category:
         req.body.category !== undefined ? String(req.body.category) : undefined,
+      ...(Object.prototype.hasOwnProperty.call(req.body, "subCategory")
+        ? { subCategory: String(req.body.subCategory ?? "").trim() || null }
+        : {}),
     });
 
     if (req.file && existingProduct.imagePublicId) {

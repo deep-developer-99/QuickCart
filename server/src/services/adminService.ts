@@ -91,6 +91,7 @@ export const getAllProductsAdmin = async (page?: unknown, limit?: unknown) => {
   const pagination = getPagination(page, limit);
   const [product, totalItems] = await Promise.all([Product.find()
     .populate("category", "name image")
+    .populate("subCategory", "name image isActive parentCategory")
     .populate("vendor", "name shopName email")
     .sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), Product.countDocuments()]);
 

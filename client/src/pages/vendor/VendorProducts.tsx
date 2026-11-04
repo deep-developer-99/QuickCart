@@ -1,15 +1,18 @@
-import { useEffect, useState } from "react";
+import axios from "axios";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   createProduct,
   deleteProduct,
   getCategories,
+  getSubcategories,
   getVendorProducts,
   restoreProduct,
   updateProduct,
 } from "../../services/productService";
 
 import type { Category, Product } from "../../types/product";
+import { activeSubcategoriesForParent } from "../../utils/categorySelection";
 import Pagination from "../../components/common/Pagination";
 
 import "./VendorProducts.css";
@@ -21,6 +24,7 @@ interface ProductForm {
   discountPrice: string;
   stock: string;
   category: string;
+  subCategory: string;
 }
 
 const initialForm: ProductForm = {
@@ -30,11 +34,17 @@ const initialForm: ProductForm = {
   discountPrice: "",
   stock: "",
   category: "",
+  subCategory: "",
 };
 
 const VendorProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Category[]>([]);
+  const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(false);
+  const [subcategoryLoadError, setSubcategoryLoadError] = useState("");
+  const [subcategoryRetry, setSubcategoryRetry] = useState(0);
+  const subcategoryRequestId = useRef(0);
 
   const [form, setForm] = useState<ProductForm>(initialForm);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -56,7 +66,7 @@ const VendorProducts = () => {
   // Fetch Vendor Products + Categories
   // ==============================
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError("");
@@ -83,11 +93,39 @@ const VendorProducts = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page]);
 
   useEffect(() => {
-    fetchData();
-  }, [page]);
+    // The callback starts the page's asynchronous API load and updates loading/data state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    const requestId = ++subcategoryRequestId.current;
+    if (!isFormOpen || !form.category) {
+      return;
+    }
+
+    getSubcategories(form.category)
+      .then((response) => {
+        if (requestId !== subcategoryRequestId.current) return;
+        if (!response?.success || !Array.isArray(response.data)) throw new Error("Failed to load subcategories.");
+        setSubcategories(activeSubcategoriesForParent(response.data as Category[], form.category));
+      })
+      .catch(() => {
+        if (requestId !== subcategoryRequestId.current) return;
+        setSubcategories([]);
+        setSubcategoryLoadError("Could not load subcategories. Retry by selecting the main category again.");
+      })
+      .finally(() => {
+        if (requestId === subcategoryRequestId.current) setIsLoadingSubcategories(false);
+      });
+
+    return () => {
+      if (requestId === subcategoryRequestId.current) subcategoryRequestId.current += 1;
+    };
+  }, [form.category, isFormOpen, subcategoryRetry]);
 
   // ==============================
   // Cleanup Preview URL
@@ -129,10 +167,15 @@ const VendorProducts = () => {
   ) => {
     const { name, value } = event.target;
 
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+    if (name === "category") {
+      setForm((previous) => ({ ...previous, category: value, subCategory: "" }));
+      setSubcategories([]);
+      setIsLoadingSubcategories(Boolean(value));
+      setSubcategoryLoadError("");
+      setError("");
+    } else {
+      setForm((previous) => ({ ...previous, [name]: value }));
+    }
   };
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,6 +218,9 @@ const VendorProducts = () => {
     }
 
     setForm(initialForm);
+    setSubcategories([]);
+    setIsLoadingSubcategories(false);
+    setSubcategoryLoadError("");
     setEditingProduct(null);
     setImageFile(null);
     setImagePreview("");
@@ -250,6 +296,30 @@ const VendorProducts = () => {
       return;
     }
 
+    if (isLoadingSubcategories || subcategoryLoadError) {
+      setError(subcategoryLoadError || "Wait for subcategories to finish loading.");
+      return;
+    }
+
+    const currentSubcategory = editingProduct?.subCategory;
+    const currentSubcategoryId = typeof currentSubcategory === "string"
+      ? currentSubcategory
+      : currentSubcategory?._id;
+    const editingCategoryId = typeof editingProduct?.category === "string"
+      ? editingProduct.category
+      : editingProduct?.category?._id;
+    const currentSubcategoryIsActive = currentSubcategoryId
+      ? subcategories.some((subcategory) => subcategory._id === currentSubcategoryId)
+      : true;
+    if (editingProduct && currentSubcategoryId && editingCategoryId === form.category && !currentSubcategoryIsActive && !form.subCategory) {
+      setError("This product's subcategory is inactive. Choose an active replacement before updating.");
+      return;
+    }
+    if (form.subCategory && !subcategories.some((subcategory) => subcategory._id === form.subCategory)) {
+      setError("Select a subcategory that belongs to the selected main category.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -260,6 +330,7 @@ const VendorProducts = () => {
       formData.append("price", form.price);
       formData.append("stock", form.stock);
       formData.append("category", form.category);
+      formData.append("subCategory", form.subCategory);
 
       if (form.discountPrice) {
         formData.append("discountPrice", form.discountPrice);
@@ -292,8 +363,9 @@ const VendorProducts = () => {
       }
     } catch (error) {
       console.error("Product save error:", error);
-
-      setError("Failed to save product. Please try again.");
+      setError(axios.isAxiosError(error)
+        ? error.response?.data?.message || "Failed to save product. Please try again."
+        : error instanceof Error ? error.message : "Failed to save product. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -321,12 +393,17 @@ const VendorProducts = () => {
           : "",
       stock: String(product.stock),
       category: categoryId || "",
+      subCategory: typeof product.subCategory === "string"
+        ? product.subCategory
+        : product.subCategory?._id || "",
     });
 
     setImageFile(null);
     setImagePreview(product.image || "");
     setError("");
     setSuccess("");
+    setIsLoadingSubcategories(Boolean(categoryId));
+    setSubcategoryLoadError("");
     setIsFormOpen(true);
   };
 
@@ -381,6 +458,21 @@ const VendorProducts = () => {
       setError("Failed to restore product.");
     }
   };
+
+  const existingSubcategory = editingProduct?.subCategory;
+  const existingSubcategoryId = typeof existingSubcategory === "string"
+    ? existingSubcategory
+    : existingSubcategory?._id;
+  const existingCategoryId = typeof editingProduct?.category === "string"
+    ? editingProduct.category
+    : editingProduct?.category?._id;
+  const existingCategoryName = typeof editingProduct?.category === "object" && editingProduct.category
+    ? editingProduct.category.name
+    : "Previously assigned category";
+  const needsSubcategoryReplacement = Boolean(
+    editingProduct && existingSubcategoryId && existingCategoryId === form.category &&
+    !subcategories.some((subcategory) => subcategory._id === existingSubcategoryId),
+  );
 
   // ==============================
   // Loading
@@ -489,8 +581,8 @@ const VendorProducts = () => {
                       <div className="vendor-product-info">
                         <h3>{product.name}</h3>
 
-                        <p className="vendor-product-category">
-                          {categoryName}
+                      <p className="vendor-product-category">
+                          {categoryName}{typeof product.subCategory === "object" && product.subCategory ? ` · ${product.subCategory.name}` : ""}
                         </p>
 
                         <div className="vendor-product-price">
@@ -529,13 +621,22 @@ const VendorProducts = () => {
                               </button>
                             </>
                           ) : (
-                            <button
-                              type="button"
-                              className="restore-product-button"
-                              onClick={() => handleRestore(product._id)}
-                            >
-                              Restore
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                className="edit-product-button"
+                                onClick={() => handleEdit(product)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="restore-product-button"
+                                onClick={() => handleRestore(product._id)}
+                              >
+                                Restore
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -623,12 +724,49 @@ const VendorProducts = () => {
                 >
                   <option value="">Select Category</option>
 
+                  {editingProduct && existingCategoryId && !categories.some((category) => category._id === existingCategoryId) && (
+                    <option value={existingCategoryId} disabled>{existingCategoryName} (inactive — choose an active category)</option>
+                  )}
+
                   {categories.map((category) => (
                     <option key={category._id} value={category._id}>
                       {category.name}
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="subCategory">Subcategory</label>
+                <select
+                  id="subCategory"
+                  name="subCategory"
+                  value={form.subCategory}
+                  onChange={handleChange}
+                  disabled={!form.category || isLoadingSubcategories || Boolean(subcategoryLoadError)}
+                >
+                  <option value="" disabled={needsSubcategoryReplacement}>
+                    {isLoadingSubcategories ? "Loading subcategories…" : "No subcategory (optional)"}
+                  </option>
+                  {needsSubcategoryReplacement && existingSubcategory && typeof existingSubcategory !== "string" && (
+                    <option value={existingSubcategoryId} disabled>
+                      {existingSubcategory.name} (inactive — choose a replacement)
+                    </option>
+                  )}
+                  {subcategories.map((subcategory) => (
+                    <option key={subcategory._id} value={subcategory._id}>{subcategory.name}</option>
+                  ))}
+                </select>
+                {subcategoryLoadError ? (
+                  <>
+                    <small className="vendor-subcategory-message error">{subcategoryLoadError}</small>
+                    <button type="button" className="vendor-subcategory-retry" onClick={() => { setIsLoadingSubcategories(true); setSubcategoryLoadError(""); setSubcategoryRetry((current) => current + 1); }}>Retry subcategories</button>
+                  </>
+                ) : needsSubcategoryReplacement ? (
+                  <small className="vendor-subcategory-message error">The assigned subcategory is inactive. Choose an active replacement before saving.</small>
+                ) : !isLoadingSubcategories && form.category && subcategories.length === 0 ? (
+                  <small className="vendor-subcategory-message">No subcategories are available. You can save with no subcategory.</small>
+                ) : null}
               </div>
 
               {/* Price */}

@@ -9,6 +9,12 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  createSubcategory,
+  deleteSubcategory,
+  getAdminSubcategories,
+  getSubcategoriesByParent,
+  getSubcategoryByIdAdmin,
+  updateSubcategory,
 } from "../services/categoryService";
 import {
   deleteImageFromCloudinary,
@@ -57,6 +63,20 @@ export const getCategoryByIdController = async (
     res.status(404).json({
       success: false,
       message: error instanceof Error ? error.message : "Category not found",
+    });
+  }
+};
+
+export const getSubcategoriesByParentController = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params as { id: string };
+    const data = await getSubcategoriesByParent(id);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    const candidate = error as { statusCode?: number; message?: string };
+    res.status(candidate.statusCode || 404).json({
+      success: false,
+      message: candidate.message || "Failed to fetch subcategories.",
     });
   }
 };
@@ -264,5 +284,117 @@ export const deleteCategoryController = async (
       message:
         error instanceof Error ? error.message : "Failed to delete category",
     });
+  }
+};
+
+const sendSubcategoryError = (res: Response, error: unknown, fallback: string) => {
+  const candidate = error as { statusCode?: number; productsCount?: number; message?: string };
+  res.status(candidate.statusCode || 400).json({
+    success: false,
+    message: candidate.message || fallback,
+    ...(candidate.productsCount !== undefined ? { productsCount: candidate.productsCount } : {}),
+  });
+};
+
+const parseActive = (value: unknown): boolean | undefined => {
+  if (value === undefined || value === "") return undefined;
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  throw new Error("isActive must be true or false.");
+};
+
+export const getAdminSubcategoriesController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const result = await getAdminSubcategories({
+      page: req.query.page,
+      limit: req.query.limit,
+      search: req.query.search,
+      parentCategory: req.query.parentCategory,
+      isActive: req.query.isActive,
+    });
+    res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    sendSubcategoryError(res, error, "Failed to fetch subcategories.");
+  }
+};
+
+export const createSubcategoryController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  let uploadedPublicId: string | undefined;
+  try {
+    const name = String(req.body?.name ?? "").trim();
+    const parentCategory = String(req.body?.parentCategory ?? "").trim();
+    if (!name) throw new Error("Subcategory name is required.");
+    if (!parentCategory) throw new Error("Select a main category.");
+    if (!req.file) throw new Error("A subcategory image is required.");
+
+    const uploaded = await uploadImageToCloudinary(req.file.buffer, "quickcart/categories/subcategories");
+    uploadedPublicId = uploaded.public_id;
+    const data = await createSubcategory({
+      name,
+      parentCategory,
+      image: uploaded.secure_url,
+      imagePublicId: uploaded.public_id,
+      isActive: parseActive(req.body?.isActive) ?? true,
+    });
+    uploadedPublicId = undefined;
+    res.status(201).json({ success: true, message: "Subcategory created successfully.", data });
+  } catch (error) {
+    if (uploadedPublicId) await deleteImageFromCloudinary(uploadedPublicId).catch(() => undefined);
+    sendSubcategoryError(res, error, "Failed to create subcategory.");
+  }
+};
+
+export const updateSubcategoryController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  let uploadedPublicId: string | undefined;
+  try {
+    const { id } = req.params as { id: string };
+    const current = await getSubcategoryByIdAdmin(id);
+    const name = String(req.body?.name ?? "").trim();
+    const parentCategory = String(req.body?.parentCategory ?? "").trim();
+    if (!name) throw new Error("Subcategory name is required.");
+    if (!parentCategory) throw new Error("Select a main category.");
+
+    let image: string | undefined;
+    let imagePublicId: string | undefined;
+    if (req.file) {
+      const uploaded = await uploadImageToCloudinary(req.file.buffer, "quickcart/categories/subcategories");
+      uploadedPublicId = uploaded.public_id;
+      image = uploaded.secure_url;
+      imagePublicId = uploaded.public_id;
+    }
+
+    const data = await updateSubcategory(id, {
+      name,
+      parentCategory,
+      image,
+      imagePublicId,
+      isActive: parseActive(req.body?.isActive),
+    });
+
+    if (uploadedPublicId && current.imagePublicId && current.imagePublicId !== uploadedPublicId) {
+      await deleteImageFromCloudinary(current.imagePublicId).catch((error) => {
+        console.error("Failed to delete previous subcategory image from Cloudinary:", error);
+      });
+    }
+    uploadedPublicId = undefined;
+    res.status(200).json({ success: true, message: "Subcategory updated successfully.", data });
+  } catch (error) {
+    if (uploadedPublicId) await deleteImageFromCloudinary(uploadedPublicId).catch(() => undefined);
+    sendSubcategoryError(res, error, "Failed to update subcategory.");
+  }
+};
+
+export const deleteSubcategoryController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params as { id: string };
+    const result = await deleteSubcategory(id);
+    res.status(200).json({
+      success: true,
+      message: "Subcategory deactivated successfully.",
+      productsCount: result.productsCount,
+      data: result.subcategory,
+    });
+  } catch (error) {
+    sendSubcategoryError(res, error, "Failed to delete subcategory.");
   }
 };

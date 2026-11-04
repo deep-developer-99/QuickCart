@@ -5,8 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "test": "tsx --test src/services/__tests__/categoryHierarchy.test.ts src/services/__tests__/productCategoryValidation.test.ts src/services/__tests__/notificationHistory.test.ts src/services/__tests__/cartService.test.mjs src/services/__tests__/addressCoordinates.test.ts src/middleware/__tests__/apiRequestLogging.test.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "migrate:category-hierarchy": "tsx src/scripts/migrateCategoryHierarchy.ts",
     "seed:categories": "tsx src/seed/categorySeed.ts",
     "seed:admin": "tsx src/seed/adminSeed.ts"
   },

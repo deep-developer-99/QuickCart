@@ -1,7 +1,9 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Document, Schema, Types } from "mongoose";
 
 export interface ICategory extends Document {
   name: string;
+  parentCategory: Types.ObjectId | null;
+  normalizedName: string;
   image?: string;
   imagePublicId?: string;
   isActive: boolean;
@@ -14,8 +16,19 @@ const categorySchema = new Schema<ICategory>(
     name: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
+    },
+
+    parentCategory: {
+      type: Schema.Types.ObjectId,
+      ref: "Category",
+      default: null,
+    },
+
+    normalizedName: {
+      type: String,
+      required: true,
+      select: false,
     },
 
     image: {
@@ -33,9 +46,21 @@ const categorySchema = new Schema<ICategory>(
   },
   {
     timestamps: true,
+    // Index changes are applied by the reviewed migration script, not at app startup.
+    autoIndex: false,
   },
 );
 
-const Category = mongoose.model<ICategory>("Category", categorySchema);
+categorySchema.pre("validate", function () {
+  this.name = this.name.trim();
+  this.normalizedName = this.name.normalize("NFKC").toLocaleLowerCase("en");
+});
+
+categorySchema.index(
+  { parentCategory: 1, normalizedName: 1 },
+  { unique: true, name: "category_parent_normalized_name_unique" },
+);
+
+const Category = mongoose.models.Category || mongoose.model<ICategory>("Category", categorySchema);
 
 export default Category;

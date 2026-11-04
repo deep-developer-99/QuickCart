@@ -444,6 +444,29 @@
   line-height: 1.5;
 }
 
+.form-group .vendor-subcategory-message {
+  display: block;
+  color: var(--color-muted-text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.form-group .vendor-subcategory-message.error {
+  color: #b42318;
+}
+
+.vendor-subcategory-retry {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary-hover);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* Image Preview */
 
 .product-image-preview {
