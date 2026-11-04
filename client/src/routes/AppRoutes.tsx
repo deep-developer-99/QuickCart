@@ -42,6 +42,7 @@ import AdminFooter from "../pages/admin/AdminFooter";
 import AdminSearchSuggestions from "../pages/admin/AdminSearchSuggestions";
 
 import ScrollToTop from "../components/ScrollToTop";
+import ContactUs from "../pages/ContactUs";
 
 const AppRoutes = () => {
   return (
@@ -49,6 +50,8 @@ const AppRoutes = () => {
       <ScrollToTop />
 
       <Routes>
+        <Route path="/contact" element={<ContactUs />} />
+
         <Route element={<UserLayout />}>
           <Route path="/" element={<HomeRoute />} />
 

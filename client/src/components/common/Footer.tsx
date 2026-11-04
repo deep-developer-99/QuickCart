@@ -106,6 +106,16 @@ const Footer = () => {
 
     if (!link) return null;
 
+    const isContactPage = label.toLowerCase() === "contact us";
+
+    if (isContactPage) {
+      return (
+        <Link to="/contact" key={link.href} target="_blank" rel="noopener noreferrer">
+          {label}
+        </Link>
+      );
+    }
+
     return /^https?:\/\//i.test(link.href) ? (
       <a href={link.href} key={link.href}>{label}</a>
     ) : (
