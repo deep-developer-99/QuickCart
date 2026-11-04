@@ -21,12 +21,12 @@ const AdminSidebar = () => {
   };
 
   const navItems = [
-    { to: "/admin/subcategories", label: "Subcategories", icon: "↳" },
     { to: "/admin/dashboard", label: "Dashboard", icon: "▦" },
     { to: "/admin/users", label: "Manage Users", icon: "👥" },
     { to: "/admin/vendors", label: "Manage Vendors", icon: "🏪" },
     { to: "/admin/products", label: "Manage Products", icon: "📦" },
     { to: "/admin/categories", label: "Categories", icon: "🗂️" },
+    { to: "/admin/subcategories", label: "Subcategories", icon: "↳" },
     { to: "/admin/banners", label: "Banners", icon: "🖼️" },
     { to: "/admin/offers", label: "Offers & Notifications", icon: "🎁" },
     { to: "/admin/orders", label: "Manage Orders", icon: "🛒" },
