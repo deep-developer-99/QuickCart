@@ -69,7 +69,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .quickcart-search-suggestion-track { animation: none; transform: translateY(-1.35em); }
-  .quickcart-search-suggestion-track > span:first-child { display: none; animation: none; }
+  .quickcart-search-suggestion-track > span:first-child { opacity: 0; animation: none; }
   .quickcart-search-suggestion-track > span:last-child { opacity: 1; animation: none; }
 }
 
