@@ -14,27 +14,22 @@
   box-sizing: border-box;
 }
 
+/* Sidebar menu - hide scrollbar but preserve scrolling */
 .admin-sidebar-menu {
   min-height: 0;
   flex: 1 1 auto;
   overflow-y: auto;
   overflow-x: hidden;
-  scrollbar-gutter: stable;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
+/* Chrome, Edge and Safari */
 .admin-sidebar-menu::-webkit-scrollbar {
-  width: 8px;
-}
-
-.admin-sidebar-menu::-webkit-scrollbar-thumb {
-  border: 2px solid var(--color-card-background);
-  border-radius: 999px;
-  background: var(--color-border);
-}
-
-.admin-sidebar-menu {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .admin-sidebar-brand {
@@ -179,12 +174,14 @@
   color: var(--color-card-background);
 }
 
+/* Tablet */
 @media (max-width: 900px) {
   .admin-sidebar {
     width: 220px;
   }
 }
 
+/* Mobile */
 @media (max-width: 700px) {
   .admin-sidebar {
     position: static;
@@ -204,6 +201,8 @@
 
   .admin-sidebar-menu {
     overflow: visible;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
   .admin-sidebar-bottom {
