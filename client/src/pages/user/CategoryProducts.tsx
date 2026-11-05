@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import {
   getCategoryById,
@@ -14,6 +14,8 @@ import "./CategoryProducts.css";
 
 const CategoryProducts = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
+  const [searchParams] = useSearchParams();
+  const requestedSubcategoryId = searchParams.get("subCategory") || "";
   const [products, setProducts] = useState<Product[]>([]);
   const [category, setCategory] = useState<Category | null>(null);
   const [subcategories, setSubcategories] = useState<Category[]>([]);
@@ -57,7 +59,12 @@ const CategoryProducts = () => {
         const activeSubcategories = activeSubcategoriesForParent(subcategoryResponse.data as Category[], categoryId);
         setCategory(categoryResponse.data as Category);
         setSubcategories(activeSubcategories);
-        setSelectedSubcategory(getDefaultSubcategoryId(activeSubcategories));
+        const requestedSubcategory = new URLSearchParams(window.location.search).get("subCategory");
+        setSelectedSubcategory(
+          activeSubcategories.some((item) => item._id === requestedSubcategory)
+            ? requestedSubcategory || ""
+            : getDefaultSubcategoryId(activeSubcategories),
+        );
         setCategoryReadyId(categoryId);
       })
       .catch((requestError: unknown) => {
@@ -70,6 +77,13 @@ const CategoryProducts = () => {
 
     return () => { current = false; };
   }, [categoryId]);
+
+  useEffect(() => {
+    if (!requestedSubcategoryId || categoryReadyId !== categoryId) return;
+    if (!subcategories.some((item) => item._id === requestedSubcategoryId)) return;
+    setSelectedSubcategory((current) => current === requestedSubcategoryId ? current : requestedSubcategoryId);
+    setPage((current) => current === 1 ? current : 1);
+  }, [categoryId, categoryReadyId, requestedSubcategoryId, subcategories]);
 
   // A per-effect cleanup token ensures an older request can never commit results
   // or clear the loading state for a newer category, subcategory, page, or retry.

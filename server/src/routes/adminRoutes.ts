@@ -61,6 +61,10 @@ import {
   getAdminSearchSuggestionsController, reorderSearchSuggestionsController,
   updateSearchSuggestionController, updateSearchSuggestionSettingsController,
 } from "../controllers/searchSuggestionController";
+import {
+  getAdminHomepageSectionsController,
+  saveAdminHomepageSectionsController,
+} from "../controllers/homepageSectionController";
 
 const router = Router();
 
@@ -68,6 +72,10 @@ router.use(authMiddleware("admin"));
 
 // Dashboard
 router.get("/dashboard", getAdminDashboardController);
+
+// Homepage product sections
+router.get("/homepage-sections", getAdminHomepageSectionsController);
+router.put("/homepage-sections", saveAdminHomepageSectionsController);
 
 // Users
 router.get("/users", getAllUsersController);

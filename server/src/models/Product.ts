@@ -85,6 +85,11 @@ const productSchema = new Schema<IProduct>(
   },
 );
 
+productSchema.index(
+  { subCategory: 1, isActive: 1, stock: 1, createdAt: -1 },
+  { name: "product_homepage_section_visibility" },
+);
+
 const Product = mongoose.models.Product || mongoose.model<IProduct>("Product", productSchema);
 
 export default Product;

@@ -41,6 +41,7 @@ import AdminTheme from "../pages/admin/AdminTheme";
 import AdminPromotionalBanners from "../pages/admin/AdminPromotionalBanners";
 import AdminFooter from "../pages/admin/AdminFooter";
 import AdminSearchSuggestions from "../pages/admin/AdminSearchSuggestions";
+import AdminHomepageSections from "../pages/admin/AdminHomepageSections";
 
 import ScrollToTop from "../components/ScrollToTop";
 import ContactUs from "../pages/ContactUs";
@@ -115,6 +116,7 @@ const AppRoutes = () => {
           <Route path="/admin/products" element={<AdminProducts />} />
           <Route path="/admin/categories" element={<AdminCategories />} />
           <Route path="/admin/subcategories" element={<AdminSubCategories />} />
+          <Route path="/admin/homepage-sections" element={<AdminHomepageSections />} />
           <Route path="/admin/banners" element={<AdminBanners />} />
           <Route path="/admin/offers" element={<AdminOffers />} />
           <Route path="/admin/orders" element={<AdminOrders />} />

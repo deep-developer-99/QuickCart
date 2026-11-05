@@ -8,6 +8,7 @@ import CategoryGrid from "../../components/user/CategoryGrid";
 import PromotionalBanners from "../../components/user/PromotionalBanners";
 import HomeBanner from "../../components/user/HomeBanner";
 import HomeShimmer from "../../components/user/HomeShimmer";
+import HomepageProductSections from "../../components/user/HomepageProductSections";
 
 import type { Banner } from "../../types/banner";
 import type { PromotionalBanner } from "../../types/promotionalBanner";
@@ -78,6 +79,7 @@ const Home = () => {
         <section className="home-section home-category-section">
           <CategoryGrid categories={categories} />
         </section>
+        <HomepageProductSections />
       </div>
     </div>
   );
