@@ -11,7 +11,10 @@ export const getPublicHomepageSectionsController = async (_req: Request, res: Re
     const data = await getPublicHomepageSections();
     res.status(200).json({ success: true, data });
   } catch (error) {
-    console.error("Get homepage sections error:", error);
+    const details = error instanceof Error
+      ? { name: error.name, message: error.message, stack: error.stack }
+      : { error };
+    console.error("[homepage-sections] Failed to load public sections:", details);
     res.status(500).json({ success: false, message: "Failed to load homepage sections." });
   }
 };

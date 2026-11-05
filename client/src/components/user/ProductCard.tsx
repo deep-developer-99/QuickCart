@@ -27,9 +27,13 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   const quantity = getQuantity(product._id);
   const isUser = isAuthenticated && user?.role === "user";
   const hasStock = product.stock > 0;
+  const description = typeof product.description === "string" ? product.description.trim() : "";
 
-  const categoryName =
-    typeof product.category === "string" ? "" : product.category.name;
+  const hasDiscount =
+    product.discountPrice !== undefined &&
+    product.discountPrice !== null &&
+    product.discountPrice < product.price;
+  const sellingPrice = hasDiscount ? product.discountPrice! : product.price;
 
   const handleAddToCart = async () => {
     if (!isUser) {
@@ -101,14 +105,19 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   };
 
   return (
-    <article className={`product-card${variant ? ` product-card--${variant}` : ""}`}>
+    <article className={`product-card${variant ? ` product-card--${variant}` : ""}${!hasStock ? " product-card--unavailable" : ""}`}>
       <Link to={`/products/${product._id}`} className="product-card-main">
         <div className="product-card-image-wrapper">
           <img
             src={product.image}
             alt={product.name}
             className="product-card-image"
+            onError={(event) => {
+              event.currentTarget.hidden = true;
+              event.currentTarget.nextElementSibling?.classList.add("product-card-image-fallback--visible");
+            }}
           />
+          <span className="product-card-image-fallback" aria-hidden="true">Image unavailable</span>
 
           {product.stock <= 5 && product.stock > 0 && (
             <span className="low-stock-badge">Only {product.stock} left</span>
@@ -120,21 +129,18 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
         </div>
 
         <div className="product-card-content">
-          <p className="product-card-category">{categoryName}</p>
-
           <h3 className="product-card-name">{product.name}</h3>
-
-          <p className="product-card-description">{product.description}</p>
+          {description && <p className="product-card-description">{description}</p>}
         </div>
       </Link>
 
       <div className="product-card-footer">
         <div className="product-card-prices">
-          <span className="product-card-price">₹{product.price}</span>
+          <span className="product-card-price">₹{sellingPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>
 
-          {product.discountPrice && product.discountPrice > product.price && (
+          {hasDiscount && (
             <span className="product-card-old-price">
-              ₹{product.discountPrice}
+              ₹{product.price.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
             </span>
           )}
         </div>

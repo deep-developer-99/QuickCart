@@ -125,8 +125,13 @@ export const getPublicHomepageSections = async () => {
   const config = await HomepageSection.find({ isActive: true }).sort({ displayOrder: 1, _id: 1 }).lean();
   if (!config.length) return [];
 
-  const maps = await loadCategoryMaps(config.map((section) => section.subCategory as Types.ObjectId));
-  const sections = config.flatMap((section) => {
+  // A manually edited or legacy document can contain a non-ObjectId reference.
+  // Ignore that section instead of allowing it to break the entire public feed.
+  const validConfig = config.filter((section) => mongoose.isValidObjectId(section.subCategory));
+  if (!validConfig.length) return [];
+
+  const maps = await loadCategoryMaps(validConfig.map((section) => section.subCategory as Types.ObjectId));
+  const sections = validConfig.flatMap((section) => {
     const subCategoryId = String(section.subCategory);
     const category = maps.subcategories.get(subCategoryId);
     const parentCategory = category?.parentCategory?.toString();
@@ -140,51 +145,24 @@ export const getPublicHomepageSections = async () => {
   });
   if (!sections.length) return [];
 
-  const sectionIds = sections.map((section) => new Types.ObjectId(section.subCategoryId));
-  const productFilter = { subCategory: { $in: sectionIds }, isActive: true, stock: { $gt: 0 } };
-  const [counts, previews] = await Promise.all([
-    Product.aggregate([
-      { $match: productFilter },
-      { $group: { _id: "$subCategory", productCount: { $sum: 1 } } },
-    ]),
-    Product.aggregate([
-      { $match: productFilter },
-      { $sort: { createdAt: -1, _id: -1 } },
-      {
-        $setWindowFields: {
-          partitionBy: "$subCategory",
-          sortBy: { createdAt: -1, _id: -1 },
-          output: { sectionRank: { $documentNumber: {} } },
-        },
-      },
-      { $match: { sectionRank: { $lte: MAX_PRODUCT_LIMIT } } },
-      {
-        $lookup: {
-          from: Category.collection.name,
-          localField: "category",
-          foreignField: "_id",
-          as: "categoryDetails",
-        },
-      },
-      { $unwind: { path: "$categoryDetails", preserveNullAndEmptyArrays: true } },
-      { $addFields: { category: { _id: "$categoryDetails._id", name: "$categoryDetails.name" } } },
-      { $project: { categoryDetails: 0, sectionRank: 0 } },
-      { $sort: { subCategory: 1, createdAt: -1, _id: -1 } },
-    ]),
-  ]);
+  // Fetch each section's count and bounded preview independently. This avoids
+  // $setWindowFields, which is only supported by MongoDB 5.0+, while preserving
+  // the same eligibility rules and per-section product limit on older servers.
+  return Promise.all(sections.map(async (section) => {
+    const productFilter = {
+      subCategory: new Types.ObjectId(section.subCategoryId),
+      isActive: true,
+      stock: { $gt: 0 },
+    };
+    const [productCount, products] = await Promise.all([
+      Product.countDocuments(productFilter),
+      Product.find(productFilter)
+        .sort({ createdAt: -1, _id: -1 })
+        .limit(section.productLimit)
+        .populate("category", "name")
+        .lean(),
+    ]);
 
-  const countBySubcategory = new Map(counts.map((item: { _id: Types.ObjectId; productCount: number }) => [String(item._id), item.productCount]));
-  const productsBySubcategory = new Map<string, unknown[]>();
-  for (const product of previews as Array<{ subCategory: Types.ObjectId }>) {
-    const id = String(product.subCategory);
-    const current = productsBySubcategory.get(id) ?? [];
-    current.push(product);
-    productsBySubcategory.set(id, current);
-  }
-
-  return sections.map((section) => ({
-    ...section,
-    productCount: countBySubcategory.get(section.subCategoryId) ?? 0,
-    products: (productsBySubcategory.get(section.subCategoryId) ?? []).slice(0, section.productLimit),
+    return { ...section, productCount, products };
   }));
 };
