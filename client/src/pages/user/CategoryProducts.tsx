@@ -19,18 +19,35 @@ const CategoryProducts = () => {
   const [subcategories, setSubcategories] = useState<Category[]>([]);
   const [selectedSubcategory, setSelectedSubcategory] = useState("");
   const [categoryReadyId, setCategoryReadyId] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isProductsLoading, setIsProductsLoading] = useState(false);
+  const [categoryError, setCategoryError] = useState("");
+  const [productError, setProductError] = useState("");
+  const [productRetry, setProductRetry] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
+  // Category details and subcategories are fetched only when the parent changes.
   useEffect(() => {
     let current = true;
 
     if (!categoryId) {
+      setIsInitialLoading(false);
       return () => { current = false; };
     }
+
+    setIsInitialLoading(true);
+    setCategoryError("");
+    setProductError("");
+    setCategoryReadyId("");
+    setCategory(null);
+    setSubcategories([]);
+    setSelectedSubcategory("");
+    setProducts([]);
+    setPage(1);
+    setTotalPages(1);
+    setTotalItems(0);
 
     Promise.all([getCategoryById(categoryId), getSubcategories(categoryId)])
       .then(([categoryResponse, subcategoryResponse]) => {
@@ -45,50 +62,54 @@ const CategoryProducts = () => {
       })
       .catch((requestError: unknown) => {
         if (!current) return;
-        setError(requestError instanceof Error ? requestError.message : "Failed to load category.");
-        setCategoryReadyId(categoryId);
+        setCategoryError(requestError instanceof Error ? requestError.message : "Failed to load category.");
+      })
+      .finally(() => {
+        if (current) setIsInitialLoading(false);
       });
 
     return () => { current = false; };
   }, [categoryId]);
 
+  // A per-effect cleanup token ensures an older request can never commit results
+  // or clear the loading state for a newer category, subcategory, page, or retry.
   useEffect(() => {
-    if (!categoryId || categoryReadyId !== categoryId || error) return;
+    if (!categoryId || categoryReadyId !== categoryId || categoryError) return;
     if (subcategories.length > 0 && !subcategories.some((item) => item._id === selectedSubcategory)) return;
 
     let current = true;
+    setIsProductsLoading(true);
+    setProductError("");
+
     getProductsByCategory(categoryId, page, 10, selectedSubcategory || undefined)
       .then((response) => {
         if (!current) return;
-        if (!response?.success) throw new Error("Failed to load products.");
+        if (!response?.success || !Array.isArray(response.data)) throw new Error("Failed to load products.");
         const nextPageCount = response.pagination?.totalPages || 1;
-        setProducts(response.data || []);
+        setProducts(response.data as Product[]);
         setTotalPages(nextPageCount);
         setTotalItems(response.pagination?.totalItems || 0);
         if (page > nextPageCount) setPage(nextPageCount);
-        setError("");
       })
       .catch((requestError: unknown) => {
         if (!current) return;
-        setError(requestError instanceof Error ? requestError.message : "Failed to load products. Please try again.");
-        setProducts([]);
-        setTotalItems(0);
+        setProductError(requestError instanceof Error ? requestError.message : "Failed to load products. Please try again.");
       })
       .finally(() => {
-        if (current) setIsLoading(false);
+        if (current) setIsProductsLoading(false);
       });
+
     return () => { current = false; };
-  }, [categoryId, categoryReadyId, selectedSubcategory, subcategories, page, error]);
+  }, [categoryId, categoryReadyId, categoryError, selectedSubcategory, subcategories, page, productRetry]);
 
   const selectSubcategory = (subcategoryId: string) => {
     if (subcategoryId === selectedSubcategory) return;
-    setIsLoading(true);
     setPage(1);
     setSelectedSubcategory(subcategoryId);
   };
 
   const changePage = (nextPage: number) => {
-    setIsLoading(true);
+    if (nextPage === page) return;
     setPage(nextPage);
   };
 
@@ -104,21 +125,21 @@ const CategoryProducts = () => {
     );
   }
 
-  if (isLoading || categoryReadyId !== categoryId) {
+  if (isInitialLoading || categoryReadyId !== categoryId) {
     return (
       <div className="category-products-page">
-        <div className="category-products-loading"><div className="category-products-spinner" /><p>Loading products...</p></div>
+        <div className="category-products-loading"><div className="category-products-spinner" /><p>Loading category...</p></div>
       </div>
     );
   }
 
-  if (error) {
+  if (categoryError) {
     return (
       <div className="category-products-page">
         <div className="category-products-error">
           <div className="category-products-error-icon" aria-hidden="true">⚠️</div>
           <h2>Something went wrong</h2>
-          <p>{error}</p>
+          <p>{categoryError}</p>
           <Link to="/">Go back home</Link>
         </div>
       </div>
@@ -160,13 +181,29 @@ const CategoryProducts = () => {
             </aside>
           )}
 
-          <section className="category-products-main" aria-label="Category products">
+          <section className="category-products-main" aria-label="Category products" aria-busy={isProductsLoading}>
             <div className="category-products-result">
               <strong>{currentSubcategory?.name || category?.name}</strong>
               <span>{totalItems} {totalItems === 1 ? "product" : "products"} available</span>
             </div>
 
-            {products.length > 0 ? (
+            {productError ? (
+              <div className="category-products-inline-error" role="alert">
+                <span>{productError}</span>
+                <button type="button" onClick={() => setProductRetry((retry) => retry + 1)}>Retry</button>
+              </div>
+            ) : isProductsLoading ? (
+              <div className="category-products-grid category-products-grid--loading" aria-label="Loading products">
+                {Array.from({ length: Math.min(4, Math.max(products.length, 2)) }, (_, index) => (
+                  <div className="category-product-skeleton" key={index}>
+                    <span className="category-product-skeleton-image" />
+                    <span className="category-product-skeleton-line" />
+                    <span className="category-product-skeleton-line short" />
+                  </div>
+                ))}
+                <span className="category-products-loading-label">Loading products…</span>
+              </div>
+            ) : products.length > 0 ? (
               <div className="category-products-grid">
                 {products.map((product) => <ProductCard key={product._id} product={product} variant="category" />)}
               </div>
