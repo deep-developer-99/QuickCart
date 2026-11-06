@@ -162,7 +162,8 @@
 }
 
 .admin-category-form input[type="text"],
-.admin-category-form input[type="file"] {
+.admin-category-form input[type="file"],
+.admin-category-form textarea {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid var(--color-input-border);
@@ -173,6 +174,8 @@
   font: inherit;
   font-weight: 400;
 }
+
+.admin-category-form textarea { min-height: 96px; padding: 10px 12px; resize: vertical; font: inherit; }
 
 .admin-category-form input:focus {
   outline: none;

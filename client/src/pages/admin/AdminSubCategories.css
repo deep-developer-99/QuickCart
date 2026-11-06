@@ -224,7 +224,8 @@
 .admin-subcategories-modal form { display: grid; gap: 15px; }
 .admin-subcategories-modal form > label:not(.admin-subcategories-checkbox) { display: grid; gap: 7px; color: var(--color-heading-text); font-size: 13px; font-weight: 700; }
 .admin-subcategories-modal input:not([type="checkbox"]),
-.admin-subcategories-modal select {
+.admin-subcategories-modal select,
+.admin-subcategories-modal textarea {
   width: 100%;
   min-height: 42px;
   padding: 9px 11px;
@@ -235,6 +236,7 @@
   font: inherit;
   font-size: 14px;
 }
+.admin-subcategories-modal textarea { min-height: 96px; resize: vertical; }
 .admin-subcategories-modal input[type="file"] { height: auto; }
 .admin-subcategories-modal small { color: var(--color-muted-text); font-size: 11px; font-weight: 400; line-height: 1.5; }
 .admin-subcategories-preview { width: 112px; height: 96px; border: 1px solid var(--color-border); border-radius: 10px; object-fit: cover; }

@@ -31,6 +31,7 @@ const AdminCategories = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
 
@@ -82,6 +83,7 @@ const AdminCategories = () => {
     clearPreviewUrl();
 
     setName("");
+    setDescription("");
     setImageFile(null);
     setImagePreview("");
     setEditingCategory(null);
@@ -100,6 +102,7 @@ const AdminCategories = () => {
 
     setEditingCategory(category);
     setName(category.name);
+    setDescription(category.description || "");
     setImageFile(null);
     setImagePreview(category.image || "");
     setError("");
@@ -155,6 +158,7 @@ const AdminCategories = () => {
 
       const formData = new FormData();
       formData.append("name", trimmedName);
+      formData.append("description", description.trim());
 
       if (imageFile) {
         formData.append("image", imageFile);
@@ -326,6 +330,12 @@ const AdminCategories = () => {
                     maxLength={80}
                     disabled={isSubmitting}
                   />
+                </label>
+
+                <label>
+                  Category Description
+                  <textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1200} rows={4} placeholder="Optional information shown on the category shopping page." disabled={isSubmitting} />
+                  <span className="admin-category-file-help">Optional. Up to 1,200 characters.</span>
                 </label>
 
                 <label>

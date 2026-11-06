@@ -10,6 +10,7 @@ import LocationSelector from "./LocationSelector";
 import "./Navbar.css";
 import { useCart } from "../../context/useCart";
 import { useCartDrawer } from "../../context/useCartDrawer";
+import { useLoginModal } from "../../context/LoginModalContext";
 import { formatIndianRupees, getCartSubtotal, getValidCartItems } from "../../utils/hasValidCartItems";
 
 const Navbar = () => {
@@ -23,6 +24,7 @@ const Navbar = () => {
   const mobileProfileMenuRef = useRef<HTMLDivElement>(null);
   const { cart, isLoading: isCartLoading, isCartReady, cartError, refreshCart } = useCart();
   const { openCart } = useCartDrawer();
+  const { openLoginModal } = useLoginModal();
   const validCartItems = getValidCartItems(cart);
   const totalItems = validCartItems.reduce(
     (sum, item) => sum + item.quantity,
@@ -39,6 +41,7 @@ const Navbar = () => {
   const handleOpenCart = () => {
     if (canOpenCart) openCart();
     else if (canRetryCart) void refreshCart();
+    else if (!isUser) openLoginModal();
   };
 
   useEffect(() => {
@@ -261,14 +264,9 @@ const Navbar = () => {
                 {isProfileOpen && desktopAccountDropdown}
               </div>
             ) : (
-              <NavLink
-                to="/login"
-                className={({ isActive }) =>
-                  isActive ? "navbar-login active" : "navbar-login"
-                }
-              >
+              <button type="button" className="navbar-login" onClick={() => openLoginModal()}>
                 Login
-              </NavLink>
+              </button>
             )}
 
             {canOpenCart || canRetryCart ? (
@@ -302,8 +300,8 @@ const Navbar = () => {
             ) : (
               <button
                 type="button"
-                className="navbar-cart-action navbar-cart-disabled"
-                disabled
+                className={`navbar-cart-action${isUser ? " navbar-cart-disabled" : " navbar-cart-guest"}`}
+                onClick={handleOpenCart}
                 aria-label="My Cart"
               >
                 <svg
@@ -358,7 +356,7 @@ const Navbar = () => {
                   <button
                     type="button"
                     className="mobile-menu-link mobile-cart-button navbar-cart-disabled"
-                    disabled
+                    onClick={() => { closeMenu(); handleOpenCart(); }}
                     aria-label="My Cart"
                   >
                     🛒 My Cart
@@ -398,13 +396,10 @@ const Navbar = () => {
                 </div>
               </>
             ) : (
-              <NavLink
-                to="/login"
-                className="mobile-menu-login"
-                onClick={closeMenu}
-              >
-                Login
-              </NavLink>
+              <>
+                <button type="button" className="mobile-menu-link mobile-cart-button" onClick={() => { closeMenu(); openLoginModal(); }} aria-label="Sign in to open your cart">🛒 My Cart</button>
+                <button type="button" className="mobile-menu-login" onClick={() => { closeMenu(); openLoginModal(); }}>Login</button>
+              </>
             )}
           </nav>
         )}

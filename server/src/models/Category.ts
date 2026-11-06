@@ -2,6 +2,7 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 
 export interface ICategory extends Document {
   name: string;
+  description?: string;
   parentCategory: Types.ObjectId | null;
   normalizedName: string;
   image?: string;
@@ -17,6 +18,12 @@ const categorySchema = new Schema<ICategory>(
       type: String,
       required: true,
       trim: true,
+    },
+
+    description: {
+      type: String,
+      trim: true,
+      maxlength: 1200,
     },
 
     parentCategory: {

@@ -1,9 +1,11 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import { getProductById } from "../../services/productService";
 import { useCart } from "../../context/useCart";
+import { useLoginModal } from "../../context/LoginModalContext";
+import { useAppSelector } from "../../hooks/reduxHooks";
 
 import type { Product } from "../../types/product";
 
@@ -11,8 +13,9 @@ import "./ProductDetails.css";
 
 const ProductDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { addProduct } = useCart();
+  const { openLoginModal } = useLoginModal();
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -70,6 +73,18 @@ const ProductDetails = () => {
 
   const handleAddToCart = async () => {
     if (!product) return;
+    const isUser = isAuthenticated && user?.role === "user";
+    if (!isUser) {
+      openLoginModal({ onAuthenticated: async () => {
+        try {
+          await addProduct(product._id, quantity);
+          setSuccess("Product added to cart successfully.");
+        } catch (error) {
+          setError(axios.isAxiosError(error) && error.response?.data?.message ? error.response.data.message : "Failed to add product to cart.");
+        }
+      } });
+      return;
+    }
 
     try {
       setIsAdding(true);
@@ -82,11 +97,14 @@ const ProductDetails = () => {
       console.error("Add to cart error:", error);
 
       if (axios.isAxiosError(error) && error.response?.status === 401) {
-        navigate("/login", {
-          state: {
-            from: `/products/${product._id}`,
-          },
-        });
+        openLoginModal({ onAuthenticated: async () => {
+          try {
+            await addProduct(product._id, quantity);
+            setSuccess("Product added to cart successfully.");
+          } catch (retryError) {
+            setError(axios.isAxiosError(retryError) && retryError.response?.data?.message ? retryError.response.data.message : "Failed to add product to cart.");
+          }
+        } });
         return;
       }
 

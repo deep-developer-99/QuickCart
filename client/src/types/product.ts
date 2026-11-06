@@ -3,6 +3,7 @@ export interface Category {
   name: string;
   parentCategory?: string | Pick<Category, "_id" | "name"> | null;
   normalizedName?: string;
+  description?: string;
   image?: string;
   imagePublicId?: string;
   isActive: boolean;

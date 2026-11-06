@@ -40,6 +40,7 @@ const AdminSubCategories = () => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Subcategory | null>(null);
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [parentCategory, setParentCategory] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -132,6 +133,7 @@ const AdminSubCategories = () => {
     setShowForm(false);
     setEditing(null);
     setName("");
+    setDescription("");
     setParentCategory("");
     setIsActive(true);
     setImageFile(null);
@@ -149,6 +151,7 @@ const AdminSubCategories = () => {
   const openEdit = (subcategory: Subcategory) => {
     setEditing(subcategory);
     setName(subcategory.name);
+    setDescription(subcategory.description || "");
     setParentCategory(typeof subcategory.parentCategory === "string" ? subcategory.parentCategory : subcategory.parentCategory._id);
     setIsActive(subcategory.isActive);
     setImageFile(null);
@@ -186,6 +189,7 @@ const AdminSubCategories = () => {
 
     const formData = new FormData();
     formData.append("name", name.trim());
+    formData.append("description", description.trim());
     formData.append("parentCategory", parentCategory);
     formData.append("isActive", String(isActive));
     if (imageFile) formData.append("image", imageFile);
@@ -302,6 +306,7 @@ const AdminSubCategories = () => {
             <header><div><h2 id="admin-subcategories-form-title">{editing ? "Edit Subcategory" : "Add Subcategory"}</h2><p>Subcategories are limited to one level below a main category.</p></div><button type="button" aria-label="Close" onClick={clearForm} disabled={saving}>×</button></header>
             <form onSubmit={handleSubmit}>
               <label>Subcategory Name<input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} required disabled={saving} /></label>
+              <label>Subcategory Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1200} rows={4} placeholder="Optional information shown on the category shopping page." disabled={saving} /><small>Optional. Up to 1,200 characters.</small></label>
               <label>Main Category<select value={parentCategory} onChange={(event) => setParentCategory(event.target.value)} required disabled={saving}>
                 <option value="">Select a main category</option>
                 {mainCategories.map((category) => <option key={category._id} value={category._id}>{category.name}</option>)}

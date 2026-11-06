@@ -9,7 +9,9 @@ import ProtectedRoute from "./ProtectedRoute";
 import UserLayout from "../layouts/UserLayout";
 import AccountLayout from "../layouts/AccountLayout";
 
-import Login from "../pages/user/Login";
+import LoginRoute from "./LoginRoute";
+import LoginModalHost from "./LoginModalHost";
+import { LoginModalProvider } from "../context/LoginModalContext";
 
 import ProductDetails from "../pages/user/ProductDetails";
 import Cart from "../pages/user/Cart";
@@ -49,8 +51,8 @@ import ContactUs from "../pages/ContactUs";
 const AppRoutes = () => {
   return (
     <BrowserRouter>
+      <LoginModalProvider>
       <ScrollToTop />
-
       <Routes>
         <Route path="/contact" element={<ContactUs />} />
 
@@ -58,7 +60,7 @@ const AppRoutes = () => {
           <Route path="/" element={<HomeRoute />} />
 
           <Route element={<PublicRoute />}>
-            <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<LoginRoute />} />
             <Route path="/vendor/login" element={<VendorLogin />} />
             <Route path="/vendor/register" element={<VendorRegister />} />
             <Route path="/admin/login" element={<AdminLogin />} />
@@ -126,6 +128,8 @@ const AppRoutes = () => {
           <Route path="/admin/search-suggestions" element={<AdminSearchSuggestions />} />
         </Route>
       </Routes>
+      <LoginModalHost />
+      </LoginModalProvider>
     </BrowserRouter>
   );
 };

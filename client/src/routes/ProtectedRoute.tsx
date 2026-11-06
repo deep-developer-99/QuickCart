@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { useAppSelector } from "../hooks/reduxHooks";
 import NotificationBell from "../components/common/NotificationBell";
@@ -20,6 +20,7 @@ const ProtectedRoute = ({ allowedRole }: ProtectedRouteProps) => {
   const { user, isAuthenticated, isLoading } = useAppSelector(
     (state) => state.auth,
   );
+  const location = useLocation();
 
   if (isLoading) {
     return <div>Loading.......</div>;
@@ -34,7 +35,7 @@ const ProtectedRoute = ({ allowedRole }: ProtectedRouteProps) => {
       return <Navigate to="/admin/login" replace />;
     }
 
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (user.role !== allowedRole) {

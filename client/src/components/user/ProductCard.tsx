@@ -1,9 +1,10 @@
 import axios from "axios";
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import { useAppSelector } from "../../hooks/reduxHooks";
 import { useCart } from "../../context/useCart";
+import { useLoginModal } from "../../context/LoginModalContext";
 
 import type { Product } from "../../types/product";
 
@@ -15,12 +16,10 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, variant }: ProductCardProps) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const { getQuantity, addProduct, updateProductQuantity, removeProduct, isCartReady, isLoading: isCartLoading, cartError, refreshCart } =
     useCart();
+  const { openLoginModal } = useLoginModal();
 
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -37,11 +36,10 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
 
   const handleAddToCart = async () => {
     if (!isUser) {
-      navigate("/login", {
-        state: {
-          from: location.pathname + location.search,
-        },
-      });
+      openLoginModal({ onAuthenticated: async () => {
+        try { await addProduct(product._id, 1); }
+        catch (error) { console.error("Failed to add product to cart:", error); }
+      } });
       return;
     }
 
@@ -52,11 +50,10 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
       console.error("Failed to add product to cart:", error);
 
       if (axios.isAxiosError(error) && error.response?.status === 401) {
-        navigate("/login", {
-          state: {
-            from: location.pathname + location.search,
-          },
-        });
+        openLoginModal({ onAuthenticated: async () => {
+          try { await addProduct(product._id, 1); }
+          catch (retryError) { console.error("Failed to add product to cart:", retryError); }
+        } });
       }
     } finally {
       setIsUpdating(false);

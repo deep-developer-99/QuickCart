@@ -215,6 +215,9 @@
   text-decoration: none;
 
   box-shadow: 0 7px 16px rgba(77, 159, 80, 0.2);
+  border: 0;
+  font: inherit;
+  cursor: pointer;
 }
 
 .navbar-login:hover,
@@ -433,6 +436,11 @@
     background: var(--color-primary);
 
     color: white;
+    border: 0;
+
+    font: inherit;
+
+    cursor: pointer;
   }
 
   .mobile-menu-logout {

@@ -6,6 +6,7 @@ import { createPaginationMeta, getPagination } from "../utils/pagination";
 
 interface CreateCategoryData {
   name: string;
+  description?: string;
   image?: string;
   imagePublicId?: string;
 }
@@ -14,6 +15,7 @@ interface UpdateCategoryData extends CreateCategoryData {}
 
 export interface SubcategoryInput {
   name: string;
+  description?: string;
   parentCategory: string;
   image?: string;
   imagePublicId?: string;
@@ -96,6 +98,7 @@ export const createCategory = async (data: CreateCategoryData) => {
       existingCategory.isActive = true;
       if (data.image !== undefined) existingCategory.image = data.image;
       if (data.imagePublicId !== undefined) existingCategory.imagePublicId = data.imagePublicId;
+      if (data.description !== undefined) existingCategory.description = data.description.trim();
       await existingCategory.save();
       return existingCategory;
     }
@@ -104,6 +107,7 @@ export const createCategory = async (data: CreateCategoryData) => {
   try {
     return await Category.create({
       name,
+      description: data.description?.trim(),
       normalizedName,
       parentCategory: null,
       image: data.image,
@@ -136,6 +140,7 @@ export const updateCategory = async (categoryId: string, data: UpdateCategoryDat
   category.normalizedName = normalizedName;
   if (data.image !== undefined) category.image = data.image;
   if (data.imagePublicId !== undefined) category.imagePublicId = data.imagePublicId;
+  if (data.description !== undefined) category.description = data.description.trim();
   try {
     await category.save();
   } catch (error) {
@@ -156,6 +161,7 @@ export const createSubcategory = async (data: SubcategoryInput) => {
   try {
     return await Category.create({
       name,
+      description: data.description?.trim(),
       normalizedName,
       parentCategory: data.parentCategory,
       image: data.image,
@@ -202,6 +208,7 @@ export const updateSubcategory = async (subcategoryId: string, data: Subcategory
   if (duplicate) throw duplicateError("A subcategory with this name already exists under that main category.");
 
   subcategory.name = name;
+  if (data.description !== undefined) subcategory.description = data.description.trim();
   subcategory.normalizedName = normalizedName;
   subcategory.parentCategory = new mongoose.Types.ObjectId(data.parentCategory);
   if (data.image !== undefined) subcategory.image = data.image;

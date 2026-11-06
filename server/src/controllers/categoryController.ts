@@ -138,6 +138,7 @@ export const createCategoryController = async (
     try {
       const category = await createCategory({
         name,
+        description: String(req.body.description || "").trim(),
         image,
         imagePublicId,
       });
@@ -207,6 +208,7 @@ export const updateCategoryController = async (
     try {
       const category = await updateCategory(id, {
         name,
+        description: String(req.body.description || "").trim(),
         image,
         imagePublicId,
       });
@@ -331,6 +333,7 @@ export const createSubcategoryController = async (req: AuthenticatedRequest, res
     uploadedPublicId = uploaded.public_id;
     const data = await createSubcategory({
       name,
+      description: String(req.body.description || "").trim(),
       parentCategory,
       image: uploaded.secure_url,
       imagePublicId: uploaded.public_id,
@@ -365,6 +368,7 @@ export const updateSubcategoryController = async (req: AuthenticatedRequest, res
 
     const data = await updateSubcategory(id, {
       name,
+      description: String(req.body.description || "").trim(),
       parentCategory,
       image,
       imagePublicId,
