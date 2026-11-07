@@ -11,7 +11,11 @@ import "./Navbar.css";
 import { useCart } from "../../context/useCart";
 import { useCartDrawer } from "../../context/useCartDrawer";
 import { useLoginModal } from "../../context/LoginModalContext";
-import { formatIndianRupees, getCartSubtotal, getValidCartItems } from "../../utils/hasValidCartItems";
+import {
+  formatIndianRupees,
+  getCartSubtotal,
+  getValidCartItems,
+} from "../../utils/hasValidCartItems";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -22,7 +26,13 @@ const Navbar = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const mobileProfileMenuRef = useRef<HTMLDivElement>(null);
-  const { cart, isLoading: isCartLoading, isCartReady, cartError, refreshCart } = useCart();
+  const {
+    cart,
+    isLoading: isCartLoading,
+    isCartReady,
+    cartError,
+    refreshCart,
+  } = useCart();
   const { openCart } = useCartDrawer();
   const { openLoginModal } = useLoginModal();
   const validCartItems = getValidCartItems(cart);
@@ -31,13 +41,15 @@ const Navbar = () => {
     0,
   );
   const cartTotal = getCartSubtotal(validCartItems);
-  const formattedCartTotal = cartTotal === null ? "—" : formatIndianRupees(cartTotal);
+  const formattedCartTotal =
+    cartTotal === null ? "—" : formatIndianRupees(cartTotal);
 
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const contactInfo = user?.phone?.trim() || user?.email?.trim() || "";
   const isUser = isAuthenticated && user?.role === "user";
   const canOpenCart = isUser && isCartReady && validCartItems.length > 0;
-  const canRetryCart = isUser && !canOpenCart && !isCartLoading && Boolean(cartError);
+  const canRetryCart =
+    isUser && !canOpenCart && !isCartLoading && Boolean(cartError);
   const handleOpenCart = () => {
     if (canOpenCart) openCart();
     else if (canRetryCart) void refreshCart();
@@ -264,7 +276,11 @@ const Navbar = () => {
                 {isProfileOpen && desktopAccountDropdown}
               </div>
             ) : (
-              <button type="button" className="navbar-login" onClick={() => openLoginModal()}>
+              <button
+                type="button"
+                className="navbar-login"
+                onClick={() => openLoginModal()}
+              >
                 Login
               </button>
             )}
@@ -274,7 +290,11 @@ const Navbar = () => {
                 type="button"
                 className={`navbar-cart-action${canOpenCart ? " navbar-cart-action--has-items" : ""}${isCartActive ? " active" : ""}`}
                 onClick={handleOpenCart}
-                aria-label={canRetryCart ? "Retry loading My Cart" : `My Cart, ${totalItems} ${totalItems === 1 ? "item" : "items"}, total ${formattedCartTotal}`}
+                aria-label={
+                  canRetryCart
+                    ? "Retry loading My Cart"
+                    : `My Cart, ${totalItems} ${totalItems === 1 ? "item" : "items"}, total ${formattedCartTotal}`
+                }
               >
                 <svg
                   className="navbar-cart-icon"
@@ -293,16 +313,23 @@ const Navbar = () => {
                   <circle cx="18" cy="20" r="1.4" fill="currentColor" />
                 </svg>
                 <span className="navbar-cart-copy">
-                  <strong>{canOpenCart ? `${totalItems} ${totalItems === 1 ? "Item" : "Items"}` : "My Cart"}</strong>
+                  <strong>
+                    {canOpenCart
+                      ? `${totalItems} ${totalItems === 1 ? "Item" : "Items"}`
+                      : "My Cart"}
+                  </strong>
                   {canOpenCart && <span>{formattedCartTotal}</span>}
                 </span>
               </button>
             ) : (
               <button
                 type="button"
-                className={`navbar-cart-action${isUser ? " navbar-cart-disabled" : " navbar-cart-guest"}`}
-                onClick={handleOpenCart}
-                aria-label="My Cart"
+                disabled={!isUser}
+                className={`navbar-cart-action${!isUser ? " navbar-cart-disabled" : " navbar-cart-guest"}`}
+                aria-label={
+                  !isUser ? "My Cart disabled - Please login" : "My Cart"
+                }
+                title={!isUser ? "Please login to use My Cart" : undefined}
               >
                 <svg
                   className="navbar-cart-icon"
@@ -356,7 +383,10 @@ const Navbar = () => {
                   <button
                     type="button"
                     className="mobile-menu-link mobile-cart-button navbar-cart-disabled"
-                    onClick={() => { closeMenu(); handleOpenCart(); }}
+                    onClick={() => {
+                      closeMenu();
+                      handleOpenCart();
+                    }}
                     aria-label="My Cart"
                   >
                     🛒 My Cart
@@ -373,7 +403,8 @@ const Navbar = () => {
                       totalItems === 1 ? "item" : "items"
                     }, total ${formattedCartTotal}`}
                   >
-                    🛒 {totalItems} {totalItems === 1 ? "Item" : "Items"} · {formattedCartTotal}
+                    🛒 {totalItems} {totalItems === 1 ? "Item" : "Items"} ·{" "}
+                    {formattedCartTotal}
                   </button>
                 )}
                 <div
@@ -397,8 +428,25 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <button type="button" className="mobile-menu-link mobile-cart-button" onClick={() => { closeMenu(); openLoginModal(); }} aria-label="Sign in to open your cart">🛒 My Cart</button>
-                <button type="button" className="mobile-menu-login" onClick={() => { closeMenu(); openLoginModal(); }}>Login</button>
+                <button
+                  type="button"
+                  disabled
+                  className="mobile-menu-link mobile-cart-button navbar-cart-disabled"
+                  aria-label="My Cart disabled - Please login"
+                  title="Please login to use My Cart"
+                >
+                  🛒 My Cart
+                </button>
+                <button
+                  type="button"
+                  className="mobile-menu-login"
+                  onClick={() => {
+                    closeMenu();
+                    openLoginModal();
+                  }}
+                >
+                  Login
+                </button>
               </>
             )}
           </nav>

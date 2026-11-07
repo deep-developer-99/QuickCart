@@ -215,8 +215,11 @@
   text-decoration: none;
 
   box-shadow: 0 7px 16px rgba(77, 159, 80, 0.2);
+
   border: 0;
+
   font: inherit;
+
   cursor: pointer;
 }
 
@@ -436,6 +439,7 @@
     background: var(--color-primary);
 
     color: white;
+
     border: 0;
 
     font: inherit;
@@ -456,6 +460,7 @@
 
 .navbar-profile-wrapper {
   position: relative;
+
   width: max-content;
 }
 
@@ -540,24 +545,38 @@
 
 .navbar-profile-arrow {
   display: inline-flex;
+
   flex: 0 0 14px;
+
   align-items: center;
+
   justify-content: center;
+
   width: 14px;
+
   height: 14px;
+
   color: #1f1f1f;
+
   font-size: 0;
+
   line-height: 1;
+
   transition: transform 180ms ease;
 }
 
 .navbar-profile-arrow::before,
 .mobile-account-arrow::before {
   content: "";
+
   width: 0;
+
   height: 0;
+
   border-top: 6px solid currentColor;
+
   border-right: 5px solid transparent;
+
   border-left: 5px solid transparent;
 }
 
@@ -680,38 +699,59 @@
 
 .profile-dropdown--desktop {
   top: calc(100% + 2px);
+
   left: auto;
+
   right: 0;
+
   z-index: 1500;
+
   width: 294px;
+
   box-sizing: border-box;
+
   margin: 0;
+
   max-height: calc(100vh - 100px);
+
   overflow-x: hidden;
+
   overflow-y: auto;
+
   border: 0;
+
   border-radius: 14px;
+
   background: #fff;
+
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
 }
 
 .profile-dropdown-desktop-header {
   display: flex;
+
   flex-direction: column;
+
   gap: 5px;
+
   padding: 18px 20px 16px;
+
   background: #fff;
 }
 
 .profile-dropdown-desktop-header strong {
   color: #252925;
+
   font-size: 16px;
+
   font-weight: 700;
 }
 
 .profile-dropdown-desktop-header span {
   color: #686e69;
+
   font-size: 13px;
+
   font-weight: 400;
 }
 
@@ -721,31 +761,48 @@
 
 .profile-dropdown-desktop-item {
   width: 100%;
+
   min-height: 43px;
+
   display: flex;
+
   align-items: center;
+
   padding: 11px 20px;
+
   border: 0;
+
   background: #fff;
+
   color: #3f4440;
+
   font: inherit;
+
   font-size: 14px;
+
   font-weight: 400;
+
   line-height: 1.35;
+
   text-align: left;
+
   text-decoration: none;
+
   cursor: pointer;
+
   transition: background-color 0.15s ease;
 }
 
 .profile-dropdown-desktop-item:hover,
 .profile-dropdown-desktop-item:focus-visible {
   background: #f5f5f5;
+
   outline: none;
 }
 
 .profile-dropdown-desktop-item--unavailable {
   color: #777d78;
+
   cursor: default;
 }
 
@@ -925,20 +982,35 @@
 
 .navbar .mobile-account-button {
   width: 100%;
+
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
+
   gap: 8px;
+
   border: 0;
+
   border-bottom: 0;
+
   border-radius: 0;
+
   background: transparent;
+
   text-align: left;
+
   cursor: pointer;
+
   font-family: inherit;
+
   font-size: 20px;
+
   font-weight: 500;
+
   line-height: 1.2;
+
   color: #1f1f1f;
 }
 
@@ -946,20 +1018,31 @@
 .navbar .mobile-account-button:focus,
 .navbar .mobile-account-button:focus-visible {
   background: transparent;
+
   color: #1f1f1f;
+
   outline: none;
 }
 
 .mobile-account-arrow {
   display: inline-flex;
+
   flex: 0 0 14px;
+
   align-items: center;
+
   justify-content: center;
+
   width: 14px;
+
   height: 14px;
+
   color: #1f1f1f;
+
   font-size: 0;
+
   line-height: 1;
+
   transition: transform 180ms ease;
 }
 
@@ -992,8 +1075,6 @@
     display: none;
   }
 }
-
-/* Redesigned QuickCart web header */
 
 .navbar {
   background: #fff;
@@ -1470,8 +1551,6 @@
   box-shadow: none;
 }
 
-/* Blinkit-matched desktop navbar proportions and controls */
-
 @media (min-width: 1121px) {
   .navbar .navbar-search-desktop .quickcart-search {
     --quickcart-search-suggestion-left: 48px;
@@ -1716,7 +1795,9 @@
 
   .navbar .navbar-profile-action {
     font-size: 20px;
+
     font-weight: 500;
+
     color: #1f1f1f;
   }
 
@@ -1741,8 +1822,6 @@
     gap: 22px;
   }
 }
-
-/* Desktop navbar spacing fix: keep location compact and separate the actions. */
 
 @media (min-width: 1121px) {
   .navbar .navbar-container {
@@ -1911,8 +1990,6 @@
   }
 }
 
-/* Final desktop alignment: move search left and separate Account from My Cart. */
-
 @media (min-width: 1121px) {
   .navbar .navbar-container {
     grid-template-columns: 166px 220px minmax(0, 1fr) max-content;
@@ -1999,7 +2076,6 @@
   }
 }
 
-/* Fine-tune desktop spacing: move Account left while keeping My Cart anchored. */
 @media (min-width: 1121px) {
   .navbar .navbar-actions {
     column-gap: 64px;
@@ -2012,7 +2088,6 @@
   }
 }
 
-/* Dynamic cart summary state */
 @media (min-width: 1121px) {
   .navbar .navbar-actions {
     grid-template-columns: max-content minmax(120px, max-content);
@@ -2020,7 +2095,9 @@
 
   .navbar .navbar-cart-action--has-items {
     width: max-content;
+
     min-width: 120px;
+
     max-width: min(190px, 22vw);
   }
 }
@@ -2029,7 +2106,9 @@
 .navbar .navbar-cart-action--has-items:hover,
 .navbar .navbar-cart-action--has-items.active {
   background: var(--color-primary-hover);
+
   color: var(--color-on-primary, #ffffff);
+
   box-shadow: none;
 }
 
@@ -2039,22 +2118,31 @@
 
 .navbar .navbar-cart-action--has-items .navbar-cart-copy {
   min-width: 0;
+
   align-items: flex-start;
+
   gap: 3px;
 }
 
 .navbar .navbar-cart-action--has-items .navbar-cart-copy strong {
   color: inherit;
+
   font-size: 12px;
+
   font-weight: 750;
 }
 
 .navbar .navbar-cart-action--has-items .navbar-cart-copy span {
   display: block;
+
   color: inherit;
+
   font-size: 12px;
+
   font-weight: 750;
+
   line-height: 1;
+
   white-space: nowrap;
 }
 
@@ -2068,6 +2156,7 @@
 
 .navbar .navbar-cart-action--has-items:focus-visible {
   outline: 2px solid #116c5b;
+
   outline-offset: 2px;
 }
 
@@ -2075,5 +2164,20 @@
 .navbar .mobile-cart-button--has-items:hover,
 .navbar .mobile-cart-button--has-items:active {
   background: var(--color-primary-hover);
+
   color: var(--color-on-primary, #ffffff);
+}
+.navbar .navbar-cart-action.navbar-cart-disabled,
+.navbar .mobile-cart-button.navbar-cart-disabled,
+.navbar .navbar-cart-action:disabled,
+.navbar .mobile-cart-button:disabled {
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
+.navbar .navbar-cart-action.navbar-cart-disabled:hover,
+.navbar .mobile-cart-button.navbar-cart-disabled:hover,
+.navbar .navbar-cart-action:disabled:hover,
+.navbar .mobile-cart-button:disabled:hover {
+  cursor: not-allowed;
 }
