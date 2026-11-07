@@ -209,20 +209,12 @@ const CategoryProducts = () => {
   }
 
   const currentSubcategory = subcategories.find((item) => item._id === selectedSubcategory);
-  const infoCategory = currentSubcategory || category;
-
   return (
     <div className="category-products-page">
       <section className="category-shopping-container" aria-label={`${category?.name || "Category"} shopping`}>
-        <header className="category-products-header">
-          <div><span className="category-products-eyebrow">QUICKCART</span><h1>{category?.name || "Category Products"}</h1></div>
-          <Link to="/" className="category-products-back">← Back to Home</Link>
-        </header>
-
         <div className={`category-products-layout${subcategories.length ? " has-subcategories" : ""}`}>
           {subcategories.length > 0 && (
             <aside className="category-subcategory-sidebar">
-              <h2>Shop by category</h2>
               <nav className="category-subcategory-nav" aria-label="Subcategories">
                 {subcategories.map((subcategory) => (
                   <button type="button" key={subcategory._id}
@@ -239,7 +231,6 @@ const CategoryProducts = () => {
 
           <section ref={productScrollRef} className="category-products-main" aria-label="Category products" aria-busy={isProductsLoading}>
             <div className="category-products-result">
-              <strong>{currentSubcategory?.name || category?.name}</strong>
               <span>{pagination.totalItems} {pagination.totalItems === 1 ? "product" : "products"} available</span>
             </div>
 
@@ -265,12 +256,6 @@ const CategoryProducts = () => {
           </section>
         </div>
       </section>
-
-      {infoCategory && <section className="category-subcategory-info" aria-labelledby="category-subcategory-info-title">
-        <p className="category-subcategory-info-label">Selected {currentSubcategory ? "Subcategory" : "Category"}: {infoCategory.name}</p>
-        <h2 id="category-subcategory-info-title">Buy {infoCategory.name} Online at QuickCart</h2>
-        <p>{infoCategory.description?.trim() || `Explore our range of ${infoCategory.name.toLowerCase()} at QuickCart. Browse available products, compare options and prices, and shop your favourites for convenient doorstep delivery.`}</p>
-      </section>}
     </div>
   );
 };
