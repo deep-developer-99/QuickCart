@@ -209,6 +209,9 @@ const CategoryProducts = () => {
   }
 
   const currentSubcategory = subcategories.find((item) => item._id === selectedSubcategory);
+  const infoCategory = currentSubcategory || category;
+  const infoDescription = infoCategory?.description?.trim();
+
   return (
     <div className="category-products-page">
       <section className="category-shopping-container" aria-label={`${category?.name || "Category"} shopping`}>
@@ -256,6 +259,13 @@ const CategoryProducts = () => {
           </section>
         </div>
       </section>
+
+      {infoCategory && (
+        <section className="category-subcategory-info" aria-labelledby="category-subcategory-info-title">
+          <h2 id="category-subcategory-info-title">{infoCategory.name} Online</h2>
+          {infoDescription && <p>{infoDescription}</p>}
+        </section>
+      )}
     </div>
   );
 };
