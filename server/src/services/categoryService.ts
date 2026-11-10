@@ -161,7 +161,7 @@ export const createSubcategory = async (data: SubcategoryInput) => {
   try {
     return await Category.create({
       name,
-      description: data.description?.trim(),
+      description: data.description,
       normalizedName,
       parentCategory: data.parentCategory,
       image: data.image,
@@ -208,7 +208,7 @@ export const updateSubcategory = async (subcategoryId: string, data: Subcategory
   if (duplicate) throw duplicateError("A subcategory with this name already exists under that main category.");
 
   subcategory.name = name;
-  if (data.description !== undefined) subcategory.description = data.description.trim();
+  if (data.description !== undefined) subcategory.description = data.description;
   subcategory.normalizedName = normalizedName;
   subcategory.parentCategory = new mongoose.Types.ObjectId(data.parentCategory);
   if (data.image !== undefined) subcategory.image = data.image;

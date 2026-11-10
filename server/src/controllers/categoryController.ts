@@ -333,7 +333,7 @@ export const createSubcategoryController = async (req: AuthenticatedRequest, res
     uploadedPublicId = uploaded.public_id;
     const data = await createSubcategory({
       name,
-      description: String(req.body.description || "").trim(),
+      description: req.body.description === undefined ? undefined : String(req.body.description),
       parentCategory,
       image: uploaded.secure_url,
       imagePublicId: uploaded.public_id,
@@ -368,7 +368,7 @@ export const updateSubcategoryController = async (req: AuthenticatedRequest, res
 
     const data = await updateSubcategory(id, {
       name,
-      description: String(req.body.description || "").trim(),
+      description: req.body.description === undefined ? undefined : String(req.body.description),
       parentCategory,
       image,
       imagePublicId,

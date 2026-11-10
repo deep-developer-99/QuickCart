@@ -14,6 +14,7 @@ import "./AdminSubCategories.css";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_DESCRIPTION_LENGTH = 50_000;
 
 interface Subcategory extends Category {
   parentCategory: string | Pick<Category, "_id" | "name">;
@@ -189,7 +190,7 @@ const AdminSubCategories = () => {
 
     const formData = new FormData();
     formData.append("name", name.trim());
-    formData.append("description", description.trim());
+    formData.append("description", description);
     formData.append("parentCategory", parentCategory);
     formData.append("isActive", String(isActive));
     if (imageFile) formData.append("image", imageFile);
@@ -306,7 +307,7 @@ const AdminSubCategories = () => {
             <header><div><h2 id="admin-subcategories-form-title">{editing ? "Edit Subcategory" : "Add Subcategory"}</h2><p>Subcategories are limited to one level below a main category.</p></div><button type="button" aria-label="Close" onClick={clearForm} disabled={saving}>×</button></header>
             <form onSubmit={handleSubmit}>
               <label>Subcategory Name<input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} required disabled={saving} /></label>
-              <label>Subcategory Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1200} rows={4} placeholder="Optional information shown on the category shopping page." disabled={saving} /><small>Optional. Up to 1,200 characters.</small></label>
+              <label>Subcategory Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={MAX_DESCRIPTION_LENGTH} rows={12} placeholder="Optional detailed category information. It will appear below the product listing on the customer website." disabled={saving} /><small>Optional. {description.length.toLocaleString()} / {MAX_DESCRIPTION_LENGTH.toLocaleString()} characters</small></label>
               <label>Main Category<select value={parentCategory} onChange={(event) => setParentCategory(event.target.value)} required disabled={saving}>
                 <option value="">Select a main category</option>
                 {mainCategories.map((category) => <option key={category._id} value={category._id}>{category.name}</option>)}

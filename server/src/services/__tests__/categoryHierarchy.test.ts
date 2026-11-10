@@ -35,6 +35,17 @@ test("Category schema keeps names scoped to hierarchy and normalizes names on sa
   assert.equal(Category.schema.path("name")?.options.unique, undefined);
 });
 
+test("Category schema accepts long descriptions and keeps descriptions optional", async () => {
+  const description = `${"Detailed category information.\n\n".repeat(400)}end`;
+  const categoryWithDescription = new Category({ name: "Long description", description });
+  await categoryWithDescription.validate();
+  assert.equal(categoryWithDescription.description, description);
+
+  const categoryWithoutDescription = new Category({ name: "No description" });
+  await categoryWithoutDescription.validate();
+  assert.equal(categoryWithoutDescription.description, undefined);
+});
+
 test("creates an image-backed subcategory under an active main category", async () => {
   let saved: Record<string, unknown> | undefined;
   const restoreFind = restoreMethod(Category, "findOne", async (filter: Record<string, unknown>) =>

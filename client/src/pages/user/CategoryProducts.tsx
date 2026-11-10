@@ -94,9 +94,11 @@ const CategoryProducts = () => {
 
   // Keep direct links reactive when the query string changes while this page is open.
   useEffect(() => {
-    if (categoryReadyId !== categoryId || !requestedSubcategoryId) return;
-    if (!subcategories.some((item) => item._id === requestedSubcategoryId)) return;
-    if (selectedSubcategory !== requestedSubcategoryId) {
+    if (categoryReadyId !== categoryId) return;
+    const nextSubcategory = subcategories.some((item) => item._id === requestedSubcategoryId)
+      ? requestedSubcategoryId
+      : getDefaultSubcategoryId(subcategories);
+    if (selectedSubcategory !== nextSubcategory) {
       generationRef.current += 1;
       inFlightRef.current = false;
       requestedPageRef.current = 1;
@@ -107,7 +109,7 @@ const CategoryProducts = () => {
       setProductError("");
       setIsProductsLoading(false);
       if (productScrollRef.current) productScrollRef.current.scrollTop = 0;
-      setSelectedSubcategory(requestedSubcategoryId);
+      setSelectedSubcategory(nextSubcategory);
     }
   }, [categoryId, categoryReadyId, requestedSubcategoryId, selectedSubcategory, subcategories]);
 
@@ -260,10 +262,10 @@ const CategoryProducts = () => {
         </div>
       </section>
 
-      {infoCategory && (
+      {infoCategory && infoDescription && (
         <section className="category-subcategory-info" aria-labelledby="category-subcategory-info-title">
           <h2 id="category-subcategory-info-title">{infoCategory.name} Online</h2>
-          {infoDescription && <p>{infoDescription}</p>}
+          <div className="category-subcategory-info-content">{infoDescription}</div>
         </section>
       )}
     </div>

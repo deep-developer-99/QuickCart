@@ -236,7 +236,7 @@
   font: inherit;
   font-size: 14px;
 }
-.admin-subcategories-modal textarea { min-height: 96px; resize: vertical; }
+.admin-subcategories-modal textarea { min-height: 240px; resize: vertical; line-height: 1.55; }
 .admin-subcategories-modal input[type="file"] { height: auto; }
 .admin-subcategories-modal small { color: var(--color-muted-text); font-size: 11px; font-weight: 400; line-height: 1.5; }
 .admin-subcategories-preview { width: 112px; height: 96px; border: 1px solid var(--color-border); border-radius: 10px; object-fit: cover; }
