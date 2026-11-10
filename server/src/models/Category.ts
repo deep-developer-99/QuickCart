@@ -22,7 +22,6 @@ const categorySchema = new Schema<ICategory>(
 
     description: {
       type: String,
-      maxlength: 50_000,
     },
 
     parentCategory: {

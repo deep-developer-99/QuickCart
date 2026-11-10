@@ -35,11 +35,14 @@ test("Category schema keeps names scoped to hierarchy and normalizes names on sa
   assert.equal(Category.schema.path("name")?.options.unique, undefined);
 });
 
-test("Category schema accepts long descriptions and keeps descriptions optional", async () => {
-  const description = `${"Detailed category information.\n\n".repeat(400)}end`;
-  const categoryWithDescription = new Category({ name: "Long description", description });
-  await categoryWithDescription.validate();
-  assert.equal(categoryWithDescription.description, description);
+test("Category schema accepts descriptions over 5,000 characters and keeps them optional", async () => {
+  assert.equal(Category.schema.path("description")?.options.maxlength, undefined);
+  for (const length of [5_000, 10_000, 50_001]) {
+    const description = `${"Detailed category information.\n\n".repeat(Math.ceil(length / 32))}`.slice(0, length);
+    const categoryWithDescription = new Category({ name: `Long description ${length}`, description });
+    await categoryWithDescription.validate();
+    assert.equal(categoryWithDescription.description, description);
+  }
 
   const categoryWithoutDescription = new Category({ name: "No description" });
   await categoryWithoutDescription.validate();
@@ -56,11 +59,14 @@ test("creates an image-backed subcategory under an active main category", async 
     return input;
   });
   try {
+    const description = "Long category details.\n\n".repeat(2_501);
     const result = await createSubcategory({
       name: "  Soft Drinks ", parentCategory: mainId,
+      description,
       image: "https://images.example/subcategory.webp", imagePublicId: "quickcart/subcategories/soft-drinks",
     });
     assert.equal((result as { name: string }).name, "Soft Drinks");
+    assert.equal(saved?.description, description);
     assert.equal(saved?.normalizedName, "soft drinks");
     assert.equal(saved?.parentCategory, mainId);
     assert.equal(saved?.imagePublicId, "quickcart/subcategories/soft-drinks");
@@ -135,6 +141,7 @@ test("editing keeps a valid image when no replacement is uploaded and updates th
   const doc = {
     _id: subcategoryId,
     name: "Old name",
+    description: "",
     normalizedName: "old name",
     parentCategory: mainId,
     image: "https://images.example/existing.webp",
@@ -151,8 +158,10 @@ test("editing keeps a valid image when no replacement is uploaded and updates th
   });
   const restoreCount = restoreMethod(Product, "countDocuments", async () => 0);
   try {
-    const result = await updateSubcategory(subcategoryId, { name: "  New Name ", parentCategory: mainId });
+    const description = "Updated category details.\n\n".repeat(2_501);
+    const result = await updateSubcategory(subcategoryId, { name: "  New Name ", description, parentCategory: mainId });
     assert.equal((result as typeof doc).name, "New Name");
+    assert.equal(doc.description, description);
     assert.equal((result as typeof doc).normalizedName, "new name");
     assert.equal((result as typeof doc).imagePublicId, "existing-id");
     assert.equal(findCount, 3);
