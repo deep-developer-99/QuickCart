@@ -18,6 +18,7 @@ type DrawerStage = "cart" | "checkout" | "success";
 
 interface CartDrawerProps {
   isOpen: boolean;
+  isClosing?: boolean;
   onClose: () => void;
   onNavigate: (path: string) => void;
 }
@@ -33,7 +34,7 @@ const getAddressText = (address?: Address) => address
   ? [address.addressLine, address.city, address.state, address.pincode].filter(Boolean).join(", ")
   : "Add a delivery address to continue";
 
-const CartDrawer = ({ isOpen, onClose, onNavigate }: CartDrawerProps) => {
+const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDrawerProps) => {
   const { cart, isLoading, isCartReady, refreshCart, updateProductQuantity, removeProduct } = useCart();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const isUser = isAuthenticated && user?.role === "user";
@@ -43,6 +44,7 @@ const CartDrawer = ({ isOpen, onClose, onNavigate }: CartDrawerProps) => {
   const [summaryResult, setSummaryResult] = useState<{ key: string; data: CheckoutSummary } | null>(null);
   const [summaryFailure, setSummaryFailure] = useState<{ key: string; message: string } | null>(null);
   const [drawerError, setDrawerError] = useState("");
+  const [shareStatus, setShareStatus] = useState("");
   const [orderSnapshot, setOrderSnapshot] = useState<OrderSnapshot>();
 
   const validItems = getValidCartItems(cart);
@@ -63,8 +65,27 @@ const CartDrawer = ({ isOpen, onClose, onNavigate }: CartDrawerProps) => {
   const handleClose = useCallback(() => {
     setStage("cart");
     setDrawerError("");
+    setShareStatus("");
     onClose();
   }, [onClose]);
+
+  const handleShare = async () => {
+    const shareData = { title: "QuickCart", text: "Shop fresh essentials on QuickCart", url: window.location.href };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        setShareStatus("Shared");
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareData.url);
+        setShareStatus("Link copied");
+      } else {
+        setShareStatus("Sharing is unavailable in this browser");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      setShareStatus("Could not share this link");
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -181,16 +202,22 @@ const CartDrawer = ({ isOpen, onClose, onNavigate }: CartDrawerProps) => {
   const heading = stage === "cart" ? "My Cart" : stage === "checkout" ? "Checkout" : "Order placed";
 
   return (
-    <div className="cart-drawer-overlay" onMouseDown={handleBackdropMouseDown}>
+    <div className={`cart-drawer-overlay${isClosing ? " cart-drawer-overlay--closing" : ""}`} onMouseDown={handleBackdropMouseDown}>
       <aside className={`cart-drawer cart-drawer--${stage}`} role="dialog" aria-modal="true" aria-label={heading}>
         <header className="cart-drawer-header">
-          {stage !== "cart" && stage !== "success" ? (
+          {stage === "cart" ? (
+            <button type="button" className="cart-drawer-back" onClick={handleClose} aria-label="Back to shopping">←</button>
+          ) : stage !== "success" ? (
             <button type="button" className="cart-drawer-back" onClick={() => setStage("cart")} aria-label="Back to cart">←</button>
           ) : null}
           <div className="cart-drawer-title-wrap">
             <h2>{heading}</h2>
             {stage === "cart" && validItemCount > 0 && <span>{validItemCount} {validItemCount === 1 ? "item" : "items"}</span>}
           </div>
+          {stage === "cart" && <button type="button" className="cart-drawer-share" onClick={() => void handleShare()} aria-label="Share QuickCart">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 12v7h14v-7" /></svg>
+            <span>Share</span>
+          </button>}
           <button type="button" className="cart-drawer-close" onClick={handleClose} aria-label="Close cart">×</button>
         </header>
 
@@ -198,6 +225,7 @@ const CartDrawer = ({ isOpen, onClose, onNavigate }: CartDrawerProps) => {
           <>
             <div className="cart-drawer-content">
               {drawerError && <p className="cart-drawer-error" role="alert">{drawerError}</p>}
+              {shareStatus && <p className="cart-drawer-share-status" role="status">{shareStatus}</p>}
               {isLoading && !cart ? (
                 <div className="cart-drawer-loading">Loading your cart…</div>
               ) : validItems.length === 0 ? (
@@ -209,6 +237,10 @@ const CartDrawer = ({ isOpen, onClose, onNavigate }: CartDrawerProps) => {
                 </div>
               ) : (
                 <>
+                  <section className="cart-drawer-delivery" aria-label="Delivery details">
+                    <span className="cart-drawer-delivery-icon" aria-hidden="true">◷</span>
+                    <div><strong>Delivery estimate</strong><span>Delivery timing and shipment details are confirmed during checkout.</span></div>
+                  </section>
                   <section className="cart-drawer-items" aria-label="Cart products">
                     {validItems.map((item, index) => (
                       <div className="cart-drawer-item-wrap" key={getCartProductId(item.product) || `${index}`}>
@@ -237,11 +269,10 @@ const CartDrawer = ({ isOpen, onClose, onNavigate }: CartDrawerProps) => {
                     <strong>{address?.isDefault ? "Home" : "Delivery to"}</strong>
                     <span>{isLoadingAddresses ? "Loading address…" : getAddressText(address)}</span>
                   </div>
-                  <button type="button" onClick={() => setStage("checkout")}>{address ? "Change" : "Add"}</button>
                 </div>
                 <div className="cart-drawer-proceed-row">
-                  <div><strong>{totalLabel}</strong><span>Grand total</span></div>
-                  <button type="button" onClick={() => setStage("checkout")}>Proceed to checkout <span aria-hidden="true">›</span></button>
+                  <div><strong>{totalLabel}</strong><span>TOTAL</span></div>
+                  <button type="button" onClick={() => setStage("checkout")}>Proceed <span aria-hidden="true">›</span></button>
                 </div>
               </footer>
             )}

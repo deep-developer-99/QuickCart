@@ -14,7 +14,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #fff;
+  background: #f5f6fa;
   box-shadow: -16px 0 42px rgba(15, 23, 42, 0.15);
   animation: cartDrawerSlideIn 0.24s ease-out;
 }
@@ -36,7 +36,16 @@
 .cart-drawer-back { width: 34px; height: 34px; display: grid; flex: 0 0 auto; place-items: center; border: 0; border-radius: 50%; background: transparent; color: #3e4940; font-size: 25px; line-height: 1; cursor: pointer; }
 .cart-drawer-close:hover,
 .cart-drawer-back:hover { background: #f1f4f1; }
-.cart-drawer-content { min-height: 0; flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 14px 16px 24px; }
+.cart-drawer-share { display: inline-flex; align-items: center; gap: 5px; padding: 7px 8px; border: 0; border-radius: 7px; background: transparent; color: #32823a; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.cart-drawer-share:hover { background: #f1f7f1; }
+.cart-drawer-share svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.cart-drawer-content { min-height: 0; flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 14px 16px 24px; background: #f5f6fa; }
+.cart-drawer-share-status { margin: 0 0 10px; color: #32823a; font-size: 12px; }
+.cart-drawer-delivery { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; padding: 12px; border: 1px solid #edf0ed; border-radius: 10px; background: #fff; }
+.cart-drawer-delivery-icon { display: grid; width: 36px; height: 36px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #eaf6ed; color: #31883a; font-size: 23px; }
+.cart-drawer-delivery > div { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.cart-drawer-delivery strong { color: #263129; font-size: 12px; }
+.cart-drawer-delivery span:not(.cart-drawer-delivery-icon) { color: #68736a; font-size: 11px; line-height: 1.45; }
 .cart-drawer-items { display: flex; flex-direction: column; gap: 10px; }
 .cart-drawer-item-wrap { min-width: 0; }
 .cart-drawer-item-wrap .cart-item-card { position: relative; gap: 12px; padding: 11px; border-radius: 10px; }
@@ -62,7 +71,6 @@
 .cart-drawer-address-row > div { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
 .cart-drawer-address-row > div strong { color: #2e382f; font-size: 12px; }
 .cart-drawer-address-row > div span { overflow: hidden; color: #778078; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.cart-drawer-address-row > button { padding: 6px 2px 6px 8px; border: 0; background: transparent; color: #32823a; font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
 .cart-drawer-proceed-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .cart-drawer-proceed-row > div { display: flex; flex-direction: column; gap: 2px; }
 .cart-drawer-proceed-row > div strong { color: #202820; font-size: 17px; }
@@ -99,6 +107,11 @@
 
 @keyframes cartDrawerFadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes cartDrawerSlideIn { from { transform: translateX(24px); } to { transform: translateX(0); } }
+@keyframes cartDrawerFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes cartDrawerSlideOut { from { transform: translateX(0); } to { transform: translateX(100%); } }
+
+.cart-drawer-overlay--closing { animation: cartDrawerFadeOut 0.22s ease-in forwards; }
+.cart-drawer-overlay--closing .cart-drawer { animation: cartDrawerSlideOut 0.22s ease-in forwards; }
 
 @media (max-width: 767px) {
   .cart-drawer { width: 100%; box-shadow: none; }
@@ -112,5 +125,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cart-drawer-overlay, .cart-drawer { animation-duration: 0.01ms; }
+  .cart-drawer-overlay, .cart-drawer, .cart-drawer-overlay--closing,
+  .cart-drawer-overlay--closing .cart-drawer { animation-duration: 0.01ms; }
 }
