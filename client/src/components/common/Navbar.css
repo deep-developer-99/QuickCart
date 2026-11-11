@@ -1221,9 +1221,13 @@
 
   box-shadow: none;
 
-  font-size: 15px;
+  font-size: 16px;
 
-  font-weight: 600;
+  font-weight: 700;
+
+  letter-spacing: -0.15px;
+
+  line-height: 1;
 }
 
 .navbar .navbar-login:hover,

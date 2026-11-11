@@ -19,6 +19,7 @@ const ProductDetails = () => {
 
   const [product, setProduct] = useState<Product | null>(null);
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [topCategoryProducts, setTopCategoryProducts] = useState<Product[]>([]);
   const [selectedImage, setSelectedImage] = useState("");
   const [isUpdatingQuantity, setIsUpdatingQuantity] = useState(false);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
@@ -75,6 +76,7 @@ const ProductDetails = () => {
       : product.category?._id;
     if (!categoryId) {
       setSimilarProducts([]);
+      setTopCategoryProducts([]);
       return;
     }
 
@@ -82,16 +84,27 @@ const ProductDetails = () => {
     const subCategoryId = typeof product.subCategory === "string"
       ? product.subCategory
       : product.subCategory?._id;
-    getProducts(undefined, categoryId, 1, 12, subCategoryId || undefined)
+    getProducts(undefined, categoryId, 1, 30)
       .then((response) => {
         if (!current) return;
         const products = Array.isArray(response?.data) ? response.data as Product[] : [];
-        setSimilarProducts(products.filter((item) => item._id !== product._id));
+        const otherProducts = products.filter((item) => item._id !== product._id);
+        const sameSubcategory = subCategoryId
+          ? otherProducts.filter((item) => {
+              const itemSubcategoryId = typeof item.subCategory === "string"
+                ? item.subCategory
+                : item.subCategory?._id;
+              return itemSubcategoryId === subCategoryId;
+            })
+          : otherProducts;
+        setSimilarProducts(sameSubcategory.slice(0, 12));
+        setTopCategoryProducts(otherProducts.slice(0, 10));
       })
       .catch((requestError: unknown) => {
         if (!current) return;
         console.warn("Failed to load similar products:", requestError);
         setSimilarProducts([]);
+        setTopCategoryProducts([]);
       });
 
     return () => { current = false; };
@@ -341,6 +354,18 @@ const ProductDetails = () => {
               {similarProducts.map((similarProduct) => (
                 <div className="product-details-similar-card" key={similarProduct._id}>
                   <ProductCard product={similarProduct} variant="compact" />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+        {topCategoryProducts.length > 0 && (
+          <section className="product-details-similar" aria-labelledby="top-category-products-title">
+            <header><h2 id="top-category-products-title">Top 10 Products in this Category</h2></header>
+            <div className="product-details-similar-track">
+              {topCategoryProducts.map((categoryProduct) => (
+                <div className="product-details-similar-card" key={categoryProduct._id}>
+                  <ProductCard product={categoryProduct} variant="compact" />
                 </div>
               ))}
             </div>

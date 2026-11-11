@@ -111,7 +111,7 @@ const CategoryProducts = () => {
       if (productScrollRef.current) productScrollRef.current.scrollTop = 0;
       setSelectedSubcategory(nextSubcategory);
     }
-  }, [categoryId, categoryReadyId, requestedSubcategoryId, selectedSubcategory, subcategories]);
+  }, [categoryId, categoryReadyId, requestedSubcategoryId, subcategories]);
 
   const loadNextPage = useCallback(() => {
     if (inFlightRef.current || requestedPageRef.current > page || !pagination.hasNextPage || productError) return;
