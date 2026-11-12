@@ -9,6 +9,9 @@ export type OrderStatus =
   | "Delivered";
 
 export interface OrderItem {
+  variantId?: string;
+  variantQuantity?: number;
+  variantUnit?: string;
   product:
     | string
     | {

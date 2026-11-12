@@ -146,6 +146,7 @@ const MyOrderDetails = () => {
                 </div>
                 <div className="detail-item-info">
                   <h3>{item.name}</h3>
+                  {item.variantQuantity != null && item.variantUnit && <p>{item.variantQuantity} {item.variantUnit}</p>}
                   <div className="detail-item-price">
                     <strong>₹{sellingPrice}</strong>
                     {hasDiscount && <span>₹{item.price}</span>}

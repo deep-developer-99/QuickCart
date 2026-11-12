@@ -7,10 +7,10 @@ export interface CartContextValue {
   isLoading: boolean;
   isCartReady: boolean;
   cartError: string | null;
-  getQuantity: (productId: string) => number;
-  addProduct: (productId: string, quantity?: number) => Promise<void>;
-  updateProductQuantity: (productId: string, quantity: number) => Promise<void>;
-  removeProduct: (productId: string) => Promise<void>;
+  getQuantity: (productId: string, variantId?: string) => number;
+  addProduct: (productId: string, quantity?: number, variantId?: string) => Promise<void>;
+  updateProductQuantity: (productId: string, quantity: number, variantId?: string) => Promise<void>;
+  removeProduct: (productId: string, variantId?: string) => Promise<void>;
   clearCart: () => Promise<void>;
   refreshCart: () => Promise<void>;
 }

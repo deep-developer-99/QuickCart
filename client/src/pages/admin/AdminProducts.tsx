@@ -14,6 +14,7 @@ interface AdminProduct {
   price: number;
   discountPrice?: number;
   stock: number;
+  variants?: Array<{ _id: string; quantity: number; unit: string; price: number; stock: number; isActive: boolean }>;
   category:
     | {
         _id: string;
@@ -157,6 +158,7 @@ const AdminProducts = () => {
                     </div>
 
                     <div className="admin-product-details">
+                      {product.variants?.length ? <div className="admin-product-variants"><span>Variants</span><strong>{product.variants.filter((variant) => variant.isActive).map((variant) => `${variant.quantity} ${variant.unit}`).join(" · ")}</strong></div> : null}
                       <div>
                         <span>Category</span>
                         <strong>{category}</strong>

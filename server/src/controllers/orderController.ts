@@ -84,7 +84,7 @@ export const createBuyNowOrderController = async (
       return;
     }
 
-    const { productId, quantity, addressId, paymentMethod } = req.body;
+    const { productId, variantId, quantity, addressId, paymentMethod } = req.body;
 
     // Validate required fields
     if (!productId) {
@@ -124,6 +124,7 @@ export const createBuyNowOrderController = async (
 
     const order = await createBuyNowOrder(req.user.id, {
       productId,
+      variantId,
       quantity,
       addressId,
       paymentMethod: "COD",

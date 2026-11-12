@@ -25,7 +25,9 @@ export const normalizeCartResponse = (response: unknown, fallbackUserId: string)
     const product = rawProduct && typeof rawProduct === "object"
       ? { ...rawProduct, _id: productId } as Cart["items"][number]["product"]
       : productId;
-    const existing = itemByProductId.get(productId);
+    const variantId = typeof item.variantId === "string" ? item.variantId : undefined;
+    const itemKey = `${productId}:${variantId ?? ""}`;
+    const existing = itemByProductId.get(itemKey);
     if (existing) {
       const combinedQuantity = existing.quantity + quantity;
       if (Number.isFinite(combinedQuantity)) {
@@ -35,7 +37,7 @@ export const normalizeCartResponse = (response: unknown, fallbackUserId: string)
         }
       }
     } else {
-      itemByProductId.set(productId, { product, quantity });
+      itemByProductId.set(itemKey, { product, variantId, quantity });
     }
   }
 

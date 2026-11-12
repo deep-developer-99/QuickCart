@@ -13,15 +13,15 @@ export type CashfreeFinalizationResult =
   | { status: "needs_review"; order?: undefined };
 
 const sameCartAsSnapshot = (
-  cartItems: Array<{ product: Types.ObjectId; quantity: number }>,
+  cartItems: Array<{ product: Types.ObjectId; variantId?: Types.ObjectId; quantity: number }>,
   snapshot: ICashfreePaymentAttemptItem[],
 ) => {
   if (cartItems.length !== snapshot.length) return false;
   const left = cartItems
-    .map((item) => `${item.product.toString()}:${item.quantity}`)
+    .map((item) => `${item.product.toString()}:${item.variantId?.toString() ?? ""}:${item.quantity}`)
     .sort();
   const right = snapshot
-    .map((item) => `${item.product.toString()}:${item.quantity}`)
+    .map((item) => `${item.product.toString()}:${item.variantId?.toString() ?? ""}:${item.quantity}`)
     .sort();
   return left.every((value, index) => value === right[index]);
 };
@@ -108,12 +108,16 @@ export const finalizePaidCashfreeAttempt = async (
     // Validate all products before changing any stock. Prices are the values
     // captured when the Cashfree transaction was initiated; current price changes
     // must not alter the amount the customer already paid.
+    const legacyStockProductIds = new Set<string>();
     for (const item of attempt.itemsSnapshot) {
       const product = await Product.findOne({
         _id: item.product,
         isActive: true,
       }).session(session);
-      if (!product || product.stock < item.quantity) {
+      const variant = product && item.variantId ? product.variants?.find((entry: any) => entry._id.toString() === item.variantId?.toString() && entry.isActive) : undefined;
+      const fallbackStock = product && product.legacyStock !== undefined ? product.legacyStock : product?.stock ?? 0;
+      if (product && !item.variantId && product.legacyStock !== undefined) legacyStockProductIds.add(product._id.toString());
+      if (!product || (item.variantId && !variant) || (variant?.stock ?? fallbackStock) < item.quantity) {
         attempt.status = "paid";
         attempt.fulfillmentStatus = "needs_review";
         attempt.paymentId = transactionId || attempt.paymentId;
@@ -126,8 +130,8 @@ export const finalizePaidCashfreeAttempt = async (
 
     for (const item of attempt.itemsSnapshot) {
       const updatedProduct = await Product.findOneAndUpdate(
-        { _id: item.product, isActive: true, stock: { $gte: item.quantity } },
-        { $inc: { stock: -item.quantity } },
+        item.variantId ? { _id: item.product, isActive: true, variants: { $elemMatch: { _id: item.variantId, isActive: true, stock: { $gte: item.quantity } } } } : legacyStockProductIds.has(item.product.toString()) ? { _id: item.product, isActive: true, legacyStock: { $gte: item.quantity } } : { _id: item.product, isActive: true, stock: { $gte: item.quantity } },
+        item.variantId ? { $inc: { "variants.$.stock": -item.quantity, stock: -item.quantity } } : legacyStockProductIds.has(item.product.toString()) ? { $inc: { legacyStock: -item.quantity } } : { $inc: { stock: -item.quantity } },
         { new: true, session },
       );
       if (!updatedProduct) {
@@ -142,6 +146,7 @@ export const finalizePaidCashfreeAttempt = async (
           user: attempt.user,
           items: attempt.itemsSnapshot.map((item) => ({
             product: item.product,
+            ...(item.variantId ? { variantId: item.variantId, variantQuantity: item.variantQuantity, variantUnit: item.variantUnit } : {}),
             vendor: item.vendor,
             name: item.name,
             image: item.image,

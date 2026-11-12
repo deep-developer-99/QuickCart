@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAppSelector } from "../../hooks/reduxHooks";
@@ -22,22 +22,27 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   const { openLoginModal } = useLoginModal();
 
   const [isUpdating, setIsUpdating] = useState(false);
+  const availableVariants = useMemo(() => (product.variants ?? []).filter((item) => item.isActive), [product.variants]);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(() => availableVariants.find((item) => item.stock > 0)?._id);
+  const [isVariantDialogOpen, setIsVariantDialogOpen] = useState(false);
+  const [variantFeedback, setVariantFeedback] = useState("");
+  const selectedVariant = availableVariants.find((item) => item._id === selectedVariantId) ?? availableVariants.find((item) => item.stock > 0);
 
-  const quantity = getQuantity(product._id);
+  const quantity = getQuantity(product._id, selectedVariant?._id);
   const isUser = isAuthenticated && user?.role === "user";
-  const hasStock = product.stock > 0;
+  const hasStock = availableVariants.length ? availableVariants.some((item) => item.stock > 0) : product.stock > 0;
   const description = typeof product.description === "string" ? product.description.trim() : "";
 
   const hasDiscount =
     product.discountPrice !== undefined &&
     product.discountPrice !== null &&
     product.discountPrice < product.price;
-  const sellingPrice = hasDiscount ? product.discountPrice! : product.price;
+  const sellingPrice = selectedVariant?.price ?? (hasDiscount ? product.discountPrice! : product.price);
 
   const handleAddToCart = async () => {
     if (!isUser) {
       openLoginModal({ onAuthenticated: async () => {
-        try { await addProduct(product._id, 1); }
+        try { await addProduct(product._id, 1, selectedVariant?._id); setIsVariantDialogOpen(false); }
         catch (error) { console.error("Failed to add product to cart:", error); }
       } });
       return;
@@ -45,9 +50,12 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
 
     try {
       setIsUpdating(true);
-      await addProduct(product._id, 1);
+      await addProduct(product._id, 1, selectedVariant?._id);
+      setVariantFeedback("Added to cart");
+      setIsVariantDialogOpen(false);
     } catch (error) {
       console.error("Failed to add product to cart:", error);
+      setVariantFeedback(axios.isAxiosError(error) ? error.response?.data?.message || "Could not add this option." : "Could not add this option.");
 
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         openLoginModal({ onAuthenticated: async () => {
@@ -69,7 +77,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
       if (quantity === 1) {
         await removeProduct(product._id);
       } else {
-        await updateProductQuantity(product._id, quantity - 1);
+      await updateProductQuantity(product._id, quantity - 1, selectedVariant?._id);
       }
     } catch (error) {
       console.error("Failed to decrease product quantity:", error);
@@ -79,11 +87,11 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   };
 
   const handleIncrease = async () => {
-    if (quantity >= product.stock || isUpdating) return;
+    if (quantity >= (selectedVariant?.stock ?? product.stock) || isUpdating) return;
 
     try {
       setIsUpdating(true);
-      await updateProductQuantity(product._id, quantity + 1);
+      await updateProductQuantity(product._id, quantity + 1, selectedVariant?._id);
     } catch (error) {
       console.error("Failed to increase product quantity:", error);
     } finally {
@@ -116,7 +124,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
           />
           <span className="product-card-image-fallback" aria-hidden="true">Image unavailable</span>
 
-          {product.stock <= 5 && product.stock > 0 && (
+      {(selectedVariant?.stock ?? product.stock) <= 5 && (selectedVariant?.stock ?? product.stock) > 0 && (
             <span className="low-stock-badge">Only {product.stock} left</span>
           )}
 
@@ -127,6 +135,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
 
         <div className="product-card-content">
           <h3 className="product-card-name">{product.name}</h3>
+          {selectedVariant && <p className="product-card-variant-default">{selectedVariant.quantity} {selectedVariant.unit}</p>}
           {description && <p className="product-card-description">{description}</p>}
         </div>
       </Link>
@@ -153,7 +162,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
                 {isCartLoading ? "..." : "..."}
               </button>
             )
-          ) : quantity > 0 ? (
+          ) : quantity > 0 && availableVariants.length <= 1 ? (
             <div
               className="product-quantity-control"
               aria-label="Product quantity"
@@ -174,7 +183,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
                 type="button"
                 className="product-quantity-button"
                 onClick={handleIncrease}
-                disabled={isUpdating || quantity >= product.stock}
+                disabled={isUpdating || quantity >= (selectedVariant?.stock ?? product.stock)}
                 aria-label={`Increase ${product.name} quantity`}
               >
                 +
@@ -184,7 +193,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
             <button
               type="button"
               className="product-add-button"
-              onClick={handleAddToCart}
+              onClick={() => availableVariants.length ? setIsVariantDialogOpen(true) : void handleAddToCart()}
               disabled={isUpdating}
             >
               {isUpdating ? "..." : "ADD"}
@@ -193,7 +202,10 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
         ) : (
           <span className="product-unavailable">Unavailable</span>
         )}
+        {availableVariants.length > 0 && <div className="product-card-variant-options">{availableVariants.map((item) => <button type="button" key={item._id} className={item._id === selectedVariant?._id ? "selected" : ""} disabled={item.stock <= 0} onClick={() => { setSelectedVariantId(item._id); setVariantFeedback(""); }}>{item.quantity} {item.unit}</button>)}</div>}
+        {variantFeedback && !isVariantDialogOpen && <small className="product-variant-feedback" role="status">{variantFeedback}</small>}
       </div>
+      {isVariantDialogOpen && <div className="product-variant-backdrop" role="presentation" onClick={() => setIsVariantDialogOpen(false)}><section className="product-variant-dialog" role="dialog" aria-modal="true" aria-label={`Choose ${product.name} variant`} onClick={(event) => event.stopPropagation()}><button className="product-variant-close" type="button" onClick={() => setIsVariantDialogOpen(false)} aria-label="Close">×</button><h3>{product.name}</h3><p>Choose an option</p>{availableVariants.map((item) => <button type="button" key={item._id} className={`product-variant-choice${item._id === selectedVariant?._id ? " selected" : ""}`} disabled={item.stock <= 0} onClick={() => { setSelectedVariantId(item._id); setVariantFeedback(""); }}><span>{item.quantity} {item.unit}</span><strong>₹{item.price.toLocaleString("en-IN")}</strong><small>{item.stock > 0 ? `${item.stock} available` : "Out of stock"}</small></button>)}{variantFeedback && <p className="product-variant-error" role="alert">{variantFeedback}</p>}<button type="button" className="product-variant-add" disabled={!selectedVariant || isUpdating} onClick={() => void handleAddToCart()}>{isUpdating ? "Adding…" : "Add to Cart"}</button></section></div>}
     </article>
   );
 };

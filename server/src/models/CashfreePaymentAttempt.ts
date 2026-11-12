@@ -8,6 +8,9 @@ export type CashfreeFulfillmentStatus =
 
 export interface ICashfreePaymentAttemptItem {
   product: Types.ObjectId;
+  variantId?: Types.ObjectId;
+  variantQuantity?: number;
+  variantUnit?: string;
   vendor: Types.ObjectId;
   name: string;
   image: string;
@@ -40,6 +43,9 @@ export interface ICashfreePaymentAttempt extends Document {
 const itemSchema = new Schema<ICashfreePaymentAttemptItem>(
   {
     product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
+    variantId: { type: Schema.Types.ObjectId },
+    variantQuantity: { type: Number, min: 0.001 },
+    variantUnit: { type: String },
     vendor: { type: Schema.Types.ObjectId, ref: "Vendor", required: true },
     name: { type: String, required: true },
     image: { type: String, required: true },

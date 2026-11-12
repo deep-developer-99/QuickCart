@@ -14,10 +14,10 @@ export const hasValidCartItems = (cart: Cart | null | undefined) =>
 export const getCartProductId = (product: CartItem["product"]) =>
   getEntityId(product);
 
-export const getCartQuantity = (cart: Cart | null | undefined, productId: string) => {
+export const getCartQuantity = (cart: Cart | null | undefined, productId: string, variantId?: string) => {
   const normalizedId = getEntityId(productId);
   if (!normalizedId) return 0;
-  const item = getValidCartItems(cart).find((cartItem) => getCartProductId(cartItem.product) === normalizedId);
+  const item = getValidCartItems(cart).find((cartItem) => getCartProductId(cartItem.product) === normalizedId && (cartItem.variantId ?? "") === (variantId ?? ""));
   return item?.quantity ?? 0;
 };
 
@@ -26,7 +26,8 @@ export const getCartSubtotal = (items: readonly CartItem[]) => {
   for (const item of items) {
     if (!isValidCartItem(item)) continue;
     if (typeof item.product === "string") return null;
-    const price = Number(item.product.discountPrice ?? item.product.price);
+    const variant = item.variantId ? item.product.variants?.find((entry) => entry._id === item.variantId) : undefined;
+    const price = Number(variant?.price ?? item.product.discountPrice ?? item.product.price);
     if (!Number.isFinite(price) || price < 0) return null;
     subtotal += price * Number(item.quantity);
   }

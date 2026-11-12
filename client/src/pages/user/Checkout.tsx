@@ -826,15 +826,14 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
             <h2>Order Summary</h2>
 
             {cart.items.map((item) => (
-              <div className="checkout-item" key={typeof item.product === "string" ? item.product : item.product._id}>
+              <div className="checkout-item" key={typeof item.product === "string" ? item.product : `${item.product._id}:${item.variantId ?? ""}`}>
                 <span>
                   {typeof item.product === "string" ? "Product" : item.product.name} × {item.quantity}
                 </span>
 
                 {typeof item.product !== "string" && <strong>
                   ₹
-                  {(item.product.discountPrice ?? item.product.price) *
-                    item.quantity}
+                  {((item.variantId ? item.product.variants?.find((variant) => variant._id === item.variantId)?.price : undefined) ?? item.product.discountPrice ?? item.product.price) * item.quantity}
                 </strong>}
               </div>
             ))}

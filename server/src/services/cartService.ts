@@ -47,6 +47,7 @@ export const addToCart = async (
   userId: string,
   productId: string,
   quantity: number,
+  variantId?: string,
 ) => {
   if (!Number.isInteger(quantity) || quantity < 1) {
     throw new Error("Quantity must be a positive whole number");
@@ -64,9 +65,13 @@ export const addToCart = async (
     throw new Error("Product not found");
   }
 
-  if (product.stock < quantity) {
-    throw new Error("Insufficient product stock");
-  }
+  const variant = product.variants?.find((item: any) => item._id.toString() === variantId && item.isActive);
+  if (variantId && !variant) throw new Error("Product variant is unavailable");
+  const selectedVariant = variant ?? product.variants?.find((item: any) => item.isActive && item.stock > 0);
+  if (product.variants?.length && !selectedVariant) throw new Error("No available product variants");
+  const selectedVariantId = selectedVariant?._id;
+  const availableStock = selectedVariant?.stock ?? product.stock;
+  if (availableStock < quantity) throw new Error("Insufficient product stock");
 
   let cart = await Cart.findOne({
     user: userId,
@@ -78,6 +83,7 @@ export const addToCart = async (
       items: [
         {
           product: productId,
+          ...(selectedVariantId ? { variantId: selectedVariantId } : {}),
           quantity,
         },
       ],
@@ -87,13 +93,13 @@ export const addToCart = async (
   }
 
   const existingItem = cart.items.find(
-    (item) => item.product.toString() === productId,
+    (item) => item.product.toString() === productId && (item.variantId?.toString() ?? "") === (selectedVariantId?.toString() ?? ""),
   );
 
   if (existingItem) {
     const newQuantity = existingItem.quantity + quantity;
 
-    if (newQuantity > product.stock) {
+    if (newQuantity > availableStock) {
       throw new Error("Requested quantity exceeds available stock");
     }
 
@@ -101,6 +107,7 @@ export const addToCart = async (
   } else {
     cart.items.push({
       product: new Types.ObjectId(productId),
+      ...(selectedVariantId ? { variantId: selectedVariantId } : {}),
       quantity,
     });
   }
@@ -115,6 +122,7 @@ export const updateCartItem = async (
   userId: string,
   productId: string,
   quantity: number,
+  variantId?: string,
 ) => {
   if (!Number.isInteger(quantity) || quantity < 1) {
     throw new Error("Quantity must be a positive whole number");
@@ -131,7 +139,10 @@ export const updateCartItem = async (
     throw new Error("Product not found");
   }
 
-  if (quantity > product.stock) {
+  const variant = product.variants?.find((item: any) => item._id.toString() === variantId && item.isActive);
+  if (variantId && !variant) throw new Error("Product variant is unavailable");
+  const fallbackStock = !variant && product.legacyStock !== undefined ? product.legacyStock : product.stock;
+  if (quantity > (variant?.stock ?? fallbackStock)) {
     throw new Error("Requested quantity exceeds available stock");
   }
 
@@ -144,7 +155,7 @@ export const updateCartItem = async (
   }
 
   const item = cart.items.find(
-    (cartItem) => cartItem.product.toString() === productId,
+    (cartItem) => cartItem.product.toString() === productId && (cartItem.variantId?.toString() ?? "") === (variantId ?? ""),
   );
 
   if (!item) {
@@ -159,7 +170,7 @@ export const updateCartItem = async (
 };
 
 // Remove Product From Cart
-export const removeFromCart = async (userId: string, productId: string) => {
+export const removeFromCart = async (userId: string, productId: string, variantId?: string) => {
   const cart = await Cart.findOne({
     user: userId,
   });
@@ -171,7 +182,7 @@ export const removeFromCart = async (userId: string, productId: string) => {
   const initialLength = cart.items.length;
 
   cart.items = cart.items.filter(
-    (items) => items.product.toString() !== productId,
+    (items) => items.product.toString() !== productId || (items.variantId?.toString() ?? "") !== (variantId ?? ""),
   );
 
   if (cart.items.length === initialLength) {

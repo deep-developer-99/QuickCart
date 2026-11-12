@@ -52,7 +52,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
   const calculatedItemsTotal = getCartSubtotal(validItems) ?? 0;
   const cartSummaryKey = validItems.map((item) => typeof item.product === "string"
     ? `${item.product}:${item.quantity}`
-    : `${item.product._id}:${item.quantity}:${item.product.price}:${item.product.discountPrice ?? ""}`).join("|");
+    : `${item.product._id}:${item.variantId ?? ""}:${item.quantity}:${item.product.price}:${item.product.discountPrice ?? ""}`).join("|");
   const checkoutSummary = summaryResult?.key === cartSummaryKey ? summaryResult.data : null;
   const summaryError = summaryFailure?.key === cartSummaryKey ? summaryFailure.message : "";
   const isLoadingSummary = Boolean(isOpen && validItems.length && !checkoutSummary && !summaryError);
@@ -166,20 +166,20 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
     if (event.target === event.currentTarget) handleClose();
   };
 
-  const handleQuantityChange = async (productId: string, quantity: number) => {
+  const handleQuantityChange = async (productId: string, quantity: number, variantId?: string) => {
     try {
       setDrawerError("");
-      await updateProductQuantity(productId, quantity);
+      await updateProductQuantity(productId, quantity, variantId);
     } catch (error) {
       console.error("Failed to update cart quantity:", error);
       setDrawerError("We couldn't update that quantity. Please try again.");
     }
   };
 
-  const handleRemove = async (productId: string) => {
+  const handleRemove = async (productId: string, variantId?: string) => {
     try {
       setDrawerError("");
-      await removeProduct(productId);
+      await removeProduct(productId, variantId);
     } catch (error) {
       console.error("Failed to remove cart item:", error);
       setDrawerError("We couldn't remove that item. Please try again.");

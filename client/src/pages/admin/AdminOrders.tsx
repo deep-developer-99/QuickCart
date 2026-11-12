@@ -28,6 +28,9 @@ interface AdminOrderItem {
   price: number;
   discountedPrice?: number;
   quantity: number;
+  variantId?: string;
+  variantQuantity?: number;
+  variantUnit?: string;
 }
 
 interface AdminOrder {
@@ -210,6 +213,7 @@ const AdminOrders = () => {
                             <span>Vendor: {vendor}</span>
 
                             <span>Quantity: {item.quantity}</span>
+                            {item.variantQuantity != null && item.variantUnit && <span>Variant: {item.variantQuantity} {item.variantUnit}</span>}
                           </div>
 
                           <div className="admin-order-item-price">

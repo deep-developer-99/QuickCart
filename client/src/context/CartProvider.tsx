@@ -115,8 +115,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setStoredCart((current) => current && cartOwnerId === userId && currentUserIdRef.current === userId ? update(current) : current);
   }, [cartOwnerId, userId]);
 
-  const addProduct = useCallback((productId: string, quantity = 1) => enqueueMutation(async () => {
-    const response = await addToCart(productId, quantity);
+  const addProduct = useCallback((productId: string, quantity = 1, variantId?: string) => enqueueMutation(async () => {
+    const response = await addToCart(productId, quantity, variantId);
     if (userId && currentUserIdRef.current === userId) {
       const updatedCart = normalizeCartResponse(response, userId);
       if (updatedCart) {
@@ -129,28 +129,28 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     await refreshCart();
   }), [enqueueMutation, refreshCart, userId]);
 
-  const updateProductQuantity = useCallback((productId: string, quantity: number) => enqueueMutation(async () => {
+  const updateProductQuantity = useCallback((productId: string, quantity: number, variantId?: string) => enqueueMutation(async () => {
     if (quantity < 1) {
-      await removeCartItem(productId);
+      await removeCartItem(productId, variantId);
       updateLocalCart((current) => ({
         ...current,
-        items: current.items.filter((item) => getCartProductId(item.product) !== productId),
+        items: current.items.filter((item) => !(getCartProductId(item.product) === productId && (item.variantId ?? "") === (variantId ?? ""))),
       }));
     } else {
-      await updateCartItem(productId, quantity);
+      await updateCartItem(productId, quantity, variantId);
       updateLocalCart((current) => ({
         ...current,
-        items: current.items.map((item) => getCartProductId(item.product) === productId ? { ...item, quantity } : item),
+        items: current.items.map((item) => getCartProductId(item.product) === productId && (item.variantId ?? "") === (variantId ?? "") ? { ...item, quantity } : item),
       }));
     }
     await refreshCart();
   }), [enqueueMutation, refreshCart, updateLocalCart]);
 
-  const removeProduct = useCallback((productId: string) => enqueueMutation(async () => {
-    await removeCartItem(productId);
+  const removeProduct = useCallback((productId: string, variantId?: string) => enqueueMutation(async () => {
+    await removeCartItem(productId, variantId);
     updateLocalCart((current) => ({
       ...current,
-      items: current.items.filter((item) => getCartProductId(item.product) !== productId),
+      items: current.items.filter((item) => !(getCartProductId(item.product) === productId && (item.variantId ?? "") === (variantId ?? ""))),
     }));
     await refreshCart();
   }), [enqueueMutation, refreshCart, updateLocalCart]);
@@ -161,7 +161,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     await refreshCart();
   }), [enqueueMutation, refreshCart, updateLocalCart]);
 
-  const getQuantity = (productId: string) => getCartQuantity(cart, productId);
+  const getQuantity = (productId: string, variantId?: string) => getCartQuantity(cart, productId, variantId);
 
   const value = {
     cart,

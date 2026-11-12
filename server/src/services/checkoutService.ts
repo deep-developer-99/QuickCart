@@ -24,11 +24,14 @@ export const calculateCheckout = async (userId: string) => {
       throw new Error("One or more products are no longer available");
     }
 
-    if (product.stock < cartItem.quantity) {
+    const variant = cartItem.variantId ? product.variants?.find((item: any) => item._id.toString() === cartItem.variantId?.toString() && item.isActive) : undefined;
+    if (cartItem.variantId && !variant) throw new Error(`Selected variant for ${product.name} is no longer available`);
+    const fallbackStock = !variant && product.legacyStock !== undefined ? product.legacyStock : product.stock;
+    if ((variant?.stock ?? fallbackStock) < cartItem.quantity) {
       throw new Error(`Insufficient stock for ${product.name}`);
     }
 
-    const discountedPrice = product.discountPrice ?? product.price;
+    const discountedPrice = variant?.price ?? product.discountPrice ?? product.legacyPrice ?? product.price;
 
     const itemTotal = discountedPrice * cartItem.quantity;
 
@@ -38,6 +41,11 @@ export const calculateCheckout = async (userId: string) => {
       product,
       quantity: cartItem.quantity,
       itemTotal,
+      discountedPrice,
+      variantId: variant?._id,
+      variantQuantity: variant?.quantity,
+      variantUnit: variant?.unit,
+      price: variant?.price ?? product.legacyPrice ?? product.price,
     });
   }
 

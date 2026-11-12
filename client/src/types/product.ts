@@ -18,6 +18,7 @@ export interface Product {
   price: number;
   discountPrice?: number;
   stock: number;
+  variants?: ProductVariant[];
   category: Category | string;
   subCategory?: Category | string | null;
   vendor:
@@ -30,4 +31,13 @@ export interface Product {
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface ProductVariant {
+  _id: string;
+  quantity: number;
+  unit: "g" | "kg" | "ml" | "L" | "pcs" | "pc" | "set" | "pack" | "m" | "cm" | "dozen" | "pair";
+  price: number;
+  stock: number;
+  isActive: boolean;
 }

@@ -1,73 +1,32 @@
 import type { CartItem as CartItemType } from "../../types/cart";
-
 import "./CartItem.css";
 
 interface CartItemProps {
   item: CartItemType;
-  onQuantityChange: (productId: string, quantity: number) => void;
-  onRemove: (productId: string) => void;
+  onQuantityChange: (productId: string, quantity: number, variantId?: string) => void;
+  onRemove: (productId: string, variantId?: string) => void;
 }
 
 const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
   const { product, quantity } = item;
   const hasProductDetails = typeof product !== "string";
   const productId = hasProductDetails ? product._id : product;
-
-  return (
-    <div className="cart-item-card">
-      <div className="cart-item-image-wrapper">
-        {hasProductDetails ? <img src={product.image} alt={product.name} /> : <span aria-hidden="true">🛒</span>}
-      </div>
-
-      <div className="cart-item-info">
-        <h3>{hasProductDetails ? product.name : "Product"}</h3>
-
-        {hasProductDetails && <p className="cart-item-price">
-          {product.discountPrice !== undefined && product.discountPrice < product.price && (
-            <>
-              <span className="cart-item-original-price">₹{product.price}</span>
-              <span className="cart-item-discount">Save {Math.round(((product.price - product.discountPrice) / product.price) * 100)}%</span>
-            </>
-          )}
-          <strong>₹{product.discountPrice ?? product.price}</strong>
-        </p>}
-
-        <div className="cart-item-actions">
-          <div className="cart-quantity-control">
-            <button
-              type="button"
-              onClick={() => onQuantityChange(productId, quantity - 1)}
-              disabled={quantity <= 0}
-            >
-              −
-            </button>
-
-            <span>{quantity}</span>
-
-            <button
-              type="button"
-              onClick={() => onQuantityChange(productId, quantity + 1)}
-              disabled={hasProductDetails && quantity >= product.stock}
-            >
-              +
-            </button>
-          </div>
-
-          <button
-            type="button"
-            className="cart-remove-button"
-            onClick={() => onRemove(productId)}
-          >
-            Remove
-          </button>
-        </div>
-      </div>
-
-      {hasProductDetails && <div className="cart-item-total">
-        ₹{(product.discountPrice ?? product.price) * quantity}
-      </div>}
+  const variant = hasProductDetails && item.variantId ? product.variants?.find((entry) => entry._id === item.variantId) : undefined;
+  const price = variant?.price ?? (hasProductDetails ? product.discountPrice ?? product.price : 0);
+  return <div className="cart-item-card">
+    <div className="cart-item-image-wrapper">{hasProductDetails ? <img src={product.image} alt={product.name} /> : <span aria-hidden="true">🛒</span>}</div>
+    <div className="cart-item-info">
+      <h3>{hasProductDetails ? product.name : "Product"}</h3>
+      {variant && <p className="cart-item-variant">{variant.quantity} {variant.unit}</p>}
+      {hasProductDetails && <p className="cart-item-price"><strong>₹{price}</strong></p>}
+      <div className="cart-item-actions"><div className="cart-quantity-control">
+        <button type="button" onClick={() => onQuantityChange(productId, quantity - 1, item.variantId)} aria-label="Decrease quantity">−</button>
+        <span>{quantity}</span>
+        <button type="button" onClick={() => onQuantityChange(productId, quantity + 1, item.variantId)} disabled={hasProductDetails && quantity >= (variant?.stock ?? product.stock)} aria-label="Increase quantity">+</button>
+      </div><button type="button" className="cart-remove-button" onClick={() => onRemove(productId, item.variantId)}>Remove</button></div>
     </div>
-  );
+    {hasProductDetails && <div className="cart-item-total">₹{price * quantity}</div>}
+  </div>;
 };
 
 export default CartItem;

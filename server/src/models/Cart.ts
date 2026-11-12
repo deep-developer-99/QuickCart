@@ -2,6 +2,7 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 
 interface ICartItem {
   product: Types.ObjectId;
+  variantId?: Types.ObjectId;
   quantity: number;
 }
 
@@ -19,6 +20,8 @@ const cartItemSchema = new Schema<ICartItem>(
       ref: "Product",
       required: true,
     },
+
+    variantId: { type: Schema.Types.ObjectId },
 
     quantity: {
       type: Number,

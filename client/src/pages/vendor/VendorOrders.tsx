@@ -190,6 +190,7 @@ const VendorOrders = () => {
                           <h4>{item.name}</h4>
 
                           <p>Quantity: {item.quantity}</p>
+                          {item.variantQuantity != null && item.variantUnit && <p>Variant: {item.variantQuantity} {item.variantUnit}</p>}
 
                           <div className="vendor-order-price">
                             <span className="vendor-discounted-price">

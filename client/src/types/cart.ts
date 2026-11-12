@@ -4,6 +4,7 @@ export interface CartItem {
   // Cart responses may contain only a product id; populated cart responses
   // include the full product object.
   product: Product | string;
+  variantId?: string;
   quantity: number;
 }
 

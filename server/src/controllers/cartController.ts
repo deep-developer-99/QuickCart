@@ -52,7 +52,7 @@ export const addToCartController = async (
       return;
     }
 
-    const { productId, quantity } = req.body;
+    const { productId, quantity, variantId } = req.body;
 
     if (!productId || quantity === undefined) {
       res.status(400).json({
@@ -62,7 +62,7 @@ export const addToCartController = async (
       return;
     }
 
-    const cart = await addToCart(req.user.id, productId, quantity);
+    const cart = await addToCart(req.user.id, productId, quantity, typeof variantId === "string" ? variantId : undefined);
 
     res.status(200).json({
       success: true,
@@ -110,7 +110,8 @@ export const updateCartItemController = async (
       return;
     }
 
-    const cart = await updateCartItem(req.user.id, productId, quantity);
+    const variantId = typeof req.query.variantId === "string" ? req.query.variantId : typeof req.body.variantId === "string" ? req.body.variantId : undefined;
+    const cart = await updateCartItem(req.user.id, productId, quantity, variantId);
 
     res.status(200).json({
       success: true,
@@ -145,7 +146,7 @@ export const removeFromCartController = async (
       productId: string;
     };
 
-    const cart = await removeFromCart(req.user.id, productId);
+    const cart = await removeFromCart(req.user.id, productId, typeof req.query.variantId === "string" ? req.query.variantId : undefined);
 
     res.status(200).json({
       success: true,

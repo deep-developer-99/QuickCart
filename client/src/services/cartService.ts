@@ -6,23 +6,24 @@ export const getCart = async () => {
   return response.data;
 };
 
-export const addToCart = async (productId: string, quantity: number) => {
+export const addToCart = async (productId: string, quantity: number, variantId?: string) => {
   const response = await api.post("/cart", {
     productId,
     quantity,
+    ...(variantId ? { variantId } : {}),
   });
 
   return response.data;
 };
 
-export const updateCartItem = async (productId: string, quantity: number) => {
-  const response = await api.put(`/cart/${productId}`, { quantity });
+export const updateCartItem = async (productId: string, quantity: number, variantId?: string) => {
+  const response = await api.put(`/cart/${productId}`, { quantity, ...(variantId ? { variantId } : {}) }, { params: variantId ? { variantId } : undefined });
 
   return response.data;
 };
 
-export const removeCartItem = async (productId: string) => {
-  const response = await api.delete(`/cart/${productId}`);
+export const removeCartItem = async (productId: string, variantId?: string) => {
+  const response = await api.delete(`/cart/${productId}`, { params: variantId ? { variantId } : undefined });
 
   return response.data;
 };

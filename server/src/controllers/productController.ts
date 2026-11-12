@@ -18,6 +18,13 @@ import {
   uploadImageToCloudinary,
 } from "../services/cloudinaryService";
 
+const readVariants = (value: unknown) => {
+  if (value === undefined || value === "") return undefined;
+  const parsed = typeof value === "string" ? JSON.parse(value) : value;
+  if (!Array.isArray(parsed)) throw new Error("Variants must be a list");
+  return parsed;
+};
+
 export const createProductController = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -39,8 +46,9 @@ export const createProductController = async (
       return;
     }
 
-    const price = Number(req.body.price);
-    const stock = Number(req.body.stock);
+    const variants = readVariants(req.body.variants);
+    const price = Number(req.body.price ?? (variants?.[0]?.price));
+    const stock = Number(req.body.stock ?? variants?.filter((item: any) => item.isActive !== false).reduce((total: number, item: any) => total + Number(item.stock), 0));
     const discountPrice =
       req.body.discountPrice !== undefined && req.body.discountPrice !== ""
         ? Number(req.body.discountPrice)
@@ -96,6 +104,7 @@ export const createProductController = async (
           price,
           discountPrice,
           stock,
+          variants,
           category: String(req.body.category ?? ""),
           subCategory: String(req.body.subCategory ?? "").trim() || null,
         },
@@ -286,6 +295,7 @@ export const updateProductController = async (
       imagePublicId = uploadedImage.public_id;
     }
 
+    const variants = readVariants(req.body.variants);
     const price =
       req.body.price !== undefined && req.body.price !== ""
         ? Number(req.body.price)
@@ -332,6 +342,7 @@ export const updateProductController = async (
       price,
       discountPrice,
       stock,
+      variants,
       category:
         req.body.category !== undefined ? String(req.body.category) : undefined,
       ...(Object.prototype.hasOwnProperty.call(req.body, "subCategory")
