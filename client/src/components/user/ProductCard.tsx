@@ -1,5 +1,6 @@
 import axios from "axios";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 
 import { useAppSelector } from "../../hooks/reduxHooks";
@@ -27,6 +28,20 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   const [isVariantDialogOpen, setIsVariantDialogOpen] = useState(false);
   const [variantFeedback, setVariantFeedback] = useState("");
   const selectedVariant = availableVariants.find((item) => item._id === selectedVariantId) ?? availableVariants.find((item) => item.stock > 0);
+
+  useEffect(() => {
+    if (!isVariantDialogOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsVariantDialogOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isVariantDialogOpen]);
 
   const quantity = getQuantity(product._id, selectedVariant?._id);
   const isUser = isAuthenticated && user?.role === "user";
@@ -110,6 +125,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   };
 
   return (
+    <>
     <article className={`product-card${variant ? ` product-card--${variant}` : ""}${!hasStock ? " product-card--unavailable" : ""}`}>
       <Link to={`/products/${product._id}`} className="product-card-main">
         <div className="product-card-image-wrapper">
@@ -205,8 +221,21 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
         {availableVariants.length > 0 && <div className="product-card-variant-options">{availableVariants.map((item) => <button type="button" key={item._id} className={item._id === selectedVariant?._id ? "selected" : ""} disabled={item.stock <= 0} onClick={() => { setSelectedVariantId(item._id); setVariantFeedback(""); }}>{item.quantity} {item.unit}</button>)}</div>}
         {variantFeedback && !isVariantDialogOpen && <small className="product-variant-feedback" role="status">{variantFeedback}</small>}
       </div>
-      {isVariantDialogOpen && <div className="product-variant-backdrop" role="presentation" onClick={() => setIsVariantDialogOpen(false)}><section className="product-variant-dialog" role="dialog" aria-modal="true" aria-label={`Choose ${product.name} variant`} onClick={(event) => event.stopPropagation()}><button className="product-variant-close" type="button" onClick={() => setIsVariantDialogOpen(false)} aria-label="Close">×</button><h3>{product.name}</h3><p>Choose an option</p>{availableVariants.map((item) => <button type="button" key={item._id} className={`product-variant-choice${item._id === selectedVariant?._id ? " selected" : ""}`} disabled={item.stock <= 0} onClick={() => { setSelectedVariantId(item._id); setVariantFeedback(""); }}><span>{item.quantity} {item.unit}</span><strong>₹{item.price.toLocaleString("en-IN")}</strong><small>{item.stock > 0 ? `${item.stock} available` : "Out of stock"}</small></button>)}{variantFeedback && <p className="product-variant-error" role="alert">{variantFeedback}</p>}<button type="button" className="product-variant-add" disabled={!selectedVariant || isUpdating} onClick={() => void handleAddToCart()}>{isUpdating ? "Adding…" : "Add to Cart"}</button></section></div>}
     </article>
+    {isVariantDialogOpen && createPortal(
+      <div className="product-variant-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsVariantDialogOpen(false); }}>
+        <section className="product-variant-dialog" role="dialog" aria-modal="true" aria-labelledby={`variant-title-${product._id}`}>
+          <button className="product-variant-close" type="button" onClick={() => setIsVariantDialogOpen(false)} aria-label="Close">{"\u00D7"}</button>
+          <h3 id={`variant-title-${product._id}`}>{product.name}</h3>
+          <p>Choose an option</p>
+          {availableVariants.map((item) => <button type="button" key={item._id} className={`product-variant-choice${item._id === selectedVariant?._id ? " selected" : ""}`} disabled={item.stock <= 0} onClick={() => { setSelectedVariantId(item._id); setVariantFeedback(""); }}><span>{item.quantity} {item.unit}</span><strong>{"\u20B9"}{item.price.toLocaleString("en-IN")}</strong><small>{item.stock > 0 ? `${item.stock} available` : "Out of stock"}</small></button>)}
+          {variantFeedback && <p className="product-variant-error" role="alert">{variantFeedback}</p>}
+          <button type="button" className="product-variant-add" disabled={!selectedVariant || isUpdating} onClick={() => void handleAddToCart()}>{isUpdating ? "Adding..." : "Add to Cart"}</button>
+        </section>
+      </div>,
+      document.body,
+    )}
+    </>
   );
 };
 
