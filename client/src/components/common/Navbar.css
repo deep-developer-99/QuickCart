@@ -1169,7 +1169,7 @@
 .navbar .location-selector-arrow {
   flex: 0 0 auto;
 
-  color: #263129;
+  color: #1f1f1f;
 }
 
 .navbar .navbar-search-desktop {
@@ -1221,11 +1221,13 @@
 
   box-shadow: none;
 
-  font-size: 16px;
+  font-family: Arial, Helvetica, sans-serif;
 
-  font-weight: 700;
+  font-size: 18px;
 
-  letter-spacing: -0.15px;
+  font-weight: 400;
+
+  letter-spacing: 0;
 
   line-height: 1;
 }
