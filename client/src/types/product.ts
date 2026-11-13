@@ -36,6 +36,7 @@ export interface Product {
 
 export interface ProductVariant {
   _id: string;
+  image?: string;
   quantity: number;
   unit: "g" | "kg" | "ml" | "L" | "pcs" | "pc" | "set" | "pack" | "m" | "cm" | "dozen" | "pair";
   price: number;

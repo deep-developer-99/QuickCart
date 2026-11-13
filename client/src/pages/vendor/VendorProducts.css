@@ -405,7 +405,7 @@
 
 .variant-editor-row {
   display: grid;
-  grid-template-columns: minmax(80px, 1fr) minmax(80px, .8fr) minmax(100px, 1fr) minmax(80px, .8fr) auto;
+  grid-template-columns: minmax(150px, 1.5fr) minmax(80px, 1fr) minmax(80px, .8fr) minmax(100px, 1fr) minmax(80px, .8fr) auto;
   gap: 8px;
   align-items: center;
   width: 100%;
@@ -422,6 +422,7 @@
 }
 @media (max-width: 680px) {
   .variant-editor-row { grid-template-columns: 1fr 1fr; }
+  .variant-editor-row input[aria-label="Variant image URL (optional)"] { grid-column: 1 / -1; }
   .variant-editor-row button { grid-column: 1 / -1; }
 }
 

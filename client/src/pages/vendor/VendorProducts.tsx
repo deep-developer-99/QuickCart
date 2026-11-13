@@ -26,7 +26,7 @@ interface ProductForm {
   category: string;
   subCategory: string;
 }
-type VariantForm = { _id?: string; quantity: string; unit: string; price: string; stock: string; isActive?: boolean };
+type VariantForm = { _id?: string; image?: string; quantity: string; unit: string; price: string; stock: string; isActive?: boolean };
 const units = ["g", "kg", "ml", "L", "pcs", "pc", "set", "pack", "m", "cm", "dozen", "pair"];
 
 const initialForm: ProductForm = {
@@ -399,7 +399,7 @@ const VendorProducts = () => {
         : product.category?._id;
 
     setEditingProduct(product);
-    setVariants((product.variants ?? []).map((variant) => ({ _id: variant._id, quantity: String(variant.quantity), unit: variant.unit, price: String(variant.price), stock: String(variant.stock), isActive: variant.isActive })));
+    setVariants((product.variants ?? []).map((variant) => ({ _id: variant._id, image: variant.image ?? "", quantity: String(variant.quantity), unit: variant.unit, price: String(variant.price), stock: String(variant.stock), isActive: variant.isActive })));
 
     setForm({
       name: product.name,
@@ -797,6 +797,7 @@ const VendorProducts = () => {
                 <small>Enter the pack size, price and available stock for each option.</small>
                 {variants.map((variant, index) => (
                   <div key={variant._id ?? `new-${index}`} className="variant-editor-row">
+                    <input aria-label="Variant image URL (optional)" type="url" placeholder="Variant image URL (optional)" value={variant.image ?? ""} onChange={(event) => updateVariant(index, "image", event.target.value)} />
                     <input aria-label="Variant quantity" type="number" min="0.001" step="any" placeholder="Quantity" value={variant.quantity} onChange={(event) => updateVariant(index, "quantity", event.target.value)} required />
                     <select aria-label="Variant unit" value={variant.unit} onChange={(event) => updateVariant(index, "unit", event.target.value)}>{units.map((unit) => <option key={unit} value={unit}>{unit}</option>)}</select>
                     <input aria-label="Variant price" type="number" min="0.01" step="any" placeholder="Price (₹)" value={variant.price} onChange={(event) => updateVariant(index, "price", event.target.value)} required />

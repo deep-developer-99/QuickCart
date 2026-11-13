@@ -4,6 +4,7 @@ export const PRODUCT_UNITS = ["g", "kg", "ml", "L", "pcs", "pc", "set", "pack", 
 
 export interface IProductVariant {
   _id: Types.ObjectId;
+  image?: string;
   quantity: number;
   unit: typeof PRODUCT_UNITS[number];
   price: number;
@@ -37,6 +38,7 @@ export interface IProduct extends Document {
 }
 
 const variantSchema = new Schema<IProductVariant>({
+  image: { type: String, trim: true },
   quantity: { type: Number, required: true, min: 0.001 },
   unit: { type: String, required: true, enum: PRODUCT_UNITS },
   price: { type: Number, required: true, min: 0.01 },
