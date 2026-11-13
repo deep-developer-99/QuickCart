@@ -19,7 +19,7 @@ const otherMainId = "64b000000000000000000002";
 const subcategoryId = "64b000000000000000000003";
 const main = (id = mainId, isActive = true) => ({ _id: id, isActive, parentCategory: null });
 const child = (parentId = mainId, isActive = true) => ({ _id: subcategoryId, isActive, parentCategory: parentId });
-const productData = { name: "Soda", description: "Can", image: "https://images.example/soda.webp", price: 2, stock: 8, category: mainId, variants: [{ quantity: 1, unit: "pcs", price: 2, stock: 8 }] };
+const productData = { name: "Soda", description: "Can", image: "https://images.example/soda.webp", category: mainId, variants: [{ quantity: 1, unit: "pcs", price: 2, stock: 8 }] };
 
 test("Product schema keeps subCategory optional and defaults it to null for existing products", () => {
   assert.equal(new Product().subCategory, null);
@@ -29,7 +29,7 @@ test("Product schema keeps subCategory optional and defaults it to null for exis
 test("Product variants validate unit, quantity, price, stock, and unique size-unit pairs", () => {
   const base = {
     name: "Milk", description: "Fresh milk", image: "https://images.example/milk.webp",
-    price: 30, stock: 50, category: new Product()._id, vendor: new Product()._id,
+    category: new Product()._id, vendor: new Product()._id,
   };
   const valid = new Product({ ...base, variants: [
     { quantity: 500, unit: "ml", price: 30, stock: 50 },
@@ -79,7 +79,7 @@ test("rejects creating a product without a variant on the backend", async () => 
   const restoreCreate = restoreMethod(Product, "create", async () => { throw new Error("Product.create must not run"); });
   try {
     const { variants: _variants, ...legacyData } = productData;
-    await assert.rejects(createProduct(legacyData, "vendor-id"), /at least one product variant/i);
+    await assert.rejects(createProduct(legacyData as typeof productData, "vendor-id"), /at least one product variant/i);
   } finally {
     restoreFind();
     restoreCreate();

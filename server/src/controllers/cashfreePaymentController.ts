@@ -39,8 +39,9 @@ const toSnapshotItem = (
   vendor: new Types.ObjectId(product.vendor.toString()),
   name: String(product.name),
   image: String(product.image || ""),
-  price: Number(priceOverride ?? variant?.price ?? product.legacyPrice ?? product.price),
-  discountedPrice: Number(discountedPriceOverride ?? variant?.price ?? product.discountPrice ?? product.legacyPrice ?? product.price),
+  price: Number(priceOverride ?? variant?.price),
+  discountPrice: variant?.discountPrice == null ? undefined : Number(variant.discountPrice),
+  discountedPrice: Number(discountedPriceOverride ?? (variant?.discountPrice != null && variant.discountPrice < variant.price ? variant.discountPrice : variant?.price)),
   quantity,
 });
 
@@ -142,10 +143,9 @@ export const createCashfreeSessionController = async (
         });
         return;
       }
-      const variant = product.variants?.find((item: any) => req.body.variantId ? item._id.toString() === req.body.variantId && item.isActive : item.isActive && item.stock > 0);
-      if ((req.body.variantId && !variant) || (product.variants?.length && !variant)) throw new Error("Selected variant is unavailable");
-      const fallbackStock = !variant && product.legacyStock !== undefined ? product.legacyStock : product.stock;
-      if ((variant?.stock ?? fallbackStock) < parsedQuantity) {
+      const variant = req.body.variantId ? product.variants?.find((item: any) => item._id.toString() === req.body.variantId && item.isActive) : undefined;
+      if (!variant) throw new Error("Select an available product variant");
+      if (variant.stock < parsedQuantity) {
         res.status(409).json({
           success: false,
           message: `Insufficient stock for ${product.name}`,
@@ -157,7 +157,7 @@ export const createCashfreeSessionController = async (
       resolvedQuantity = parsedQuantity;
     } else {
       const checkout = await calculateCheckout(req.user.id);
-      itemsSnapshot = checkout.items.map((item) => toSnapshotItem(item.product, item.quantity, item.variantId ? { _id: item.variantId, quantity: item.variantQuantity, unit: item.variantUnit, price: item.price } : undefined, item.price, item.discountedPrice));
+      itemsSnapshot = checkout.items.map((item) => toSnapshotItem(item.product, item.quantity, { _id: item.variantId, quantity: item.variantQuantity, unit: item.variantUnit, price: item.price, discountPrice: item.discountPrice }, item.price, item.discountedPrice));
     }
 
     const subtotal = itemsSnapshot.reduce(

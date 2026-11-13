@@ -15,6 +15,7 @@ export interface ICashfreePaymentAttemptItem {
   name: string;
   image: string;
   price: number;
+  discountPrice?: number;
   discountedPrice: number;
   quantity: number;
 }
@@ -50,6 +51,7 @@ const itemSchema = new Schema<ICashfreePaymentAttemptItem>(
     name: { type: String, required: true },
     image: { type: String, required: true },
     price: { type: Number, required: true, min: 0 },
+    discountPrice: { type: Number, min: 0 },
     discountedPrice: { type: Number, required: true, min: 0 },
     quantity: { type: Number, required: true, min: 1 },
   },

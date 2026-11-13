@@ -10,10 +10,7 @@ interface CreateProductData {
   description: string;
   image: string;
   imagePublicId?: string;
-  price: number;
-  discountPrice?: number;
-  stock: number;
-  variants?: Array<{ _id?: string; quantity: number; unit: string; price: number; stock: number; isActive?: boolean }>;
+  variants: Array<{ _id?: string; quantity: number; unit: string; price: number; discountPrice?: number; stock: number; isActive?: boolean }>;
   category: string;
   subCategory?: string | null;
 }
@@ -23,28 +20,27 @@ interface UpdateProductData {
   description?: string;
   image?: string;
   imagePublicId?: string;
-  price?: number;
-  discountPrice?: number;
-  stock?: number;
-  variants?: Array<{ _id?: string; quantity: number; unit: string; price: number; stock: number; isActive?: boolean }>;
+  variants?: Array<{ _id?: string; quantity: number; unit: string; price: number; discountPrice?: number; stock: number; isActive?: boolean }>;
   category?: string;
   subCategory?: string | null;
 }
 
 const validationError = (message: string) => Object.assign(new Error(message), { statusCode: 400 });
 
-const validateVariants = (variants: CreateProductData["variants"]) => {
+const validateVariants = (variants: CreateProductData["variants"] | undefined) => {
   if (variants === undefined) return undefined;
   if (!Array.isArray(variants) || variants.length === 0) throw validationError("Add at least one product variant.");
   const keys = new Set<string>();
   return variants.map((variant) => {
     const quantity = Number(variant.quantity), price = Number(variant.price), stock = Number(variant.stock);
     if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(price) || price <= 0 || !Number.isInteger(stock) || stock < 0) throw validationError("Each variant needs a valid quantity, price, and whole-number stock.");
+    const discountPrice = variant.discountPrice == null || String(variant.discountPrice).trim() === "" ? undefined : Number(variant.discountPrice);
+    if (discountPrice !== undefined && (!Number.isFinite(discountPrice) || discountPrice < 0 || discountPrice > price)) throw validationError("Variant discount price must be optional and cannot exceed regular price.");
     if (!(PRODUCT_UNITS as readonly string[]).includes(variant.unit)) throw validationError("Select a supported unit type.");
     const key = `${quantity}:${variant.unit}`;
     if (keys.has(key)) throw validationError("Variant quantities and units must be unique.");
     keys.add(key);
-    return { ...(variant._id && mongoose.isValidObjectId(variant._id) ? { _id: new mongoose.Types.ObjectId(variant._id) } : {}), quantity, unit: variant.unit, price, stock, isActive: variant.isActive !== false };
+    return { ...(variant._id && mongoose.isValidObjectId(variant._id) ? { _id: new mongoose.Types.ObjectId(variant._id) } : {}), quantity, unit: variant.unit, price, ...(discountPrice !== undefined ? { discountPrice } : {}), stock, isActive: variant.isActive !== false };
   });
 };
 
@@ -98,9 +94,7 @@ export const createProduct = async (data: CreateProductData, vendorId: string) =
   const variants = validateVariants(data.variants);
   if (!variants) throw validationError("Add at least one product variant.");
   if (variants) for (const variant of variants) delete (variant as any)._id;
-  const legacyPrice = variants?.[0]?.price ?? data.price;
-  const legacyStock = variants?.filter((item) => item.isActive).reduce((sum, item) => sum + item.stock, 0) ?? data.stock;
-  return Product.create({ ...data, price: legacyPrice, stock: legacyStock, ...(variants ? { variants } : {}), ...categories, vendor: vendorId, isActive: true });
+  return Product.create({ ...data, variants, ...categories, vendor: vendorId, isActive: true });
 };
 
 export const getAllProducts = async (
@@ -112,7 +106,7 @@ export const getAllProducts = async (
 ) => {
   const pagination = getPagination(page, limit);
   const categoryFilter = await validatePublicCategoryFilter(category, subCategory);
-  const filter: Record<string, unknown> = { isActive: true, stock: { $gt: 0 } };
+  const filter: Record<string, unknown> = { isActive: true, variants: { $elemMatch: { isActive: true, stock: { $gt: 0 } } } };
   if (search) filter.name = { $regex: search, $options: "i" };
   if (categoryFilter.categoryId) filter.category = categoryFilter.categoryId;
   if (categoryFilter.subCategoryId) filter.subCategory = categoryFilter.subCategoryId;
@@ -126,7 +120,7 @@ export const getAllProducts = async (
 };
 
 export const getProductById = async (productId: string) =>
-  populateProductCategories(Product.findOne({ _id: productId, isActive: true }))
+  populateProductCategories(Product.findOne({ _id: productId, isActive: true, variants: { $elemMatch: { isActive: true, stock: { $gt: 0 } } } }))
     .populate("vendor", "shopName");
 
 export const getProductsByCategory = async (
@@ -140,7 +134,7 @@ export const getProductsByCategory = async (
   const filter: Record<string, unknown> = {
     category: categoryFilter.categoryId,
     isActive: true,
-    stock: { $gt: 0 },
+    variants: { $elemMatch: { isActive: true, stock: { $gt: 0 } } },
   };
   if (categoryFilter.subCategoryId) filter.subCategory = categoryFilter.subCategoryId;
   const [products, totalItems] = await Promise.all([
@@ -178,23 +172,20 @@ export const updateProduct = async (productId: string, vendorId: string, data: U
   const categories = await validateProductCategories(finalCategory, finalSubcategory);
 
   const variants = validateVariants(data.variants);
+  if (Object.prototype.hasOwnProperty.call(data, "variants") && !variants?.length) throw validationError("Keep at least one valid product variant.");
   if (variants) {
     const ownedVariantIds = new Set((product.variants ?? []).map((item: any) => item._id.toString()));
     for (const variant of variants) {
       if (variant._id && !ownedVariantIds.has(variant._id.toString())) throw validationError("Variant does not belong to this product.");
     }
   }
-  const isConvertingLegacyProduct = Boolean(variants?.length && !product.variants?.length);
-  const originalLegacyPrice = product.price;
-  const originalLegacyStock = product.stock;
   Object.assign(product, data, categories);
   if (variants) {
     product.variants = variants as any;
-    product.price = variants[0].price;
-    product.stock = variants.filter((item) => item.isActive).reduce((sum, item) => sum + item.stock, 0);
-    if (isConvertingLegacyProduct) {
-      product.legacyPrice = originalLegacyPrice;
-      product.legacyStock = originalLegacyStock;
+    if (product.legacyPricingReview?.status === "needs_review") {
+      product.legacyPricingReview.status = "reviewed";
+      product.legacyPricingReview.reviewedAt = new Date();
+      product.legacyPricingReview.reason = "Vendor supplied explicit variant quantities and units.";
     }
   }
   await product.save();

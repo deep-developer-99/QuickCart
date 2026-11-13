@@ -108,16 +108,13 @@ export const finalizePaidCashfreeAttempt = async (
     // Validate all products before changing any stock. Prices are the values
     // captured when the Cashfree transaction was initiated; current price changes
     // must not alter the amount the customer already paid.
-    const legacyStockProductIds = new Set<string>();
     for (const item of attempt.itemsSnapshot) {
       const product = await Product.findOne({
         _id: item.product,
         isActive: true,
       }).session(session);
       const variant = product && item.variantId ? product.variants?.find((entry: any) => entry._id.toString() === item.variantId?.toString() && entry.isActive) : undefined;
-      const fallbackStock = product && product.legacyStock !== undefined ? product.legacyStock : product?.stock ?? 0;
-      if (product && !item.variantId && product.legacyStock !== undefined) legacyStockProductIds.add(product._id.toString());
-      if (!product || (item.variantId && !variant) || (variant?.stock ?? fallbackStock) < item.quantity) {
+      if (!product || !item.variantId || !variant || variant.stock < item.quantity) {
         attempt.status = "paid";
         attempt.fulfillmentStatus = "needs_review";
         attempt.paymentId = transactionId || attempt.paymentId;
@@ -129,9 +126,10 @@ export const finalizePaidCashfreeAttempt = async (
     }
 
     for (const item of attempt.itemsSnapshot) {
+      if (!item.variantId) throw new Error("Paid checkout snapshot is missing its variant");
       const updatedProduct = await Product.findOneAndUpdate(
-        item.variantId ? { _id: item.product, isActive: true, variants: { $elemMatch: { _id: item.variantId, isActive: true, stock: { $gte: item.quantity } } } } : legacyStockProductIds.has(item.product.toString()) ? { _id: item.product, isActive: true, legacyStock: { $gte: item.quantity } } : { _id: item.product, isActive: true, stock: { $gte: item.quantity } },
-        item.variantId ? { $inc: { "variants.$.stock": -item.quantity, stock: -item.quantity } } : legacyStockProductIds.has(item.product.toString()) ? { $inc: { legacyStock: -item.quantity } } : { $inc: { stock: -item.quantity } },
+        { _id: item.product, isActive: true, variants: { $elemMatch: { _id: item.variantId, isActive: true, stock: { $gte: item.quantity } } } },
+        { $inc: { "variants.$.stock": -item.quantity } },
         { new: true, session },
       );
       if (!updatedProduct) {
@@ -146,11 +144,13 @@ export const finalizePaidCashfreeAttempt = async (
           user: attempt.user,
           items: attempt.itemsSnapshot.map((item) => ({
             product: item.product,
-            ...(item.variantId ? { variantId: item.variantId, variantQuantity: item.variantQuantity, variantUnit: item.variantUnit } : {}),
+            variantId: item.variantId, variantQuantity: item.variantQuantity, variantUnit: item.variantUnit,
             vendor: item.vendor,
             name: item.name,
             image: item.image,
             price: item.price,
+            discountPrice: item.discountPrice,
+            finalPrice: item.discountedPrice,
             discountedPrice: item.discountedPrice,
             quantity: item.quantity,
           })),

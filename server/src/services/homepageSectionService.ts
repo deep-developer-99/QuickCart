@@ -152,7 +152,7 @@ export const getPublicHomepageSections = async () => {
     const productFilter = {
       subCategory: new Types.ObjectId(section.subCategoryId),
       isActive: true,
-      stock: { $gt: 0 },
+      variants: { $elemMatch: { isActive: true, stock: { $gt: 0 } } },
     };
     const [productCount, products] = await Promise.all([
       Product.countDocuments(productFilter),

@@ -9,7 +9,9 @@ interface IOrderItem {
   name: string;
   image: string;
   price: number;
+  discountPrice?: number;
   discountedPrice?: number;
+  finalPrice?: number;
   quantity: number;
 }
 
@@ -64,6 +66,9 @@ const orderItemSchema = new Schema<IOrderItem>(
       required: true,
       min: 0,
     },
+
+    discountPrice: { type: Number, min: 0 },
+    finalPrice: { type: Number, min: 0 },
 
     discountedPrice: {
       type: Number,

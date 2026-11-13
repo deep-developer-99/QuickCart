@@ -83,7 +83,6 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
     let totalAmount = 0;
 
     const orderItems = [];
-    const legacyStockProductIds = new Set<string>();
 
     // 3. Validate products and calculate total
     for (const cartItem of cart.items) {
@@ -97,25 +96,25 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
       }
 
       const variant = cartItem.variantId ? product.variants?.find((item: any) => item._id.toString() === cartItem.variantId?.toString() && item.isActive) : undefined;
-      if (cartItem.variantId && !variant) throw new Error(`The selected variant for ${product.name} is no longer available`);
-      const fallbackStock = !variant && product.legacyStock !== undefined ? product.legacyStock : product.stock;
-      if (!variant && product.legacyStock !== undefined) legacyStockProductIds.add(product._id.toString());
-      if ((variant?.stock ?? fallbackStock) < cartItem.quantity) {
+      if (!variant) throw new Error(`Select an available variant for ${product.name}`);
+      if (variant.stock < cartItem.quantity) {
         throw new Error(`Insufficient stock for ${product.name}`);
       }
 
-      const itemPrice = variant?.price ?? product.legacyPrice ?? product.price;
-      const discountedPrice = variant?.price ?? product.discountPrice ?? product.legacyPrice ?? product.price;
+      const itemPrice = variant.price;
+      const discountedPrice = variant.discountPrice != null && variant.discountPrice < variant.price ? variant.discountPrice : variant.price;
 
       totalAmount += discountedPrice * cartItem.quantity;
 
       orderItems.push({
         product: product._id,
-        ...(variant ? { variantId: variant._id, variantQuantity: variant.quantity, variantUnit: variant.unit } : {}),
+        variantId: variant._id, variantQuantity: variant.quantity, variantUnit: variant.unit,
         vendor: product.vendor,
         name: product.name,
         image: product.image,
         price: itemPrice,
+        discountPrice: variant.discountPrice,
+        finalPrice: discountedPrice,
         discountedPrice,
         quantity: cartItem.quantity,
       });
@@ -130,9 +129,10 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
     // 4. Reduce stock safely
     for (const cartItem of cart.items) {
       const variantId = cartItem.variantId;
+      if (!variantId) throw new Error("Cart item is missing a selected variant");
       const updatedProduct = await Product.findOneAndUpdate(
-        variantId ? { _id: cartItem.product, isActive: true, variants: { $elemMatch: { _id: variantId, isActive: true, stock: { $gte: cartItem.quantity } } } } : legacyStockProductIds.has(cartItem.product.toString()) ? { _id: cartItem.product, isActive: true, legacyStock: { $gte: cartItem.quantity } } : { _id: cartItem.product, isActive: true, stock: { $gte: cartItem.quantity } },
-        variantId ? { $inc: { "variants.$.stock": -cartItem.quantity, stock: -cartItem.quantity } } : legacyStockProductIds.has(cartItem.product.toString()) ? { $inc: { legacyStock: -cartItem.quantity } } : { $inc: { stock: -cartItem.quantity } },
+        { _id: cartItem.product, isActive: true, variants: { $elemMatch: { _id: variantId, isActive: true, stock: { $gte: cartItem.quantity } } } },
+        { $inc: { "variants.$.stock": -cartItem.quantity } },
         {
           new: true,
           session,
@@ -265,16 +265,15 @@ export const createBuyNowOrder = async (
 
     // 3. Check stock
     const variantId = data.variantId;
-    const variant = product.variants?.find((item: any) => variantId ? item._id.toString() === variantId && item.isActive : item.isActive && item.stock > 0);
-    if ((variantId && !variant) || (product.variants?.length && !variant)) throw new Error("Selected product variant is unavailable");
-    const fallbackStock = !variant && product.legacyStock !== undefined ? product.legacyStock : product.stock;
-    if ((variant?.stock ?? fallbackStock) < quantity) {
+    const variant = variantId ? product.variants?.find((item: any) => item._id.toString() === variantId && item.isActive) : undefined;
+    if (!variant) throw new Error("Select an available product variant");
+    if (variant.stock < quantity) {
       throw new Error(`Insufficient stock for ${product.name}`);
     }
 
     // 4. Calculate price
-    const itemPrice = variant?.price ?? product.legacyPrice ?? product.price;
-    const discountedPrice = variant?.price ?? product.discountPrice ?? product.legacyPrice ?? product.price;
+    const itemPrice = variant.price;
+    const discountedPrice = variant.discountPrice != null && variant.discountPrice < variant.price ? variant.discountPrice : variant.price;
 
     const subtotal = discountedPrice * quantity;
     // Shipping policy: ₹40 for subtotal <= ₹99; free shipping above ₹99.
@@ -283,8 +282,8 @@ export const createBuyNowOrder = async (
 
     // 5. Reduce stock safely
     const updatedProduct = await Product.findOneAndUpdate(
-      variant ? { _id: productId, isActive: true, variants: { $elemMatch: { _id: variant._id, isActive: true, stock: { $gte: quantity } } } } : product.legacyStock !== undefined ? { _id: productId, isActive: true, legacyStock: { $gte: quantity } } : { _id: productId, isActive: true, stock: { $gte: quantity } },
-      variant ? { $inc: { "variants.$.stock": -quantity, stock: -quantity } } : product.legacyStock !== undefined ? { $inc: { legacyStock: -quantity } } : { $inc: { stock: -quantity } },
+      { _id: productId, isActive: true, variants: { $elemMatch: { _id: variant._id, isActive: true, stock: { $gte: quantity } } } },
+      { $inc: { "variants.$.stock": -quantity } },
       {
         new: true,
         session,
@@ -301,11 +300,13 @@ export const createBuyNowOrder = async (
     const orderItems = [
       {
         product: product._id,
-        ...(variant ? { variantId: variant._id, variantQuantity: variant.quantity, variantUnit: variant.unit } : {}),
+        variantId: variant._id, variantQuantity: variant.quantity, variantUnit: variant.unit,
         vendor: product.vendor,
         name: product.name,
         image: product.image,
         price: itemPrice,
+        discountPrice: variant.discountPrice,
+        finalPrice: discountedPrice,
         discountedPrice,
         quantity,
       },

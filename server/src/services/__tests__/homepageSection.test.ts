@@ -139,9 +139,9 @@ test("public sections omit inactive categories, count eligible products, and cap
     assert.equal(result[0].products.length, 15);
     assert.equal(findFilters.length, 1);
     assert.equal(countFilters.length, 1);
-    const match = findFilters[0] as { isActive: boolean; stock: { $gt: number }; subCategory: Types.ObjectId };
+    const match = findFilters[0] as { isActive: boolean; variants: { $elemMatch: { isActive: boolean; stock: { $gt: number } } }; subCategory: Types.ObjectId };
     assert.equal(match.isActive, true);
-    assert.deepEqual(match.stock, { $gt: 0 });
+    assert.deepEqual(match.variants, { $elemMatch: { isActive: true, stock: { $gt: 0 } } });
     assert.equal(match.subCategory.toString(), subcategoryId.toString());
   } finally { restoreCount(); restoreProductFind(); restoreCategoryFind(); restoreSectionFind(); }
 });

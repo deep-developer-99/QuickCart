@@ -15,6 +15,7 @@ export interface Product {
   description: string;
   image: string;
   imagePublicId?: string;
+  /** Deprecated API fields; consumers should use variant pricing and stock. */
   price: number;
   discountPrice?: number;
   stock: number;
@@ -38,6 +39,7 @@ export interface ProductVariant {
   quantity: number;
   unit: "g" | "kg" | "ml" | "L" | "pcs" | "pc" | "set" | "pack" | "m" | "cm" | "dozen" | "pair";
   price: number;
+  discountPrice?: number;
   stock: number;
   isActive: boolean;
 }

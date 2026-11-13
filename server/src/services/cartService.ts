@@ -65,12 +65,10 @@ export const addToCart = async (
     throw new Error("Product not found");
   }
 
-  const variant = product.variants?.find((item: any) => item._id.toString() === variantId && item.isActive);
-  if (variantId && !variant) throw new Error("Product variant is unavailable");
-  const selectedVariant = variant ?? product.variants?.find((item: any) => item.isActive && item.stock > 0);
-  if (product.variants?.length && !selectedVariant) throw new Error("No available product variants");
-  const selectedVariantId = selectedVariant?._id;
-  const availableStock = selectedVariant?.stock ?? product.stock;
+  const selectedVariant = product.variants?.find((item: any) => variantId ? item._id.toString() === variantId && item.isActive : item.isActive && item.stock > 0);
+  if (!selectedVariant) throw new Error("Select an active product variant");
+  const selectedVariantId = selectedVariant._id;
+  const availableStock = selectedVariant.stock;
   if (availableStock < quantity) throw new Error("Insufficient product stock");
 
   let cart = await Cart.findOne({
@@ -139,10 +137,10 @@ export const updateCartItem = async (
     throw new Error("Product not found");
   }
 
+  if (!variantId) throw new Error("Variant ID is required to update this cart item");
   const variant = product.variants?.find((item: any) => item._id.toString() === variantId && item.isActive);
-  if (variantId && !variant) throw new Error("Product variant is unavailable");
-  const fallbackStock = !variant && product.legacyStock !== undefined ? product.legacyStock : product.stock;
-  if (quantity > (variant?.stock ?? fallbackStock)) {
+  if (!variant) throw new Error("Product variant is unavailable");
+  if (quantity > variant.stock) {
     throw new Error("Requested quantity exceeds available stock");
   }
 
@@ -155,7 +153,7 @@ export const updateCartItem = async (
   }
 
   const item = cart.items.find(
-    (cartItem) => cartItem.product.toString() === productId && (cartItem.variantId?.toString() ?? "") === (variantId ?? ""),
+    (cartItem) => cartItem.product.toString() === productId && cartItem.variantId?.toString() === variantId,
   );
 
   if (!item) {
@@ -181,9 +179,7 @@ export const removeFromCart = async (userId: string, productId: string, variantI
 
   const initialLength = cart.items.length;
 
-  cart.items = cart.items.filter(
-    (items) => items.product.toString() !== productId || (items.variantId?.toString() ?? "") !== (variantId ?? ""),
-  );
+  cart.items = cart.items.filter((items) => items.product.toString() !== productId || (variantId ? items.variantId?.toString() !== variantId : false));
 
   if (cart.items.length === initialLength) {
     throw new Error("Product is not in cart");

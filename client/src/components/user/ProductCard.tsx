@@ -45,14 +45,11 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
 
   const quantity = getQuantity(product._id, selectedVariant?._id);
   const isUser = isAuthenticated && user?.role === "user";
-  const hasStock = availableVariants.length ? availableVariants.some((item) => item.stock > 0) : product.stock > 0;
+  const hasStock = availableVariants.some((item) => item.stock > 0);
   const description = typeof product.description === "string" ? product.description.trim() : "";
 
-  const hasDiscount =
-    product.discountPrice !== undefined &&
-    product.discountPrice !== null &&
-    product.discountPrice < product.price;
-  const sellingPrice = selectedVariant?.price ?? (hasDiscount ? product.discountPrice! : product.price);
+  const hasDiscount = Boolean(selectedVariant?.discountPrice != null && selectedVariant.discountPrice < (selectedVariant?.price ?? 0));
+  const sellingPrice = selectedVariant ? (hasDiscount ? selectedVariant.discountPrice! : selectedVariant.price) : 0;
 
   const handleAddToCart = async () => {
     if (!isUser) {
@@ -102,7 +99,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   };
 
   const handleIncrease = async () => {
-    if (quantity >= (selectedVariant?.stock ?? product.stock) || isUpdating) return;
+    if (!selectedVariant || quantity >= selectedVariant.stock || isUpdating) return;
 
     try {
       setIsUpdating(true);
@@ -140,11 +137,11 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
           />
           <span className="product-card-image-fallback" aria-hidden="true">Image unavailable</span>
 
-      {(selectedVariant?.stock ?? product.stock) <= 5 && (selectedVariant?.stock ?? product.stock) > 0 && (
-            <span className="low-stock-badge">Only {product.stock} left</span>
+      {selectedVariant && selectedVariant.stock <= 5 && selectedVariant.stock > 0 && (
+            <span className="low-stock-badge">Only {selectedVariant.stock} left</span>
           )}
 
-          {product.stock === 0 && (
+          {!hasStock && (
             <span className="out-stock-badge">Out of Stock</span>
           )}
         </div>
@@ -199,7 +196,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
                 type="button"
                 className="product-quantity-button"
                 onClick={handleIncrease}
-                disabled={isUpdating || quantity >= (selectedVariant?.stock ?? product.stock)}
+                disabled={isUpdating || !selectedVariant || quantity >= selectedVariant.stock}
                 aria-label={`Increase ${product.name} quantity`}
               >
                 +
@@ -218,7 +215,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
         ) : (
           <span className="product-unavailable">Unavailable</span>
         )}
-        {availableVariants.length > 0 && <div className="product-card-variant-options">{availableVariants.map((item) => <button type="button" key={item._id} className={item._id === selectedVariant?._id ? "selected" : ""} disabled={item.stock <= 0} onClick={() => { setSelectedVariantId(item._id); setVariantFeedback(""); }}>{item.quantity} {item.unit}</button>)}</div>}
+        {availableVariants.length > 0 && <div className="product-card-variant-options">{availableVariants.filter((item) => item._id !== selectedVariant?._id).map((item) => <button type="button" key={item._id} disabled={item.stock <= 0} onClick={() => { setSelectedVariantId(item._id); setVariantFeedback(""); }}>{item.quantity} {item.unit}</button>)}</div>}
         {variantFeedback && !isVariantDialogOpen && <small className="product-variant-feedback" role="status">{variantFeedback}</small>}
       </div>
     </article>

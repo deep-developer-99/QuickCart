@@ -47,47 +47,7 @@ export const createProductController = async (
     }
 
     const variants = readVariants(req.body.variants);
-    const price = Number(req.body.price ?? (variants?.[0]?.price));
-    const stock = Number(req.body.stock ?? variants?.filter((item: any) => item.isActive !== false).reduce((total: number, item: any) => total + Number(item.stock), 0));
-    const discountPrice =
-      req.body.discountPrice !== undefined && req.body.discountPrice !== ""
-        ? Number(req.body.discountPrice)
-        : undefined;
-
-    if (!Number.isFinite(price) || price <= 0) {
-      res.status(400).json({
-        success: false,
-        message: "Please enter a valid price",
-      });
-      return;
-    }
-
-    if (!Number.isFinite(stock) || stock < 0) {
-      res.status(400).json({
-        success: false,
-        message: "Please enter a valid stock quantity",
-      });
-      return;
-    }
-
-    if (
-      discountPrice !== undefined &&
-      (!Number.isFinite(discountPrice) || discountPrice < 0)
-    ) {
-      res.status(400).json({
-        success: false,
-        message: "Please enter a valid discount price",
-      });
-      return;
-    }
-
-    if (discountPrice !== undefined && discountPrice >= price) {
-      res.status(400).json({
-        success: false,
-        message: "Discount price must be less than the original price",
-      });
-      return;
-    }
+    if (!variants?.length) throw new Error("Add at least one product variant.");
 
     const uploadedImage = await uploadImageToCloudinary(
       req.file.buffer,
@@ -101,9 +61,6 @@ export const createProductController = async (
           description: String(req.body.description ?? "").trim(),
           image: uploadedImage.secure_url,
           imagePublicId: uploadedImage.public_id,
-          price,
-          discountPrice,
-          stock,
           variants,
           category: String(req.body.category ?? ""),
           subCategory: String(req.body.subCategory ?? "").trim() || null,
@@ -296,39 +253,7 @@ export const updateProductController = async (
     }
 
     const variants = readVariants(req.body.variants);
-    const price =
-      req.body.price !== undefined && req.body.price !== ""
-        ? Number(req.body.price)
-        : undefined;
-    const stock =
-      req.body.stock !== undefined && req.body.stock !== ""
-        ? Number(req.body.stock)
-        : undefined;
-    const discountPrice =
-      req.body.discountPrice !== undefined && req.body.discountPrice !== ""
-        ? Number(req.body.discountPrice)
-        : undefined;
-
-    if (price !== undefined && (!Number.isFinite(price) || price <= 0)) {
-      throw new Error("Please enter a valid price");
-    }
-
-    if (stock !== undefined && (!Number.isFinite(stock) || stock < 0)) {
-      throw new Error("Please enter a valid stock quantity");
-    }
-
-    if (
-      discountPrice !== undefined &&
-      (!Number.isFinite(discountPrice) || discountPrice < 0)
-    ) {
-      throw new Error("Please enter a valid discount price");
-    }
-
-    const finalPrice = price ?? existingProduct.price;
-
-    if (discountPrice !== undefined && discountPrice >= finalPrice) {
-      throw new Error("Discount price must be less than the original price");
-    }
+    if (!variants?.length) throw new Error("Keep at least one valid product variant.");
 
     const product = await updateProduct(id, req.user.id, {
       name:
@@ -339,9 +264,6 @@ export const updateProductController = async (
           : undefined,
       image,
       imagePublicId,
-      price,
-      discountPrice,
-      stock,
       variants,
       category:
         req.body.category !== undefined ? String(req.body.category) : undefined,
