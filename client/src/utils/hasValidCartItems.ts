@@ -21,13 +21,19 @@ export const getCartQuantity = (cart: Cart | null | undefined, productId: string
   return item?.quantity ?? 0;
 };
 
+export const getCartItemUnitPrice = (item: CartItem) => {
+  if (typeof item.product === "string") return 0;
+  const variant = item.variantId ? item.product.variants?.find((entry) => entry._id === item.variantId) : undefined;
+  if (variant) return variant.discountPrice != null && variant.discountPrice < variant.price ? variant.discountPrice : variant.price;
+  return item.product.discountPrice ?? item.product.price;
+};
+
 export const getCartSubtotal = (items: readonly CartItem[]) => {
   let subtotal = 0;
   for (const item of items) {
     if (!isValidCartItem(item)) continue;
     if (typeof item.product === "string") return null;
-    const variant = item.variantId ? item.product.variants?.find((entry) => entry._id === item.variantId) : undefined;
-    const price = Number(variant?.price ?? item.product.discountPrice ?? item.product.price);
+    const price = Number(getCartItemUnitPrice(item));
     if (!Number.isFinite(price) || price < 0) return null;
     subtotal += price * Number(item.quantity);
   }

@@ -26,7 +26,7 @@ import type { CheckoutSummary } from "../../services/orderService";
 
 import { loadRazorpayScript } from "../../utils/razorpay";
 import { normalizeCartResponse } from "../../utils/normalizeCartResponse";
-import { getCartSubtotal } from "../../utils/hasValidCartItems";
+import { getCartItemUnitPrice, getCartSubtotal } from "../../utils/hasValidCartItems";
 
 import { useAppSelector } from "../../hooks/reduxHooks";
 import { useTheme } from "../../theme/ThemeContext";
@@ -833,7 +833,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
 
                 {typeof item.product !== "string" && <strong>
                   ₹
-                  {((item.variantId ? item.product.variants?.find((variant) => variant._id === item.variantId)?.price : undefined) ?? item.product.discountPrice ?? item.product.price) * item.quantity}
+                  {getCartItemUnitPrice(item) * item.quantity}
                 </strong>}
               </div>
             ))}

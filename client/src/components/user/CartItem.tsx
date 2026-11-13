@@ -1,4 +1,5 @@
 import type { CartItem as CartItemType } from "../../types/cart";
+import { getCartItemUnitPrice } from "../../utils/hasValidCartItems";
 import "./CartItem.css";
 
 interface CartItemProps {
@@ -12,7 +13,7 @@ const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
   const hasProductDetails = typeof product !== "string";
   const productId = hasProductDetails ? product._id : product;
   const variant = hasProductDetails && item.variantId ? product.variants?.find((entry) => entry._id === item.variantId) : undefined;
-  const price = variant?.price ?? (hasProductDetails ? product.discountPrice ?? product.price : 0);
+  const price = getCartItemUnitPrice(item);
   return <div className="cart-item-card">
     <div className="cart-item-image-wrapper">{hasProductDetails ? <img src={product.image} alt={product.name} /> : <span aria-hidden="true">🛒</span>}</div>
     <div className="cart-item-info">
