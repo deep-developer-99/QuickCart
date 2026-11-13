@@ -7,6 +7,7 @@ import { useAppSelector } from "../../hooks/reduxHooks";
 import { useCart } from "../../context/useCart";
 import { useLoginModal } from "../../context/LoginModalContext";
 import type { Product, ProductVariant } from "../../types/product";
+import { getCartProductId, getValidCartItems } from "../../utils/hasValidCartItems";
 import "./ProductCard.css";
 
 interface ProductCardProps {
@@ -18,7 +19,7 @@ const formatPrice = (price: number) => `₹${price.toLocaleString("en-IN", { max
 
 const ProductCard = ({ product, variant }: ProductCardProps) => {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
-  const { getQuantity, addProduct, updateProductQuantity, removeProduct, isCartReady, isLoading: isCartLoading, cartError, refreshCart } = useCart();
+  const { cart, getQuantity, addProduct, updateProductQuantity, removeProduct, isCartReady, isLoading: isCartLoading, cartError, refreshCart } = useCart();
   const { openLoginModal } = useLoginModal();
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>();
@@ -29,7 +30,24 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   const inStockVariants = useMemo(() => activeVariants.filter((item) => item.stock > 0), [activeVariants]);
   const selectedVariant = inStockVariants.find((item) => item._id === selectedVariantId) ?? inStockVariants[0];
   const optionsCount = inStockVariants.length;
-  const quantity = getQuantity(product._id, selectedVariant?._id);
+  const productCartItems = useMemo(
+    () => getValidCartItems(cart).filter((item) => getCartProductId(item.product) === product._id),
+    [cart, product._id],
+  );
+  const variantQuantityMap = useMemo(
+    () => new Map(productCartItems.map((item) => [item.variantId ?? "", item.quantity])),
+    [productCartItems],
+  );
+  const combinedQuantity = productCartItems.reduce((total, item) => total + item.quantity, 0);
+  const selectedQuantity = selectedVariant ? variantQuantityMap.get(selectedVariant._id) ?? 0 : getQuantity(product._id);
+  const variantsInCartCount = new Set(productCartItems.filter((item) => item.variantId && item.quantity > 0).map((item) => item.variantId)).size;
+  const hasOtherVariantInCart = productCartItems.some((item) => item.quantity > 0 && (item.variantId ?? "") !== (selectedVariant?._id ?? ""));
+  const shouldManageVariants = optionsCount > 1 || variantsInCartCount > 1 || hasOtherVariantInCart;
+  const popupVariants = useMemo(
+    () => (product.variants ?? []).filter((item) => (item.isActive || (variantQuantityMap.get(item._id) ?? 0) > 0)
+      && (item.stock > 0 || (variantQuantityMap.get(item._id) ?? 0) > 0)),
+    [product.variants, variantQuantityMap],
+  );
   const isUser = isAuthenticated && user?.role === "user";
   const hasStock = optionsCount > 0;
   const description = typeof product.description === "string" ? product.description.trim() : "";
@@ -104,29 +122,36 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
     await addVariant(selectedVariant);
   };
 
-  const handleDecrease = async () => {
-    if (quantity <= 0 || isUpdating || !selectedVariant) return;
+  const changeVariantQuantity = async (item: ProductVariant, nextQuantity: number) => {
+    const currentQuantity = variantQuantityMap.get(item._id) ?? 0;
+    if (isUpdating || nextQuantity < 0 || nextQuantity > item.stock || (nextQuantity > currentQuantity && !item.isActive) || nextQuantity === currentQuantity) return;
     try {
       setIsUpdating(true);
-      if (quantity === 1) await removeProduct(product._id, selectedVariant._id);
-      else await updateProductQuantity(product._id, quantity - 1, selectedVariant._id);
+      setVariantFeedback("");
+      if (nextQuantity === 0) await removeProduct(product._id, item._id);
+      else if (nextQuantity > currentQuantity) await addProduct(product._id, nextQuantity - currentQuantity, item._id);
+      else await updateProductQuantity(product._id, nextQuantity, item._id);
     } catch (error) {
-      console.error("Failed to decrease product quantity:", error);
+      console.error("Failed to update variant quantity:", error);
+      setVariantFeedback(axios.isAxiosError(error) ? error.response?.data?.message || "Could not update this option." : "Could not update this option.");
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const handleIncrease = async () => {
-    if (!selectedVariant || quantity >= selectedVariant.stock || isUpdating) return;
-    try {
-      setIsUpdating(true);
-      await updateProductQuantity(product._id, quantity + 1, selectedVariant._id);
-    } catch (error) {
-      console.error("Failed to increase product quantity:", error);
-    } finally {
-      setIsUpdating(false);
+  const openVariantManager = () => {
+    if (shouldManageVariants) setIsVariantDialogOpen(true);
+    else if (selectedVariant && selectedQuantity < selectedVariant.stock && !isUpdating) {
+      void changeVariantQuantity(selectedVariant, selectedQuantity + 1);
     }
+  };
+
+  const decreaseFromCard = () => {
+    if (shouldManageVariants) {
+      setIsVariantDialogOpen(true);
+      return;
+    }
+    if (selectedVariant && selectedQuantity > 0) void changeVariantQuantity(selectedVariant, selectedQuantity - 1);
   };
 
   const handleRetryCart = async () => {
@@ -173,11 +198,11 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
               isUser && !isCartReady ? (
                 cartError ? <button type="button" className="product-add-button" onClick={handleRetryCart} disabled={isUpdating}>{isUpdating ? "..." : "Retry"}</button>
                   : <button type="button" className="product-add-button" disabled aria-label="Loading cart">{isCartLoading ? "..." : "..."}</button>
-              ) : quantity > 0 ? (
+              ) : combinedQuantity > 0 ? (
                 <div className="product-quantity-control" aria-label="Product quantity">
-                  <button type="button" className="product-quantity-button" onClick={handleDecrease} disabled={isUpdating} aria-label={`Decrease ${product.name} quantity`}>−</button>
-                  <span className="product-quantity-value">{quantity}</span>
-                  <button type="button" className="product-quantity-button" onClick={handleIncrease} disabled={isUpdating || !selectedVariant || quantity >= selectedVariant.stock} aria-label={`Increase ${product.name} quantity`}>+</button>
+                  <button type="button" className="product-quantity-button" onClick={decreaseFromCard} disabled={isUpdating} aria-label={`Decrease ${product.name} quantity`}>−</button>
+                  <span className="product-quantity-value" aria-live="polite">{combinedQuantity}</span>
+                  <button type="button" className="product-quantity-button" onClick={openVariantManager} disabled={isUpdating || (!shouldManageVariants && (!selectedVariant || selectedQuantity >= selectedVariant.stock))} aria-label={`Increase ${product.name} quantity`}>+</button>
                 </div>
               ) : (
                 <button type="button" className="product-add-button" onClick={handleAddClick} disabled={isUpdating}>{isUpdating ? "..." : "ADD"}</button>
@@ -195,7 +220,10 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
             <button className="product-variant-close" type="button" onClick={() => setIsVariantDialogOpen(false)} aria-label="Close">×</button>
             <h3 id={`variant-title-${product._id}`}>{product.name}</h3>
             <div className="product-variant-list">
-              {inStockVariants.map((item) => (
+              {popupVariants.map((item) => {
+                const itemQuantity = variantQuantityMap.get(item._id) ?? 0;
+                const canIncrease = itemQuantity < item.stock;
+                return (
                 <div className="product-variant-choice" key={item._id}>
                   <img src={item.image || product.image} alt="" className="product-variant-image" onError={(event) => {
                     if (event.currentTarget.getAttribute("src") !== product.image) {
@@ -205,13 +233,22 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
                       event.currentTarget.hidden = true;
                     }
                   }} />
-                  <span className="product-variant-size">{item.quantity} {item.unit}</span>
+                  <span className="product-variant-size">{item.quantity} {item.unit}{item.stock <= 0 || !item.isActive ? <small className="product-variant-stock">{item.isActive ? "Out of stock" : "Unavailable"}</small> : null}</span>
                   <strong>{formatPrice(item.discountPrice != null && item.discountPrice < item.price ? item.discountPrice : item.price)}</strong>
-                  <button type="button" className="product-variant-add" disabled={isUpdating} onClick={() => void addVariant(item)}>
-                    {isUpdating ? "..." : "ADD"}
-                  </button>
+                  {itemQuantity > 0 ? (
+                    <div className="product-variant-quantity" aria-label={`${itemQuantity} ${item.quantity} ${item.unit} in cart`}>
+                      <button type="button" onClick={() => void changeVariantQuantity(item, itemQuantity - 1)} disabled={isUpdating} aria-label={`Decrease ${item.quantity} ${item.unit}`}>−</button>
+                      <span aria-live="polite">{itemQuantity}</span>
+                      <button type="button" onClick={() => void changeVariantQuantity(item, itemQuantity + 1)} disabled={isUpdating || !canIncrease || !item.isActive} aria-label={`Increase ${item.quantity} ${item.unit}`}>+</button>
+                    </div>
+                  ) : (
+                    <button type="button" className="product-variant-add" disabled={isUpdating || item.stock <= 0} onClick={() => { setSelectedVariantId(item._id); void changeVariantQuantity(item, 1); }}>
+                      {isUpdating ? "..." : "ADD"}
+                    </button>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
             {variantFeedback && <p className="product-variant-error" role="alert">{variantFeedback}</p>}
           </section>
