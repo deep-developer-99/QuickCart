@@ -8,6 +8,7 @@ import { useLoginModal } from "../../context/LoginModalContext";
 import { useAppSelector } from "../../hooks/reduxHooks";
 import { getProductById, getProducts } from "../../services/productService";
 import type { Product } from "../../types/product";
+import { getVariantDiscountPercentage, getVariantSellingPrice, hasVariantDiscount } from "../../utils/productPricing";
 
 import "./ProductDetails.css";
 
@@ -119,16 +120,12 @@ const ProductDetails = () => {
   const selectedVariant = activeVariants.find((item) => item._id === selectedVariantId)
     ?? activeVariants.find((item) => item.stock > 0);
   const selectedStock = selectedVariant?.stock ?? 0;
-  const currentPrice = selectedVariant
-    ? (selectedVariant.discountPrice != null && selectedVariant.discountPrice < selectedVariant.price ? selectedVariant.discountPrice : selectedVariant.price)
-    : 0;
+  const currentPrice = getVariantSellingPrice(selectedVariant);
   const originalPrice = selectedVariant?.price ?? 0;
   const hasDiscount = selectedVariant
-    ? selectedVariant.discountPrice != null && selectedVariant.discountPrice < selectedVariant.price
+    ? hasVariantDiscount(selectedVariant)
     : false;
-  const discountPercentage = hasDiscount && originalPrice > 0
-    ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
-    : 0;
+  const discountPercentage = getVariantDiscountPercentage(selectedVariant);
   const cartQuantity = product ? getQuantity(product._id, selectedVariant?._id) : 0;
   const galleryImages = product
     ? [product.image].filter(Boolean)
@@ -338,16 +335,16 @@ const ProductDetails = () => {
                   <h2 id="product-variant-heading">Select Unit</h2>
                   <div className="product-variant-options" role="group" aria-label="Available product units">
                     {activeVariants.map((item) => {
-                      const itemDiscounted = item.discountPrice != null && item.discountPrice < item.price;
+                      const itemDiscounted = hasVariantDiscount(item);
                       const isSelected = item._id === selectedVariant?._id;
                       return (
                         <button type="button" key={item._id}
                           className={`product-variant-option${isSelected ? " selected" : ""}${item.stock <= 0 ? " out-of-stock" : ""}`}
                           onClick={() => selectVariant(item)} aria-pressed={isSelected}>
                           <span className="product-variant-option-size">{item.quantity} {item.unit}</span>
-                          <strong>{"₹"}{(itemDiscounted ? item.discountPrice! : item.price).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</strong>
+                          <strong>{"₹"}{getVariantSellingPrice(item).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</strong>
                           {itemDiscounted && <del>{"₹"}{item.price.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</del>}
-                          {itemDiscounted && <small>{Math.round(((item.price - item.discountPrice!) / item.price) * 100)}% off</small>}
+                          {itemDiscounted && <small>{getVariantDiscountPercentage(item)}% off</small>}
                           {item.stock <= 0 && <small>Out of stock</small>}
                         </button>
                       );

@@ -8,6 +8,7 @@ import { useCart } from "../../context/useCart";
 import { useLoginModal } from "../../context/LoginModalContext";
 import type { Product, ProductVariant } from "../../types/product";
 import { getCartProductId, getValidCartItems } from "../../utils/hasValidCartItems";
+import { getLowestPricedAvailableVariant, getVariantDiscountPercentage, getVariantSellingPrice, hasVariantDiscount } from "../../utils/productPricing";
 import "./ProductCard.css";
 
 interface ProductCardProps {
@@ -27,7 +28,8 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   const [variantFeedback, setVariantFeedback] = useState("");
 
   const activeVariants = useMemo(() => (product.variants ?? []).filter((item) => item.isActive), [product.variants]);
-  const inStockVariants = useMemo(() => activeVariants.filter((item) => item.stock > 0), [activeVariants]);
+  const inStockVariants = useMemo(() => activeVariants.filter((item) => Number.isFinite(Number(item.stock)) && item.stock > 0 && Number.isFinite(Number(item.price)) && item.price > 0), [activeVariants]);
+  const cardVariant = useMemo(() => getLowestPricedAvailableVariant(product.variants), [product.variants]);
   const selectedVariant = inStockVariants.find((item) => item._id === selectedVariantId) ?? inStockVariants[0];
   const optionsCount = inStockVariants.length;
   const productCartItems = useMemo(
@@ -51,10 +53,10 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   const isUser = isAuthenticated && user?.role === "user";
   const hasStock = optionsCount > 0;
   const description = typeof product.description === "string" ? product.description.trim() : "";
-  const hasDiscount = Boolean(selectedVariant?.discountPrice != null && selectedVariant.discountPrice < selectedVariant.price);
-  const sellingPrice = selectedVariant ? (hasDiscount ? selectedVariant.discountPrice! : selectedVariant.price) : 0;
-  const originalPrice = selectedVariant?.price;
-  const discountPercentage = hasDiscount && originalPrice ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : 0;
+  const hasDiscount = hasVariantDiscount(cardVariant);
+  const sellingPrice = getVariantSellingPrice(cardVariant);
+  const originalPrice = cardVariant?.price;
+  const discountPercentage = getVariantDiscountPercentage(cardVariant);
 
   useEffect(() => {
     if (!isVariantDialogOpen) return;
@@ -85,7 +87,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   }, [isVariantDialogOpen]);
 
   const addVariant = async (chosenVariant: ProductVariant) => {
-    if (chosenVariant.stock <= 0 || isUpdating) return;
+    if (chosenVariant.stock <= 0 || getVariantSellingPrice(chosenVariant) <= 0 || isUpdating) return;
     setSelectedVariantId(chosenVariant._id);
     if (!isUser) {
       openLoginModal({ onAuthenticated: async () => {
@@ -125,7 +127,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
 
   const changeVariantQuantity = async (item: ProductVariant, nextQuantity: number) => {
     const currentQuantity = variantQuantityMap.get(item._id) ?? 0;
-    if (isUpdating || nextQuantity < 0 || nextQuantity > item.stock || (nextQuantity > currentQuantity && !item.isActive) || nextQuantity === currentQuantity) return;
+    if (isUpdating || nextQuantity < 0 || nextQuantity > item.stock || (nextQuantity > currentQuantity && (!item.isActive || getVariantSellingPrice(item) <= 0)) || nextQuantity === currentQuantity) return;
     try {
       setIsUpdating(true);
       setVariantFeedback("");
@@ -179,21 +181,23 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
               event.currentTarget.nextElementSibling?.classList.add("product-card-image-fallback--visible");
             }} />
             <span className="product-card-image-fallback" aria-hidden="true">Image unavailable</span>
-            {selectedVariant && selectedVariant.stock <= 5 && <span className="low-stock-badge">Only {selectedVariant.stock} left</span>}
+            {cardVariant && cardVariant.stock <= 5 && <span className="low-stock-badge">Only {cardVariant.stock} left</span>}
             {!hasStock && <span className="out-stock-badge">Out of Stock</span>}
           </div>
           <div className="product-card-content">
             <h3 className="product-card-name">{product.name}</h3>
-            {selectedVariant && <p className="product-card-variant-default">{selectedVariant.quantity} {selectedVariant.unit}</p>}
-            {description && <p className="product-card-description">{description}</p>}
+            <p className={`product-card-variant-default${cardVariant ? "" : " product-card-placeholder"}`} aria-hidden={!cardVariant}>{cardVariant ? `${cardVariant.quantity} ${cardVariant.unit}` : "Variant size"}</p>
+            <p className={`product-card-description${description ? "" : " product-card-placeholder"}`} aria-hidden={!description}>{description || "Product description"}</p>
           </div>
         </Link>
 
         <div className="product-card-footer">
           <div className="product-card-prices">
-            <span className="product-card-price">{formatPrice(sellingPrice)}</span>
-            {hasDiscount && originalPrice != null && <span className="product-card-old-price">{formatPrice(originalPrice)}</span>}
-            {hasDiscount && <span className="product-card-old-price">{discountPercentage}% off</span>}
+            <div className="product-card-price-line">
+              <strong className="product-card-price">{cardVariant ? formatPrice(sellingPrice) : "—"}</strong>
+              {hasDiscount && originalPrice != null && <del className="product-card-old-price">{formatPrice(originalPrice)}</del>}
+            </div>
+            {hasDiscount && <span className="product-card-discount">{discountPercentage}% off</span>}
           </div>
           <div className="product-card-action">
             {hasStock ? (
@@ -236,9 +240,11 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
                     }
                   }} />
                   <span className="product-variant-size">{item.quantity} {item.unit}{item.stock <= 0 || !item.isActive ? <small className="product-variant-stock">{item.isActive ? "Out of stock" : "Unavailable"}</small> : null}</span>
-                  <strong>{formatPrice(item.discountPrice != null && item.discountPrice < item.price ? item.discountPrice : item.price)}</strong>
-                  {item.discountPrice != null && item.discountPrice < item.price && <del>{formatPrice(item.price)}</del>}
-                  {item.discountPrice != null && item.discountPrice < item.price && <small>{Math.round(((item.price - item.discountPrice) / item.price) * 100)}% off</small>}
+                  <div className="product-variant-pricing">
+                    <strong>{formatPrice(getVariantSellingPrice(item))}</strong>
+                    {hasVariantDiscount(item) && <del>{formatPrice(item.price)}</del>}
+                    {hasVariantDiscount(item) && <small>{getVariantDiscountPercentage(item)}% off</small>}
+                  </div>
                   {itemQuantity > 0 ? (
                     <div className="product-variant-quantity" aria-label={`${itemQuantity} ${item.quantity} ${item.unit} in cart`}>
                       <button type="button" onClick={() => void changeVariantQuantity(item, itemQuantity - 1)} disabled={isUpdating} aria-label={`Decrease ${item.quantity} ${item.unit}`}>−</button>
@@ -246,7 +252,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
                       <button type="button" onClick={() => void changeVariantQuantity(item, itemQuantity + 1)} disabled={isUpdating || !canIncrease || !item.isActive} aria-label={`Increase ${item.quantity} ${item.unit}`}>+</button>
                     </div>
                   ) : (
-                    <button type="button" className="product-variant-add" disabled={isUpdating || item.stock <= 0} onClick={() => { setSelectedVariantId(item._id); void changeVariantQuantity(item, 1); }}>
+                    <button type="button" className="product-variant-add" disabled={isUpdating || item.stock <= 0 || getVariantSellingPrice(item) <= 0} onClick={() => { setSelectedVariantId(item._id); void changeVariantQuantity(item, 1); }}>
                       {isUpdating ? "..." : "ADD"}
                     </button>
                   )}

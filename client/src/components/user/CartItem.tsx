@@ -1,5 +1,6 @@
 import type { CartItem as CartItemType } from "../../types/cart";
 import { getCartItemUnitPrice } from "../../utils/hasValidCartItems";
+import { getVariantDiscountPercentage, hasVariantDiscount } from "../../utils/productPricing";
 import "./CartItem.css";
 
 interface CartItemProps {
@@ -19,7 +20,7 @@ const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
     <div className="cart-item-info">
       <h3>{hasProductDetails ? product.name : "Product"}</h3>
       {variant && <p className="cart-item-variant">{variant.quantity} {variant.unit}</p>}
-      {hasProductDetails && <p className="cart-item-price"><strong>₹{price}</strong>{variant?.discountPrice != null && variant.discountPrice < variant.price && <> <del>₹{variant.price}</del> <small>{Math.round(((variant.price - variant.discountPrice) / variant.price) * 100)}% off</small></>}</p>}
+      {hasProductDetails && <p className="cart-item-price"><strong>₹{price}</strong>{hasVariantDiscount(variant) && <> <del>₹{variant?.price}</del> <small>{getVariantDiscountPercentage(variant)}% off</small></>}</p>}
       <div className="cart-item-actions"><div className="cart-quantity-control">
         <button type="button" onClick={() => onQuantityChange(productId, quantity - 1, item.variantId)} aria-label="Decrease quantity">−</button>
         <span>{quantity}</span>

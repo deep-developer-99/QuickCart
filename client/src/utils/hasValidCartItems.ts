@@ -1,5 +1,6 @@
 import type { Cart, CartItem } from "../types/cart";
 import { getEntityId } from "./getEntityId";
+import { getVariantSellingPrice } from "./productPricing";
 
 export const isValidCartItem = (item: CartItem) => {
   return Boolean(item && getEntityId(item.product) && Number.isFinite(Number(item.quantity)) && Number(item.quantity) > 0);
@@ -24,7 +25,7 @@ export const getCartQuantity = (cart: Cart | null | undefined, productId: string
 export const getCartItemUnitPrice = (item: CartItem) => {
   if (typeof item.product === "string") return 0;
   const variant = item.variantId ? item.product.variants?.find((entry) => entry._id === item.variantId) : undefined;
-  if (variant) return variant.discountPrice != null && variant.discountPrice < variant.price ? variant.discountPrice : variant.price;
+  if (variant) return getVariantSellingPrice(variant);
   return 0;
 };
 
