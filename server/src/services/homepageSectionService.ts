@@ -154,9 +154,11 @@ export const getPublicHomepageSections = async () => {
       isActive: true,
       variants: { $elemMatch: { isActive: true, stock: { $gt: 0 } } },
     };
+    const productsQuery = Product.find(productFilter);
+    if (typeof (productsQuery as any).select === "function") productsQuery.select("-price -discountPrice -stock -legacyPricingReview");
     const [productCount, products] = await Promise.all([
       Product.countDocuments(productFilter),
-      Product.find(productFilter)
+      productsQuery
         .sort({ createdAt: -1, _id: -1 })
         .limit(section.productLimit)
         .populate("category", "name")

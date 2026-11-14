@@ -11,10 +11,7 @@ interface AdminProduct {
   name: string;
   description: string;
   image: string;
-  price: number;
-  discountPrice?: number;
-  stock: number;
-  variants?: Array<{ _id: string; quantity: number; unit: string; price: number; stock: number; isActive: boolean }>;
+  variants?: Array<{ _id: string; quantity: number; unit: string; price: number; discountPrice?: number; stock: number; isActive: boolean }>;
   category:
     | {
         _id: string;
@@ -117,9 +114,7 @@ const AdminProducts = () => {
                   ? product.vendor.shopName || product.vendor.name
                   : "N/A";
 
-              const hasDiscount =
-                product.discountPrice !== undefined &&
-                product.discountPrice < product.price;
+              const activeVariants = product.variants?.filter((variant) => variant.isActive) ?? [];
 
               return (
                 <div className="admin-product-card" key={product._id}>
@@ -146,16 +141,7 @@ const AdminProducts = () => {
                       {product.description}
                     </p>
 
-                    <div className="admin-product-price">
-                      {hasDiscount ? (
-                        <>
-                          <strong>₹{product.discountPrice}</strong>
-                          <span>₹{product.price}</span>
-                        </>
-                      ) : (
-                        <strong>₹{product.price}</strong>
-                      )}
-                    </div>
+                    <div className="admin-product-price">{activeVariants.map((variant) => <p key={variant._id}>{variant.quantity} {variant.unit}: {variant.discountPrice != null && variant.discountPrice < variant.price ? <><strong>{String.fromCharCode(0x20b9)}{variant.discountPrice}</strong> <del>{String.fromCharCode(0x20b9)}{variant.price}</del></> : <strong>{String.fromCharCode(0x20b9)}{variant.price}</strong>}</p>)}</div>
 
                     <div className="admin-product-details">
                       {product.variants?.length ? <div className="admin-product-variants"><span>Variants</span><strong>{product.variants.filter((variant) => variant.isActive).map((variant) => `${variant.quantity} ${variant.unit}`).join(" · ")}</strong></div> : null}
@@ -166,7 +152,7 @@ const AdminProducts = () => {
 
                       <div>
                         <span>Stock</span>
-                        <strong>{product.stock}</strong>
+                        <strong>{activeVariants.reduce((sum, variant) => sum + variant.stock, 0)}</strong>
                       </div>
 
                       <div>

@@ -13,7 +13,7 @@ const wishlistPopulate = {
     isActive: true,
   },
   select:
-    "name description image price discountPrice stock category vendor isActive createdAt updatedAt",
+    "name description image variants category vendor isActive createdAt updatedAt",
   populate: [
     {
       path: "category",

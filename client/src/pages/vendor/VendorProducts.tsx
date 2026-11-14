@@ -20,21 +20,15 @@ import "./VendorProducts.css";
 interface ProductForm {
   name: string;
   description: string;
-  price: string;
-  discountPrice: string;
-  stock: string;
   category: string;
   subCategory: string;
 }
-type VariantForm = { _id?: string; image?: string; quantity: string; unit: string; price: string; stock: string; isActive?: boolean };
+type VariantForm = { _id?: string; quantity: string; unit: string; price: string; discountPrice: string; stock: string; isActive?: boolean };
 const units = ["g", "kg", "ml", "L", "pcs", "pc", "set", "pack", "m", "cm", "dozen", "pair"];
 
 const initialForm: ProductForm = {
   name: "",
   description: "",
-  price: "",
-  discountPrice: "",
-  stock: "",
   category: "",
   subCategory: "",
 };
@@ -244,7 +238,7 @@ const VendorProducts = () => {
     resetForm();
     setError("");
     setSuccess("");
-    setVariants([{ quantity: "", unit: "g", price: "", stock: "" }]);
+    setVariants([{ quantity: "", unit: "g", price: "", discountPrice: "", stock: "" }]);
     setIsFormOpen(true);
   };
 
@@ -273,38 +267,15 @@ const VendorProducts = () => {
       return;
     }
 
-    if (!editingProduct && variants.length === 0) { setError("Add at least one product variant."); return; }
-    if (editingProduct?.variants?.length && variants.length === 0) { setError("Keep at least one variant active or remove the product instead."); return; }
+    if (variants.length === 0) { setError("Add at least one product variant with a known pack size."); return; }
     const variantKeys = new Set<string>();
     for (const variant of variants) {
       const key = `${Number(variant.quantity)}:${variant.unit}`;
-      if (!Number.isFinite(Number(variant.quantity)) || Number(variant.quantity) <= 0 || !Number.isFinite(Number(variant.price)) || Number(variant.price) <= 0 || !Number.isInteger(Number(variant.stock)) || Number(variant.stock) < 0 || !units.includes(variant.unit) || variantKeys.has(key)) {
-        setError("Check each variant quantity, unit, price and stock. Variant combinations must be unique."); return;
+      const discount = variant.discountPrice.trim() === "" ? undefined : Number(variant.discountPrice);
+      if (!Number.isFinite(Number(variant.quantity)) || Number(variant.quantity) <= 0 || !Number.isFinite(Number(variant.price)) || Number(variant.price) <= 0 || (discount !== undefined && (!Number.isFinite(discount) || discount <= 0 || discount >= Number(variant.price))) || !Number.isInteger(Number(variant.stock)) || Number(variant.stock) < 0 || !units.includes(variant.unit) || variantKeys.has(key)) {
+        setError("Check each variant quantity, unit, original price, optional lower discount price and stock. Variant combinations must be unique."); return;
       }
       variantKeys.add(key);
-    }
-
-    if (!variants.length && (!form.price || Number(form.price) <= 0)) {
-      setError("Please enter a valid price.");
-      return;
-    }
-
-    if (!variants.length && form.discountPrice && Number(form.discountPrice) < 0) {
-      setError("Please enter a valid discount price.");
-      return;
-    }
-
-    if (
-      !variants.length && form.discountPrice &&
-      Number(form.discountPrice) >= Number(form.price)
-    ) {
-      setError("Discount price must be less than the original price.");
-      return;
-    }
-
-    if (!variants.length && (form.stock === "" || Number(form.stock) < 0)) {
-      setError("Please enter a valid stock.");
-      return;
     }
 
     if (!form.category) {
@@ -343,15 +314,9 @@ const VendorProducts = () => {
 
       formData.append("name", form.name.trim());
       formData.append("description", form.description.trim());
-      formData.append("price", variants.length ? variants[0].price : form.price);
-      formData.append("stock", variants.length ? String(variants.reduce((total, variant) => total + Number(variant.stock || 0), 0)) : form.stock);
       formData.append("category", form.category);
       formData.append("subCategory", form.subCategory);
-      if (variants.length) formData.append("variants", JSON.stringify(variants.map((variant) => ({ ...variant, quantity: Number(variant.quantity), price: Number(variant.price), stock: Number(variant.stock) }))));
-
-      if (!variants.length && form.discountPrice) {
-        formData.append("discountPrice", form.discountPrice);
-      }
+      formData.append("variants", JSON.stringify(variants.map(({ discountPrice, ...variant }) => ({ ...variant, quantity: Number(variant.quantity), price: Number(variant.price), ...(discountPrice.trim() ? { discountPrice: Number(discountPrice) } : {}), stock: Number(variant.stock) }))));
 
       if (imageFile) {
         formData.append("image", imageFile);
@@ -399,17 +364,11 @@ const VendorProducts = () => {
         : product.category?._id;
 
     setEditingProduct(product);
-    setVariants((product.variants ?? []).map((variant) => ({ _id: variant._id, image: variant.image ?? "", quantity: String(variant.quantity), unit: variant.unit, price: String(variant.price), stock: String(variant.stock), isActive: variant.isActive })));
+    setVariants((product.variants ?? []).map((variant) => ({ _id: variant._id, quantity: String(variant.quantity), unit: variant.unit, price: String(variant.price), discountPrice: variant.discountPrice == null ? "" : String(variant.discountPrice), stock: String(variant.stock), isActive: variant.isActive })));
 
     setForm({
       name: product.name,
       description: product.description || "",
-      price: String(product.price),
-      discountPrice:
-        product.discountPrice !== undefined
-          ? String(product.discountPrice)
-          : "",
-      stock: String(product.stock),
       category: categoryId || "",
       subCategory: typeof product.subCategory === "string"
         ? product.subCategory
@@ -425,7 +384,7 @@ const VendorProducts = () => {
     setIsFormOpen(true);
   };
 
-  const addVariant = () => setVariants((current) => [...current, { quantity: "", unit: "g", price: "", stock: "" }]);
+  const addVariant = () => setVariants((current) => [...current, { quantity: "", unit: "g", price: "", discountPrice: "", stock: "" }]);
   const updateVariant = (index: number, key: keyof VariantForm, value: string) => setVariants((current) => current.map((item, i) => i === index ? { ...item, [key]: value } : item));
 
   // ==============================
@@ -607,18 +566,8 @@ const VendorProducts = () => {
                         </p>
 
                         <div className="vendor-product-price">
-                          <strong>
-                            ₹{product.discountPrice ?? product.price}
-                          </strong>
-
-                          {product.discountPrice !== undefined && (
-                            <span>₹{product.price}</span>
-                          )}
+                          {product.variants?.filter((variant) => variant.isActive).map((variant) => <p key={variant._id}>{variant.quantity} {variant.unit}: <strong>{String.fromCharCode(0x20b9)}{variant.discountPrice ?? variant.price}</strong>{variant.discountPrice != null && <del> {String.fromCharCode(0x20b9)}{variant.price}</del>} <small>Stock: {variant.stock}</small></p>)}
                         </div>
-
-                        <p className="vendor-product-stock">
-                          Stock: {product.stock}
-                        </p>
 
                         {/* Actions */}
 
@@ -794,65 +743,19 @@ const VendorProducts = () => {
 
               <div className="form-group form-group-full">
                 <label>Product variants</label>
-                <small>Enter the pack size, price and available stock for each option.</small>
+                <small>Enter the pack size, original price, optional discounted price and available stock for each option.</small>
                 {variants.map((variant, index) => (
                   <div key={variant._id ?? `new-${index}`} className="variant-editor-row">
-                    <input aria-label="Variant image URL (optional)" type="url" placeholder="Variant image URL (optional)" value={variant.image ?? ""} onChange={(event) => updateVariant(index, "image", event.target.value)} />
                     <input aria-label="Variant quantity" type="number" min="0.001" step="any" placeholder="Quantity" value={variant.quantity} onChange={(event) => updateVariant(index, "quantity", event.target.value)} required />
                     <select aria-label="Variant unit" value={variant.unit} onChange={(event) => updateVariant(index, "unit", event.target.value)}>{units.map((unit) => <option key={unit} value={unit}>{unit}</option>)}</select>
                     <input aria-label="Variant price" type="number" min="0.01" step="any" placeholder="Price (₹)" value={variant.price} onChange={(event) => updateVariant(index, "price", event.target.value)} required />
+                    <input aria-label="Variant discount price (optional)" type="number" min="0.01" step="any" placeholder="Discount price (optional)" value={variant.discountPrice} onChange={(event) => updateVariant(index, "discountPrice", event.target.value)} />
                     <input aria-label="Variant stock" type="number" min="0" step="1" placeholder="Stock" value={variant.stock} onChange={(event) => updateVariant(index, "stock", event.target.value)} required />
                     <button type="button" onClick={() => setVariants((current) => current.filter((_, i) => i !== index))} aria-label={`Remove variant ${index + 1}`}>Remove</button>
                   </div>
                 ))}
                 <button type="button" onClick={addVariant}>Add Another Variant</button>
-                {editingProduct && !(editingProduct.variants?.length) && <small>This older product has no recorded pack size. Add a known variant to convert it; until then its legacy price and stock remain intact.</small>}
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="price">Price</label>
-
-                <input
-                  id="price"
-                  name="price"
-                  type="number"
-                  min="0"
-                  placeholder="e.g. 120"
-                  value={form.price}
-                  onChange={handleChange}
-                />
-              </div>
-
-              {/* Discount Price */}
-
-              <div className="form-group">
-                <label htmlFor="discountPrice">Discount Price</label>
-
-                <input
-                  id="discountPrice"
-                  name="discountPrice"
-                  type="number"
-                  min="0"
-                  placeholder="Optional"
-                  value={form.discountPrice}
-                  onChange={handleChange}
-                />
-              </div>
-
-              {/* Stock */}
-
-              <div className="form-group">
-                <label htmlFor="stock">Stock</label>
-
-                <input
-                  id="stock"
-                  name="stock"
-                  type="number"
-                  min="0"
-                  placeholder="e.g. 50"
-                  value={form.stock}
-                  onChange={handleChange}
-                />
+                {editingProduct && !(editingProduct.variants?.length) && <small>This older product has no recorded variant sizes. Enter each real variant with its correct price and stock. Legacy product level values remain archived for review and are not copied automatically.</small>}
               </div>
 
               {/* Image */}

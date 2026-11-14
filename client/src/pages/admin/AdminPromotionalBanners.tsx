@@ -1,4 +1,4 @@
-import axios from "axios";
+﻿import axios from "axios";
 import { useEffect, useState } from "react";
 import { getAdminPromotionalBanners, savePromotionalBanner, deletePromotionalBanner, togglePromotionalBanner } from "../../services/promotionalBannerService";
 import { getAdminCategories, getAdminProducts } from "../../services/adminService";
@@ -66,9 +66,9 @@ const AdminPromotionalBanners = () => {
       {message && <div className="admin-promo-feedback">{message}</div>}{error && <div className="admin-promo-error">{error}</div>}
       <form className="admin-promo-form" onSubmit={submit}>
         <h2>{editing ? "Edit promotion" : "Add promotion"}</h2>
-        <label className="admin-promo-image-field">Banner image <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setImage(e.target.files?.[0] || null)} /><small>Recommended: 335 × 195 px (1.72:1) for a promotional card. JPG, PNG or WEBP.</small></label>
+        <label className="admin-promo-image-field">Banner image <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setImage(e.target.files?.[0] || null)} /><small>Recommended: 335 Ã— 195 px (1.72:1) for a promotional card. JPG, PNG or WEBP.</small></label>
         <label>Redirect Type <select value={form.redirectType} onChange={(e) => setForm({ ...form, redirectType: e.target.value as PromotionalRedirectType, redirectValue: "" })}><option value="category">Category</option><option value="product">Product</option></select></label>
-        <label>Redirect Target <select value={form.redirectValue} onChange={(e) => setForm({ ...form, redirectValue: e.target.value })} required><option value="">Select {form.redirectType}</option>{form.redirectType === "category" ? categories.map((category) => <option key={category._id} value={category._id}>{category.name}</option>) : products.map((product) => <option key={product._id} value={product._id}>{product.name} - ₹{product.price}</option>)}</select></label>
+        <label>Redirect Target <select value={form.redirectValue} onChange={(e) => setForm({ ...form, redirectValue: e.target.value })} required><option value="">Select {form.redirectType}</option>{form.redirectType === "category" ? categories.map((category) => <option key={category._id} value={category._id}>{category.name}</option>) : products.map((product) => <option key={product._id} value={product._id}>{product.name} - from {String.fromCharCode(0x20b9)}{Math.min(...(product.variants ?? []).filter((variant) => variant.isActive).map((variant) => variant.discountPrice ?? variant.price))}</option>)}</select></label>
         <input type="number" min="0" placeholder="Display order" value={form.order} onChange={(e) => setForm({ ...form, order: e.target.value })} />
         <label>Starts <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></label>
         <label>Ends <input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></label>
@@ -76,7 +76,7 @@ const AdminPromotionalBanners = () => {
         <button type="submit">{editing ? "Save changes" : "Add banner"}</button>
         {editing && <button type="button" onClick={() => { setEditing(undefined); setForm(empty); setImage(null); }}>Cancel</button>}
       </form>
-      <section className="admin-promo-list"><h2>Existing promotions</h2>{banners.map((banner) => <article key={banner._id}><img src={banner.image} alt="Promotional banner" /><div><strong>Promotional banner</strong><small>Order {banner.order} · {banner.isActive ? "Active" : "Inactive"}</small></div><button onClick={() => edit(banner)}>Edit</button><button onClick={() => void togglePromotionalBanner(banner._id).then(load)}>Toggle</button><button onClick={() => window.confirm("Delete this promotion?") && void deletePromotionalBanner(banner._id).then(load)}>Delete</button></article>)}</section>
+      <section className="admin-promo-list"><h2>Existing promotions</h2>{banners.map((banner) => <article key={banner._id}><img src={banner.image} alt="Promotional banner" /><div><strong>Promotional banner</strong><small>Order {banner.order} Â· {banner.isActive ? "Active" : "Inactive"}</small></div><button onClick={() => edit(banner)}>Edit</button><button onClick={() => void togglePromotionalBanner(banner._id).then(load)}>Toggle</button><button onClick={() => window.confirm("Delete this promotion?") && void deletePromotionalBanner(banner._id).then(load)}>Delete</button></article>)}</section>
     </div>
   );
 };

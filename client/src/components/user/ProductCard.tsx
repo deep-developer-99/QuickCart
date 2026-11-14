@@ -54,6 +54,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   const hasDiscount = Boolean(selectedVariant?.discountPrice != null && selectedVariant.discountPrice < selectedVariant.price);
   const sellingPrice = selectedVariant ? (hasDiscount ? selectedVariant.discountPrice! : selectedVariant.price) : 0;
   const originalPrice = selectedVariant?.price;
+  const discountPercentage = hasDiscount && originalPrice ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : 0;
 
   useEffect(() => {
     if (!isVariantDialogOpen) return;
@@ -192,6 +193,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
           <div className="product-card-prices">
             <span className="product-card-price">{formatPrice(sellingPrice)}</span>
             {hasDiscount && originalPrice != null && <span className="product-card-old-price">{formatPrice(originalPrice)}</span>}
+            {hasDiscount && <span className="product-card-old-price">{discountPercentage}% off</span>}
           </div>
           <div className="product-card-action">
             {hasStock ? (
@@ -225,7 +227,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
                 const canIncrease = itemQuantity < item.stock;
                 return (
                 <div className="product-variant-choice" key={item._id}>
-                  <img src={item.image || product.image} alt="" className="product-variant-image" onError={(event) => {
+                  <img src={product.image} alt="" className="product-variant-image" onError={(event) => {
                     if (event.currentTarget.getAttribute("src") !== product.image) {
                       event.currentTarget.onerror = null;
                       event.currentTarget.src = product.image;
@@ -235,6 +237,8 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
                   }} />
                   <span className="product-variant-size">{item.quantity} {item.unit}{item.stock <= 0 || !item.isActive ? <small className="product-variant-stock">{item.isActive ? "Out of stock" : "Unavailable"}</small> : null}</span>
                   <strong>{formatPrice(item.discountPrice != null && item.discountPrice < item.price ? item.discountPrice : item.price)}</strong>
+                  {item.discountPrice != null && item.discountPrice < item.price && <del>{formatPrice(item.price)}</del>}
+                  {item.discountPrice != null && item.discountPrice < item.price && <small>{Math.round(((item.price - item.discountPrice) / item.price) * 100)}% off</small>}
                   {itemQuantity > 0 ? (
                     <div className="product-variant-quantity" aria-label={`${itemQuantity} ${item.quantity} ${item.unit} in cart`}>
                       <button type="button" onClick={() => void changeVariantQuantity(item, itemQuantity - 1)} disabled={isUpdating} aria-label={`Decrease ${item.quantity} ${item.unit}`}>−</button>

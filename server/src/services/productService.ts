@@ -35,7 +35,7 @@ const validateVariants = (variants: CreateProductData["variants"] | undefined) =
     const quantity = Number(variant.quantity), price = Number(variant.price), stock = Number(variant.stock);
     if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(price) || price <= 0 || !Number.isInteger(stock) || stock < 0) throw validationError("Each variant needs a valid quantity, price, and whole-number stock.");
     const discountPrice = variant.discountPrice == null || String(variant.discountPrice).trim() === "" ? undefined : Number(variant.discountPrice);
-    if (discountPrice !== undefined && (!Number.isFinite(discountPrice) || discountPrice < 0 || discountPrice > price)) throw validationError("Variant discount price must be optional and cannot exceed regular price.");
+    if (discountPrice !== undefined && (!Number.isFinite(discountPrice) || discountPrice <= 0 || discountPrice >= price)) throw validationError("Variant discount price must be greater than zero and lower than regular price.");
     if (!(PRODUCT_UNITS as readonly string[]).includes(variant.unit)) throw validationError("Select a supported unit type.");
     const key = `${quantity}:${variant.unit}`;
     if (keys.has(key)) throw validationError("Variant quantities and units must be unique.");
@@ -112,7 +112,7 @@ export const getAllProducts = async (
   if (categoryFilter.subCategoryId) filter.subCategory = categoryFilter.subCategoryId;
 
   const [products, totalItems] = await Promise.all([
-    populateProductCategories(Product.find(filter)).populate("vendor", "shopName")
+    populateProductCategories(Product.find(filter).select("-price -discountPrice -stock -legacyPricingReview")).populate("vendor", "shopName")
       .sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit),
     Product.countDocuments(filter),
   ]);
@@ -120,7 +120,7 @@ export const getAllProducts = async (
 };
 
 export const getProductById = async (productId: string) =>
-  populateProductCategories(Product.findOne({ _id: productId, isActive: true, variants: { $elemMatch: { isActive: true, stock: { $gt: 0 } } } }))
+  populateProductCategories(Product.findOne({ _id: productId, isActive: true, variants: { $elemMatch: { isActive: true, stock: { $gt: 0 } } } }).select("-price -discountPrice -stock -legacyPricingReview"))
     .populate("vendor", "shopName");
 
 export const getProductsByCategory = async (
@@ -138,7 +138,7 @@ export const getProductsByCategory = async (
   };
   if (categoryFilter.subCategoryId) filter.subCategory = categoryFilter.subCategoryId;
   const [products, totalItems] = await Promise.all([
-    populateProductCategories(Product.find(filter)).sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit),
+    populateProductCategories(Product.find(filter).select("-price -discountPrice -stock -legacyPricingReview")).sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit),
     Product.countDocuments(filter),
   ]);
   return { data: products, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
@@ -148,20 +148,22 @@ export const getVendorProducts = async (vendorId: string, page?: unknown, limit?
   const pagination = getPagination(page, limit);
   const filter = { vendor: vendorId };
   const [products, totalItems] = await Promise.all([
-    populateProductCategories(Product.find(filter)).sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit),
+    populateProductCategories(Product.find(filter).select("-price -discountPrice -stock -legacyPricingReview")).sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit),
     Product.countDocuments(filter),
   ]);
   return { data: products, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
 };
 
 export const getVendorProductById = async (productId: string, vendorId: string) => {
-  const product = await populateProductCategories(Product.findOne({ _id: productId, vendor: vendorId }));
+  const product = await populateProductCategories(Product.findOne({ _id: productId, vendor: vendorId }).select("-price -discountPrice -stock -legacyPricingReview"));
   if (!product) throw new Error("Product not found or access denied");
   return product;
 };
 
 export const updateProduct = async (productId: string, vendorId: string, data: UpdateProductData) => {
-  const product = await Product.findOne({ _id: productId, vendor: vendorId });
+  const productQuery = Product.findOne({ _id: productId, vendor: vendorId });
+  if (typeof (productQuery as any).select === "function") productQuery.select("-price -discountPrice -stock");
+  const product = await productQuery;
   if (!product) throw new Error("Product not found or access denied");
 
   const finalCategory = data.category ?? product.category.toString();

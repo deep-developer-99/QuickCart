@@ -19,11 +19,11 @@ const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
     <div className="cart-item-info">
       <h3>{hasProductDetails ? product.name : "Product"}</h3>
       {variant && <p className="cart-item-variant">{variant.quantity} {variant.unit}</p>}
-      {hasProductDetails && <p className="cart-item-price"><strong>₹{price}</strong></p>}
+      {hasProductDetails && <p className="cart-item-price"><strong>₹{price}</strong>{variant?.discountPrice != null && variant.discountPrice < variant.price && <> <del>₹{variant.price}</del> <small>{Math.round(((variant.price - variant.discountPrice) / variant.price) * 100)}% off</small></>}</p>}
       <div className="cart-item-actions"><div className="cart-quantity-control">
         <button type="button" onClick={() => onQuantityChange(productId, quantity - 1, item.variantId)} aria-label="Decrease quantity">−</button>
         <span>{quantity}</span>
-        <button type="button" onClick={() => onQuantityChange(productId, quantity + 1, item.variantId)} disabled={hasProductDetails && quantity >= (variant?.stock ?? product.stock)} aria-label="Increase quantity">+</button>
+        <button type="button" onClick={() => onQuantityChange(productId, quantity + 1, item.variantId)} disabled={hasProductDetails && quantity >= (variant?.stock ?? 0)} aria-label="Increase quantity">+</button>
       </div><button type="button" className="cart-remove-button" onClick={() => onRemove(productId, item.variantId)}>Remove</button></div>
     </div>
     {hasProductDetails && <div className="cart-item-total">₹{price * quantity}</div>}

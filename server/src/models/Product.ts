@@ -4,7 +4,6 @@ export const PRODUCT_UNITS = ["g", "kg", "ml", "L", "pcs", "pc", "set", "pack", 
 
 export interface IProductVariant {
   _id: Types.ObjectId;
-  image?: string;
   quantity: number;
   unit: typeof PRODUCT_UNITS[number];
   price: number;
@@ -38,7 +37,6 @@ export interface IProduct extends Document {
 }
 
 const variantSchema = new Schema<IProductVariant>({
-  image: { type: String, trim: true },
   quantity: { type: Number, required: true, min: 0.001 },
   unit: { type: String, required: true, enum: PRODUCT_UNITS },
   price: { type: Number, required: true, min: 0.01 },
@@ -46,6 +44,9 @@ const variantSchema = new Schema<IProductVariant>({
   stock: { type: Number, required: true, min: 0, validate: Number.isInteger },
   isActive: { type: Boolean, default: true },
 });
+variantSchema.path("discountPrice").validate(function (value: number | undefined) {
+  return value == null || (value > 0 && value < this.price);
+}, "Variant discount price must be greater than zero and lower than regular price");
 
 const productSchema = new Schema<IProduct>(
   {

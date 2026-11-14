@@ -52,7 +52,7 @@ const ProductDetails = () => {
           setSimilarProducts([]);
           setTopCategoryProducts([]);
           setSelectedVariantId(defaultVariant?._id);
-          setSelectedImage(defaultVariant?.image || nextProduct.image || "");
+          setSelectedImage(nextProduct.image || "");
           setIsDetailsExpanded(false);
         } else {
           setProduct(null);
@@ -118,25 +118,25 @@ const ProductDetails = () => {
   const activeVariants = product?.variants?.filter((item) => item.isActive) ?? [];
   const selectedVariant = activeVariants.find((item) => item._id === selectedVariantId)
     ?? activeVariants.find((item) => item.stock > 0);
-  const selectedStock = selectedVariant?.stock ?? (activeVariants.length === 0 ? product?.stock ?? 0 : 0);
+  const selectedStock = selectedVariant?.stock ?? 0;
   const currentPrice = selectedVariant
     ? (selectedVariant.discountPrice != null && selectedVariant.discountPrice < selectedVariant.price ? selectedVariant.discountPrice : selectedVariant.price)
-    : product?.discountPrice != null && product.discountPrice < (product?.price ?? 0) ? product.discountPrice : product?.price ?? 0;
-  const originalPrice = selectedVariant?.price ?? product?.price ?? 0;
+    : 0;
+  const originalPrice = selectedVariant?.price ?? 0;
   const hasDiscount = selectedVariant
     ? selectedVariant.discountPrice != null && selectedVariant.discountPrice < selectedVariant.price
-    : product?.discountPrice !== undefined && product.discountPrice < (product?.price ?? 0);
+    : false;
   const discountPercentage = hasDiscount && originalPrice > 0
     ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
     : 0;
   const cartQuantity = product ? getQuantity(product._id, selectedVariant?._id) : 0;
   const galleryImages = product
-    ? [...new Set([product.image, ...activeVariants.map((item) => item.image).filter((image): image is string => Boolean(image))])].filter(Boolean)
+    ? [product.image].filter(Boolean)
     : [];
 
   const selectVariant = (variant: NonNullable<Product["variants"]>[number]) => {
     setSelectedVariantId(variant._id);
-    setSelectedImage(variant.image || product?.image || "");
+    setSelectedImage(product?.image || "");
     setError("");
     setSuccess("");
   };
@@ -347,6 +347,7 @@ const ProductDetails = () => {
                           <span className="product-variant-option-size">{item.quantity} {item.unit}</span>
                           <strong>{"₹"}{(itemDiscounted ? item.discountPrice! : item.price).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</strong>
                           {itemDiscounted && <del>{"₹"}{item.price.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</del>}
+                          {itemDiscounted && <small>{Math.round(((item.price - item.discountPrice!) / item.price) * 100)}% off</small>}
                           {item.stock <= 0 && <small>Out of stock</small>}
                         </button>
                       );

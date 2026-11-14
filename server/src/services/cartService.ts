@@ -8,6 +8,7 @@ export const getCart = async (userId: string) => {
     user: userId,
   }).populate({
     path: "items.product",
+    select: "-price -discountPrice -stock -legacyPricingReview",
     populate: [
       {
         path: "category",
@@ -28,6 +29,7 @@ export const getCart = async (userId: string) => {
   }
   cart = await Cart.findById(cart._id).populate({
     path: "items.product",
+    select: "-price -discountPrice -stock -legacyPricingReview",
     populate: [
       {
         path: "category",

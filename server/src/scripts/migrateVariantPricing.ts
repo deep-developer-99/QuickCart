@@ -4,6 +4,7 @@ import { PRODUCT_UNITS } from "../models/Product";
 
 type RawVariant = {
   _id?: Types.ObjectId | string;
+  image?: unknown;
   quantity?: unknown;
   unit?: unknown;
   price?: unknown;
@@ -23,7 +24,7 @@ const isValidVariantSet = (variants: RawVariant[]) => {
     if (!Number.isFinite(quantity) || quantity <= 0) return { valid: false, reason: "A variant quantity is missing or invalid." };
     if (!(PRODUCT_UNITS as readonly unknown[]).includes(variant.unit)) return { valid: false, reason: "A variant unit is missing or unsupported." };
     if (!Number.isFinite(price) || price <= 0) return { valid: false, reason: "A variant regular price is missing or invalid." };
-    if (variant.discountPrice != null && (!Number.isFinite(Number(variant.discountPrice)) || Number(variant.discountPrice) < 0 || Number(variant.discountPrice) > price)) return { valid: false, reason: "A variant discount price is invalid." };
+    if (variant.discountPrice != null && (!Number.isFinite(Number(variant.discountPrice)) || Number(variant.discountPrice) <= 0 || Number(variant.discountPrice) >= price)) return { valid: false, reason: "A variant discount price is invalid." };
     if (!Number.isInteger(stock) || stock < 0) return { valid: false, reason: "A variant stock value is missing or invalid." };
     if (seen.has(key)) return { valid: false, reason: "Duplicate variant quantity and unit values exist." };
     seen.add(key);
@@ -47,27 +48,42 @@ const main = async () => {
     if (hasLegacyFields) summary.legacyFieldsFound += 1;
 
     const set: Record<string, unknown> = {};
+    if (variants.some((variant) => Object.prototype.hasOwnProperty.call(variant, "image"))) {
+      set.variants = variants.map(({ image: _removedImage, ...variant }) => variant);
+    }
     if (result.valid) {
       summary.variantsReady += 1;
       const normalizedVariants = variants.map((variant) => {
-        if (variant._id && Types.ObjectId.isValid(String(variant._id))) return variant;
+        const { image: _removedImage, ...cleanVariant } = variant;
+        if (variant._id && Types.ObjectId.isValid(String(variant._id))) return cleanVariant;
         summary.variantIdsAssigned += 1;
-        return { ...variant, _id: new Types.ObjectId() };
+        return { ...cleanVariant, _id: new Types.ObjectId() };
       });
       if (normalizedVariants.some((variant, index) => variant !== variants[index])) set.variants = normalizedVariants;
-      if (row.legacyPricingReview?.status === "needs_review") set["legacyPricingReview.status"] = "reviewed";
+      if (!hasLegacyFields && row.legacyPricingReview?.status === "needs_review") set["legacyPricingReview.status"] = "reviewed";
     } else {
       summary.needsReview += 1;
-      set["legacyPricingReview.status"] = "needs_review";
-      set["legacyPricingReview.reason"] = result.reason;
+      if (hasLegacyFields) {
+        set.legacyPricingReview = {
+          ...(row.legacyPricingReview ?? {}),
+          status: "needs_review",
+          reason: result.reason,
+        };
+      } else {
+        set["legacyPricingReview.status"] = "needs_review";
+        set["legacyPricingReview.reason"] = result.reason;
+      }
     }
 
-    if (hasLegacyFields && !row.legacyPricingReview) {
+    if (hasLegacyFields) {
       set.legacyPricingReview = {
-        status: result.valid ? "variants_verified" : "needs_review",
-        ...(typeof row.price === "number" ? { sourcePrice: row.price } : {}),
-        ...(typeof row.discountPrice === "number" ? { sourceDiscountPrice: row.discountPrice } : {}),
-        ...(typeof row.stock === "number" ? { sourceStock: row.stock } : {}),
+        ...(row.legacyPricingReview ?? {}),
+        status: result.valid
+          ? row.legacyPricingReview?.status === "needs_review" ? "reviewed" : row.legacyPricingReview?.status ?? "variants_verified"
+          : "needs_review",
+        ...(typeof row.price === "number" && row.legacyPricingReview?.sourcePrice == null ? { sourcePrice: row.price } : {}),
+        ...(typeof row.discountPrice === "number" && row.legacyPricingReview?.sourceDiscountPrice == null ? { sourceDiscountPrice: row.discountPrice } : {}),
+        ...(typeof row.stock === "number" && row.legacyPricingReview?.sourceStock == null ? { sourceStock: row.stock } : {}),
         ...(!result.valid ? { reason: result.reason } : {}),
       };
     }

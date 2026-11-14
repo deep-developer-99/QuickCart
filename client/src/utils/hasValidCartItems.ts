@@ -25,7 +25,7 @@ export const getCartItemUnitPrice = (item: CartItem) => {
   if (typeof item.product === "string") return 0;
   const variant = item.variantId ? item.product.variants?.find((entry) => entry._id === item.variantId) : undefined;
   if (variant) return variant.discountPrice != null && variant.discountPrice < variant.price ? variant.discountPrice : variant.price;
-  return item.product.discountPrice ?? item.product.price;
+  return 0;
 };
 
 export const getCartSubtotal = (items: readonly CartItem[]) => {

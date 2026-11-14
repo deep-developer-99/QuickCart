@@ -89,7 +89,7 @@ export const getAllUsers = async (page?: unknown, limit?: unknown) => {
 // Products
 export const getAllProductsAdmin = async (page?: unknown, limit?: unknown) => {
   const pagination = getPagination(page, limit);
-  const [product, totalItems] = await Promise.all([Product.find()
+  const [product, totalItems] = await Promise.all([Product.find().select("-price -discountPrice -stock -legacyPricingReview")
     .populate("category", "name image")
     .populate("subCategory", "name image isActive parentCategory")
     .populate("vendor", "name shopName email")

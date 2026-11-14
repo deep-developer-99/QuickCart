@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import axios from "axios";
 
@@ -426,7 +426,7 @@ const AdminBanners = () => {
                   disabled={isSubmitting}
                   aria-label="Close"
                 >
-                  ×
+                  Ã—
                 </button>
               </div>
 
@@ -444,7 +444,7 @@ const AdminBanners = () => {
                     />
                     <small>
                       JPG, JPEG, PNG or WEBP. Maximum 5 MB. Recommended: 1280
-                      × 272 px (4.71:1) for the homepage hero.
+                      Ã— 272 px (4.71:1) for the homepage hero.
                     </small>
                   </label>
 
@@ -493,7 +493,7 @@ const AdminBanners = () => {
                           ))
                         : products.map((product) => (
                             <option key={product._id} value={product._id}>
-                              {product.name} - ₹{product.price}
+                              {product.name} - from {String.fromCharCode(0x20b9)}{Math.min(...(product.variants ?? []).filter((variant) => variant.isActive).map((variant) => variant.discountPrice ?? variant.price))}
                             </option>
                           ))}
                     </select>
@@ -584,7 +584,7 @@ const AdminBanners = () => {
 
         {banners.length === 0 ? (
           <div className="admin-banners-empty">
-            <div className="admin-banners-empty-icon">🖼️</div>
+            <div className="admin-banners-empty-icon">ðŸ–¼ï¸</div>
             <h2>No banners yet</h2>
             <p>
               Add your first Home Page banner. Customers will see active banners

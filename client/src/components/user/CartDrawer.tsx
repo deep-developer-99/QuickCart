@@ -52,7 +52,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
   const calculatedItemsTotal = getCartSubtotal(validItems) ?? 0;
   const cartSummaryKey = validItems.map((item) => typeof item.product === "string"
     ? `${item.product}:${item.quantity}`
-    : `${item.product._id}:${item.variantId ?? ""}:${item.quantity}:${item.product.price}:${item.product.discountPrice ?? ""}`).join("|");
+    : `${item.product._id}:${item.variantId ?? ""}:${item.quantity}:${item.product.variants?.map((variant) => `${variant._id}:${variant.price}:${variant.discountPrice ?? ""}:${variant.stock}`).join(",") ?? ""}`).join("|");
   const checkoutSummary = summaryResult?.key === cartSummaryKey ? summaryResult.data : null;
   const summaryError = summaryFailure?.key === cartSummaryKey ? summaryFailure.message : "";
   const isLoadingSummary = Boolean(isOpen && validItems.length && !checkoutSummary && !summaryError);
@@ -244,7 +244,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
                   <section className="cart-drawer-items" aria-label="Cart products">
                     {validItems.map((item, index) => (
                       <div className="cart-drawer-item-wrap" key={getCartProductId(item.product) || `${index}`}>
-                        {typeof item.product !== "string" && item.product.stock === 0 && <p className="cart-drawer-stock-warning">Out of stock. Remove this item to continue.</p>}
+                        {typeof item.product !== "string" && item.product.variants?.find((variant) => variant._id === item.variantId)?.stock === 0 && <p className="cart-drawer-stock-warning">Out of stock. Remove this item to continue.</p>}
                         <CartItem item={item} onQuantityChange={handleQuantityChange} onRemove={handleRemove} />
                       </div>
                     ))}
