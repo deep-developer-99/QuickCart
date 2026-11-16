@@ -145,7 +145,7 @@ const CategoriesPage = () => {
           <div className="all-categories-list">
             {categories.map((category) => (
               <section
-                className="all-categories-section"
+                className={`all-categories-section${category.subcategories.length ? " all-categories-section--has-subcategories" : ""}`}
                 key={category._id}
                 aria-labelledby={`category-${category._id}`}
               >
