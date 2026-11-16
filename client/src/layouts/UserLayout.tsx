@@ -7,6 +7,7 @@ import CartDrawerProvider from "../context/CartDrawerProvider";
 const UserLayout = () => {
   const { pathname } = useLocation();
   const isSearchPage = pathname === "/search";
+  const isCategoriesPage = pathname.replace(/\/+$/, "") === "/categories";
 
   return (
     <CartDrawerProvider>
@@ -17,7 +18,7 @@ const UserLayout = () => {
           <Outlet />
         </main>
 
-        {!isSearchPage && <Footer />}
+        {!isSearchPage && !isCategoriesPage && <Footer />}
       </div>
     </CartDrawerProvider>
   );

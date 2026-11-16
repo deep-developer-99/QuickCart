@@ -38,6 +38,33 @@ const ensureActiveMainCategory = async (categoryId: string) => {
 export const getAllCategories = async () =>
   Category.find({ isActive: true, parentCategory: null }).sort({ name: 1 });
 
+// One public catalog request keeps the all-categories page from making a request
+// for every parent while retaining the same active filters and alphabetical order.
+export const getCategoryCatalog = async () => {
+  const [parents, subcategories] = await Promise.all([
+    Category.find({ isActive: true, parentCategory: null })
+      .sort({ name: 1 })
+      .lean(),
+    Category.find({ isActive: true, parentCategory: { $ne: null } })
+      .sort({ name: 1 })
+      .lean(),
+  ]);
+
+  const childrenByParent = new Map<string, typeof subcategories>();
+  for (const subcategory of subcategories) {
+    const parentId = subcategory.parentCategory?.toString();
+    if (!parentId) continue;
+    const children = childrenByParent.get(parentId) || [];
+    children.push(subcategory);
+    childrenByParent.set(parentId, children);
+  }
+
+  return parents.map((parent) => ({
+    ...parent,
+    subcategories: childrenByParent.get(parent._id.toString()) || [],
+  }));
+};
+
 // Existing category detail URLs continue to resolve active main categories.
 export const getCategoryById = async (categoryId: string) => {
   if (!mongoose.isValidObjectId(categoryId)) throw validationError("Category not found");

@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import CategoryProducts from "../pages/user/CategoryProducts";
+import CategoriesPage from "../pages/user/CategoriesPage";
 import SearchResults from "../pages/user/SearchResults";
 
 import HomeRoute from "./HomeRoute";
@@ -58,6 +59,7 @@ const AppRoutes = () => {
 
         <Route element={<UserLayout />}>
           <Route path="/" element={<HomeRoute />} />
+          <Route path="/categories" element={<CategoriesPage />} />
 
           <Route element={<PublicRoute />}>
             <Route path="/login" element={<LoginRoute />} />

@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
 import {
   getAllCategories,
+  getCategoryCatalog,
   getCategoryById,
   getAllCategoriesAdmin,
   getCategoryByIdAdmin,
@@ -39,6 +40,22 @@ export const getAllCategoriesController = async (
     res.status(500).json({
       success: false,
       message: "Failed to fetch categories",
+    });
+  }
+};
+
+export const getCategoryCatalogController = async (
+  _req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const data = await getCategoryCatalog();
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error("Get category catalog error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch category catalog",
     });
   }
 };

@@ -200,8 +200,15 @@ const Footer = () => {
         </section>
 
         <section className="footer-categories">
-          <div className="footer-category-heading">
+          <div className="footer-categories-heading">
             <h3>Categories</h3>
+            <Link
+              to="/categories"
+              className="footer-see-all"
+              aria-label="See all categories"
+            >
+              see all
+            </Link>
           </div>
           {categoryError ? (
             <p className="footer-category-status" role="status">

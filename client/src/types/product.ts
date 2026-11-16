@@ -9,6 +9,10 @@ export interface Category {
   isActive: boolean;
 }
 
+export interface CategoryCatalogItem extends Category {
+  subcategories: Category[];
+}
+
 export interface Product {
   _id: string;
   name: string;

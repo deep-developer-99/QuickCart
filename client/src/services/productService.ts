@@ -1,4 +1,5 @@
 import api from "./api";
+import type { CategoryCatalogItem } from "../types/product";
 
 export const getProducts = async (
   search?: string,
@@ -41,6 +42,13 @@ export const getProductsByCategory = async (id: string, page = 1, limit = 10, su
 export const getCategories = async () => {
   const response = await api.get("/categories");
 
+  return response.data;
+};
+
+export const getCategoryCatalog = async (
+  signal?: AbortSignal,
+): Promise<{ success: boolean; data: CategoryCatalogItem[] }> => {
+  const response = await api.get("/categories/catalog", { signal });
   return response.data;
 };
 
