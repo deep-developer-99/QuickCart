@@ -103,6 +103,7 @@ export const getAllProductsController = async (
       req.query.page,
       req.query.limit,
       subCategory as string | undefined,
+      typeof req.query.sort === 'string' ? req.query.sort as 'priceLow' | 'priceHigh' | 'az' | 'za' : undefined,
     );
 
     res.status(200).json({
@@ -174,6 +175,7 @@ export const getProductsByCategoryController = async (
       req.query.page,
       req.query.limit,
       typeof req.query.subCategory === "string" ? req.query.subCategory : undefined,
+      typeof req.query.sort === "string" ? req.query.sort as "priceLow" | "priceHigh" | "az" | "za" : undefined,
     );
 
     res.status(200).json({

@@ -89,6 +89,93 @@ const validatePublicCategoryFilter = async (category?: string, subCategory?: str
   return { categoryId, subCategoryId: subCategory };
 };
 
+type ProductSort = 'priceLow' | 'priceHigh' | 'az' | 'za';
+
+const getPriceSortedProductIds = async (
+  filter: Record<string, unknown>,
+  skip: number,
+  limit: number,
+  direction: 1 | -1,
+) => {
+  const aggregateFilter = { ...filter };
+  if (typeof aggregateFilter.category === 'string') {
+    aggregateFilter.category = new mongoose.Types.ObjectId(aggregateFilter.category);
+  }
+  if (typeof aggregateFilter.subCategory === 'string') {
+    aggregateFilter.subCategory = new mongoose.Types.ObjectId(aggregateFilter.subCategory);
+  }
+  const availableVariants = {
+    $filter: {
+      input: { $ifNull: ['$variants', []] },
+      as: 'variant',
+      cond: {
+        $and: [
+          { $eq: ['$$variant.isActive', true] },
+          { $gt: ['$$variant.stock', 0] },
+        ],
+      },
+    },
+  };
+  const rows = await Product.aggregate<{ _id: mongoose.Types.ObjectId }>([
+    { $match: aggregateFilter },
+    {
+      $addFields: {
+        _sortSellingPrice: {
+          $min: {
+            $map: {
+              input: availableVariants,
+              as: 'variant',
+              in: {
+                $cond: [
+                  {
+                    $and: [
+                      { $gt: ['$$variant.discountPrice', 0] },
+                      { $lt: ['$$variant.discountPrice', '$$variant.price'] },
+                    ],
+                  },
+                  '$$variant.discountPrice',
+                  '$$variant.price',
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+    { $sort: { _sortSellingPrice: direction, _id: 1 } },
+    { $skip: skip },
+    { $limit: limit },
+    { $project: { _id: 1 } },
+  ]);
+  return rows.map(row => row._id);
+};
+
+const findProductsPage = async (
+  filter: Record<string, unknown>,
+  limit: number,
+  skip: number,
+  sort?: ProductSort,
+) => {
+  if (sort === 'priceLow' || sort === 'priceHigh') {
+    const ids = await getPriceSortedProductIds(filter, skip, limit, sort === 'priceLow' ? 1 : -1);
+    if (!ids.length) return [];
+    const products = await populateProductCategories(
+      Product.find({ _id: { $in: ids } }).select('-price -discountPrice -stock -legacyPricingReview'),
+    ).populate('vendor', 'shopName');
+    const order = new Map(ids.map((id, index) => [id.toString(), index]));
+    return products.sort((a: any, b: any) => order.get(a._id.toString())! - order.get(b._id.toString())!);
+  }
+
+  let sortOrder: Record<string, 1 | -1>;
+  if (sort === 'az') sortOrder = { name: 1, _id: 1 };
+  else if (sort === 'za') sortOrder = { name: -1, _id: 1 };
+  else sortOrder = { createdAt: -1, _id: -1 };
+  return populateProductCategories(
+    Product.find(filter).select('-price -discountPrice -stock -legacyPricingReview')
+      .sort(sortOrder).skip(skip).limit(limit),
+  ).populate('vendor', 'shopName');
+};
+
 export const createProduct = async (data: CreateProductData, vendorId: string) => {
   const categories = await validateProductCategories(data.category, data.subCategory);
   const variants = validateVariants(data.variants);
@@ -103,6 +190,7 @@ export const getAllProducts = async (
   page?: unknown,
   limit?: unknown,
   subCategory?: string,
+  sort?: ProductSort,
 ) => {
   const pagination = getPagination(page, limit);
   const categoryFilter = await validatePublicCategoryFilter(category, subCategory);
@@ -112,8 +200,7 @@ export const getAllProducts = async (
   if (categoryFilter.subCategoryId) filter.subCategory = categoryFilter.subCategoryId;
 
   const [products, totalItems] = await Promise.all([
-    populateProductCategories(Product.find(filter).select("-price -discountPrice -stock -legacyPricingReview")).populate("vendor", "shopName")
-      .sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit),
+    findProductsPage(filter, pagination.limit, pagination.skip, sort),
     Product.countDocuments(filter),
   ]);
   return { data: products, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
@@ -128,6 +215,7 @@ export const getProductsByCategory = async (
   page?: unknown,
   limit?: unknown,
   subCategoryId?: string,
+  sort?: ProductSort,
 ) => {
   const pagination = getPagination(page, limit);
   const categoryFilter = await validatePublicCategoryFilter(categoryId, subCategoryId);
@@ -138,7 +226,7 @@ export const getProductsByCategory = async (
   };
   if (categoryFilter.subCategoryId) filter.subCategory = categoryFilter.subCategoryId;
   const [products, totalItems] = await Promise.all([
-    populateProductCategories(Product.find(filter).select("-price -discountPrice -stock -legacyPricingReview")).sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit),
+    findProductsPage(filter, pagination.limit, pagination.skip, sort),
     Product.countDocuments(filter),
   ]);
   return { data: products, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
