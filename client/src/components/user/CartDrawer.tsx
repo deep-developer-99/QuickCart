@@ -43,7 +43,9 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
   const donationStorageKey = user?.id ? `quickcart-cart-donation:${user.id}` : "";
   const [stage, setStage] = useState<DrawerStage>("cart");
   const [address, setAddress] = useState<Address>();
+  const selectedAddress = address?.user === user?.id ? address : undefined;
   const [addresses, setAddresses] = useState<Address[]>([]);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
   const [editingAddress, setEditingAddress] = useState<Address>();
   const [addressFormOpen, setAddressFormOpen] = useState(false);
   const [addressModalOpen, setAddressModalOpen] = useState(false);
@@ -160,19 +162,22 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
   useEffect(() => {
     if (!isOpen || !isUser || (stage !== "cart" && stage !== "address")) return;
     let active = true;
+    setIsLoadingAddresses(true);
     getAddresses(1, 50).then((response) => {
       if (!active || !response?.success) return;
       const saved = (response.data || []) as Address[];
       setAddresses(saved);
-      setAddress((current) => current && saved.some((item) => item._id === current._id)
-        ? saved.find((item) => item._id === current._id)
-        : undefined);
+      const storageKey = user?.id ? `quickcart-selected-address:${user.id}` : "";
+      const storedId = storageKey ? window.sessionStorage.getItem(storageKey) : null;
+      const restored = storedId ? saved.find((item) => item._id === storedId) : undefined;
+      setAddress(restored);
+      if (storedId && !restored && storageKey) window.sessionStorage.removeItem(storageKey);
     }).catch((error: unknown) => {
       console.error("Failed to load cart delivery addresses:", error);
       if (active) setDrawerError("Saved addresses could not be loaded. You can retry from checkout.");
-    });
+    }).finally(() => { if (active) setIsLoadingAddresses(false); });
     return () => { active = false; };
-  }, [isOpen, isUser, stage]);
+  }, [isOpen, isUser, stage, user?.id]);
 
   useEffect(() => {
     if (!isOpen || !isUser || validItems.length === 0) return;
@@ -364,17 +369,17 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
 
             {validItems.length > 0 && (
               <footer className="cart-drawer-footer">
-                {address && <div className="cart-drawer-selected-address"><span aria-hidden="true">⌖</span><div><strong>Delivering to {address.isDefault ? "Home" : "Saved address"}</strong><small>{getAddressText(address)}</small></div><button type="button" onClick={() => setStage("address")}>Change</button></div>}
-                <button type="button" className="cart-drawer-proceed-row" disabled={isLoadingSummary || payableTotal === undefined} onClick={() => {
-                    if (!address) setStage("address");
+                {selectedAddress && <div className="cart-drawer-selected-address"><span aria-hidden="true">⌖</span><div><strong>Delivering to {selectedAddress.addressType || (selectedAddress.isDefault ? "Home" : "Saved address")}</strong><small>{getAddressText(selectedAddress)}</small></div><button type="button" onClick={() => setStage("address")}>Change</button></div>}
+                <button type="button" className="cart-drawer-proceed-row" disabled={isLoadingAddresses || isLoadingSummary || payableTotal === undefined} onClick={() => {
+                    if (!selectedAddress) setStage("address");
                     else {
-                      window.sessionStorage.setItem(`quickcart-selected-address:${user?.id}`, address._id);
+                      window.sessionStorage.setItem(`quickcart-selected-address:${user?.id}`, selectedAddress._id);
                       window.sessionStorage.setItem(`quickcart-cart-donation:${user?.id}`, donationSelected ? "true" : "false");
                       onNavigate("/checkout");
                     }
                   }}>
                   <div><strong>{totalLabel}</strong><span>TOTAL</span></div>
-                  <span className="cart-drawer-proceed-label">{address ? "Proceed To Pay" : "Proceed"}<span className="cart-drawer-proceed-arrow" aria-hidden="true">→</span></span>
+                  <span className="cart-drawer-proceed-label">{isLoadingAddresses ? "Checking address…" : selectedAddress ? "Proceed To Pay" : "Proceed"}<span className="cart-drawer-proceed-arrow" aria-hidden="true">→</span></span>
                 </button>
               </footer>
             )}
@@ -386,7 +391,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
             <Checkout
               key="drawer-checkout"
               embedded
-              initialSelectedAddress={address?._id}
+              initialSelectedAddress={selectedAddress?._id}
               onBack={() => setStage("cart")}
               onAddressChange={handleAddressChange}
               onOrderSuccess={handleOrderSuccess}
@@ -407,8 +412,14 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
                 const refreshed = await getAddresses(1, 50);
                 const saved = (refreshed.data || []) as Address[];
                 setAddresses(saved);
-                const selected = saved.find((entry) => entry._id === savedId) ?? saved[0];
-                if (selected) { setAddress(selected); setAddressFormOpen(false); setEditingAddress(undefined); setStage("cart"); }
+                const selected = saved.find((entry) => entry._id === savedId);
+                if (selected) {
+                  setAddress(selected);
+                  if (user?.id) window.sessionStorage.setItem(`quickcart-selected-address:${user.id}`, selected._id);
+                  setAddressFormOpen(false);
+                  setEditingAddress(undefined);
+                  setStage("cart");
+                }
               } catch (error) { setAddressError(error instanceof Error ? error.message : "Could not save address."); }
             }}>
               {(["fullName", "phone", "addressLine", "city", "state", "pincode"] as const).map((field) => <input key={field} required value={addressForm[field] ?? ""} placeholder={field === "fullName" ? "Full name" : field === "addressLine" ? "Address" : field[0].toUpperCase() + field.slice(1)} onChange={(event) => setAddressForm((current) => ({ ...current, [field]: event.target.value }))} />)}

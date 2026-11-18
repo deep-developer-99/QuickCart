@@ -156,14 +156,13 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
           setCheckoutError("The order total could not be calculated. Please review your cart and try again.");
         }
 
-        const defaultAddress = addressData.find(
-          (address: Address) => address.isDefault,
-        );
-
         const requestedAddress = initialSelectedAddress || routeState?.selectedAddressId || (user?.id ? window.sessionStorage.getItem(`quickcart-selected-address:${user.id}`) || "" : "");
         const validSelection = addressData.find((address: Address) => address._id === requestedAddress);
-        const nextAddress = validSelection || defaultAddress;
-        if (nextAddress) setSelectedAddress(nextAddress._id);
+        if (validSelection) setSelectedAddress(validSelection._id);
+        else {
+          setSelectedAddress("");
+          if (requestedAddress && user?.id) window.sessionStorage.removeItem(`quickcart-selected-address:${user.id}`);
+        }
       } catch (error) {
         console.error("Failed to load checkout:", error);
         setAddressError("Unable to load saved addresses.");
@@ -424,7 +423,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
       if (embedded && onOrderSuccess) {
         onOrderSuccess(response?.data?.order as Order | undefined, addresses.find((address) => address._id === selectedAddress));
       } else {
-        if (user?.id) { window.sessionStorage.removeItem(`quickcart-selected-address:${user.id}`); window.sessionStorage.removeItem(`quickcart-cart-donation:${user.id}`); }
+        if (user?.id) window.sessionStorage.removeItem(`quickcart-cart-donation:${user.id}`);
         navigate("/order-confirmation");
       }
       setCheckoutError("");
@@ -493,7 +492,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
             if (embedded && onOrderSuccess) {
               onOrderSuccess(verified?.data?.order as Order | undefined, selectedAddressData);
             } else {
-              if (user?.id) { window.sessionStorage.removeItem(`quickcart-selected-address:${user.id}`); window.sessionStorage.removeItem(`quickcart-cart-donation:${user.id}`); }
+              if (user?.id) window.sessionStorage.removeItem(`quickcart-cart-donation:${user.id}`);
               navigate("/order-confirmation");
             }
             setCheckoutError("");
