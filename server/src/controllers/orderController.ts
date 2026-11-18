@@ -33,7 +33,11 @@ export const createOrderController = async (
       return;
     }
 
-    const { addressId, paymentMethod } = req.body;
+    const { addressId, paymentMethod, donationSelected = false } = req.body;
+    if (typeof donationSelected !== "boolean") {
+      res.status(400).json({ success: false, message: "Invalid donation selection" });
+      return;
+    }
 
     if (!addressId) {
       res
@@ -55,6 +59,7 @@ export const createOrderController = async (
     const order = await createOrder(req.user.id, {
       addressId,
       paymentMethod: "COD",
+      donationSelected,
     });
 
     res.status(201).json({
@@ -160,12 +165,14 @@ export const getCheckoutSummaryController = async (
       return;
     }
 
-    const checkout = await calculateCheckout(req.user.id);
+    const donationSelected = req.query.donationSelected === "true";
+    const checkout = await calculateCheckout(req.user.id, donationSelected);
     res.status(200).json({
       success: true,
       data: {
         subtotal: checkout.subtotal,
         shippingAmount: checkout.shippingAmount,
+        donationAmount: checkout.donationAmount,
         totalAmount: checkout.totalAmount,
       },
     });
@@ -189,7 +196,11 @@ export const createRazorpayOrderController = async (
       return;
     }
 
-    const { addressId } = req.body;
+    const { addressId, donationSelected = false } = req.body;
+    if (typeof donationSelected !== "boolean") {
+      res.status(400).json({ success: false, message: "Invalid donation selection" });
+      return;
+    }
 
     if (!addressId) {
       res
@@ -212,7 +223,7 @@ export const createRazorpayOrderController = async (
       return;
     }
 
-    const checkout = await calculateCheckout(req.user.id);
+    const checkout = await calculateCheckout(req.user.id, donationSelected);
 
     const razorpayOrder = await createRazorpayOrder(
       checkout.totalAmount,
@@ -252,8 +263,11 @@ export const verifyRazorpayPaymentController = async (
       return;
     }
 
-    const { addressId, razorpayPaymentId, razorpayOrderId, razorpaySignature } =
-      req.body;
+    const { addressId, razorpayPaymentId, razorpayOrderId, razorpaySignature, donationSelected = false } = req.body;
+    if (typeof donationSelected !== "boolean") {
+      res.status(400).json({ success: false, message: "Invalid donation selection" });
+      return;
+    }
 
     if (
       !addressId ||
@@ -284,7 +298,7 @@ export const verifyRazorpayPaymentController = async (
 
     // Recalculate the current cart total and compare it with the Razorpay
     // order amount before creating the QuickCart order.
-    const checkout = await calculateCheckout(req.user.id);
+    const checkout = await calculateCheckout(req.user.id, donationSelected);
     const razorpayOrder = await fetchRazorpayOrder(razorpayOrderId);
     const expectedAmount = Math.round(checkout.totalAmount * 100);
 
@@ -301,6 +315,7 @@ export const verifyRazorpayPaymentController = async (
       paymentMethod: "RAZORPAY",
       paymentId: razorpayPaymentId,
       razorpayOrderId,
+      donationSelected,
     });
 
     res.status(201).json({

@@ -1,7 +1,7 @@
 import Cart from "../models/Cart";
 import Product from "../models/Product";
 
-export const calculateCheckout = async (userId: string) => {
+export const calculateCheckout = async (userId: string, donationSelected = false) => {
   const cart = await Cart.findOne({
     user: userId,
   });
@@ -51,12 +51,14 @@ export const calculateCheckout = async (userId: string) => {
 
   const subtotal = totalAmount;
   const shippingAmount = subtotal <= 99 ? 40 : 0;
-  const finalTotal = subtotal + shippingAmount;
+  const donationAmount = donationSelected ? 1 : 0;
+  const finalTotal = subtotal + shippingAmount + donationAmount;
 
   return {
     items,
     subtotal,
     shippingAmount,
+    donationAmount,
     totalAmount: finalTotal,
   };
 };

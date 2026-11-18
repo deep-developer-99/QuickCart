@@ -28,6 +28,7 @@ export interface IOrder extends Document {
   cashfreePaymentAttemptId?: Types.ObjectId;
   paymentAttemptId?: Types.ObjectId;
   shippingAmount?: number;
+  donationAmount?: number;
   totalAmount: number;
   status: "Placed" | "Accepted" | "Out for Delivery" | "Delivered";
   createdAt: Date;
@@ -147,6 +148,7 @@ const orderSchema = new Schema<IOrder>(
     },
 
     shippingAmount: { type: Number, default: 0, min: 0 },
+    donationAmount: { type: Number, default: 0, min: 0, max: 1 },
 
     totalAmount: {
       type: Number,

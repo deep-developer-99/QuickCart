@@ -50,9 +50,10 @@ interface CheckoutProps {
   onBack?: () => void;
   onAddressChange?: (address: Address | undefined) => void;
   onOrderSuccess?: (order: Order | undefined, address: Address | undefined) => void;
+  donationSelected?: boolean;
 }
 
-const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressChange, onOrderSuccess }: CheckoutProps) => {
+const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressChange, onOrderSuccess, donationSelected = false }: CheckoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { colors } = useTheme();
@@ -141,7 +142,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
         setAddresses(addressData);
 
         try {
-          const summaryResponse = await getCheckoutSummary();
+          const summaryResponse = await getCheckoutSummary(donationSelected);
           if (summaryResponse?.success && summaryResponse.data) {
             setCheckoutSummary(summaryResponse.data);
           }
@@ -166,7 +167,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
     };
 
     loadCheckout();
-  }, [initialSelectedAddress, user?.id]);
+  }, [donationSelected, initialSelectedAddress, user?.id]);
 
   useEffect(() => {
     onAddressChange?.(addresses.find((address) => address._id === selectedAddress));
@@ -409,7 +410,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
     try {
       setIsSubmitting(true);
 
-      const response = await createOrder(selectedAddress, "COD");
+      const response = await createOrder(selectedAddress, "COD", donationSelected);
       if (embedded && onOrderSuccess) {
         onOrderSuccess(response?.data?.order as Order | undefined, addresses.find((address) => address._id === selectedAddress));
       } else {
@@ -439,7 +440,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
         throw new Error("Unable to load Razorpay Checkout.");
       }
 
-      const response = await createRazorpayOrder(selectedAddress);
+      const response = await createRazorpayOrder(selectedAddress, donationSelected);
 
       if (!response?.success || !response?.data) {
         throw new Error(
@@ -474,6 +475,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
               razorpayPaymentId: paymentResponse.razorpay_payment_id,
               razorpayOrderId: paymentResponse.razorpay_order_id,
               razorpaySignature: paymentResponse.razorpay_signature,
+              donationSelected,
             });
 
             if (embedded && onOrderSuccess) {
@@ -839,8 +841,8 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
             ))}
 
             <div className="checkout-total checkout-subtotal">
-              <span>Items total</span>
-              <strong>₹{subtotal}</strong>
+              <span>{donationSelected ? "Sub total" : "Items total"}</span>
+              <strong>₹{(subtotal + (checkoutSummary?.donationAmount ?? 0)).toFixed(2)}</strong>
             </div>
 
             <div className="checkout-total checkout-shipping">

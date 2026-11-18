@@ -17,6 +17,7 @@ interface CreateOrderData {
   razorpayOrderId?: string;
   paytmOrderId?: string;
   paymentAttemptId?: string;
+  donationSelected?: boolean;
 }
 
 interface CreateBuyNowOrderData {
@@ -39,6 +40,7 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
     razorpayOrderId,
     paytmOrderId,
     paymentAttemptId,
+    donationSelected = false,
   } = data;
 
   if (paymentAttemptId) {
@@ -124,7 +126,8 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
     // Apply consistently to COD and online payment methods.
     const subtotal = totalAmount;
     const shippingAmount = subtotal <= 99 ? 40 : 0;
-    totalAmount = subtotal + shippingAmount;
+    const donationAmount = donationSelected ? 1 : 0;
+    totalAmount = subtotal + shippingAmount + donationAmount;
 
     // 4. Reduce stock safely
     for (const cartItem of cart.items) {
@@ -161,6 +164,7 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
             ? new Types.ObjectId(paymentAttemptId)
             : undefined,
           shippingAmount,
+          donationAmount,
           totalAmount,
           status: "Placed",
         },

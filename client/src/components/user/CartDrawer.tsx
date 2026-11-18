@@ -38,13 +38,17 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
   const { cart, isLoading, isCartReady, refreshCart, updateProductQuantity, removeProduct } = useCart();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const isUser = isAuthenticated && user?.role === "user";
+  const donationStorageKey = user?.id ? `quickcart-cart-donation:${user.id}` : "";
   const [stage, setStage] = useState<DrawerStage>("cart");
   const [address, setAddress] = useState<Address>();
-  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
   const [summaryResult, setSummaryResult] = useState<{ key: string; data: CheckoutSummary } | null>(null);
   const [summaryFailure, setSummaryFailure] = useState<{ key: string; message: string } | null>(null);
   const [drawerError, setDrawerError] = useState("");
   const [shareStatus, setShareStatus] = useState("");
+  const [donationSelected, setDonationSelected] = useState(() => Boolean(
+    donationStorageKey && typeof window !== "undefined" && window.sessionStorage.getItem(donationStorageKey) === "true",
+  ));
+  const [donationExpanded, setDonationExpanded] = useState(false);
   const [orderSnapshot, setOrderSnapshot] = useState<OrderSnapshot>();
 
   const validItems = getValidCartItems(cart);
@@ -59,8 +63,9 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
   const itemsTotal = checkoutSummary?.subtotal ?? calculatedItemsTotal;
   const deliveryCharge = checkoutSummary?.shippingAmount;
   const orderTotal = checkoutSummary?.totalAmount;
-  const totalLabel = orderTotal !== undefined
-    ? `₹${orderTotal.toFixed(2)}`
+  const payableTotal = orderTotal === undefined ? undefined : orderTotal + (donationSelected ? 1 : 0);
+  const totalLabel = payableTotal !== undefined
+    ? `₹${payableTotal.toFixed(2)}`
     : isLoadingSummary ? "Calculating…" : "Unavailable";
   const handleClose = useCallback(() => {
     setStage("cart");
@@ -68,6 +73,19 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
     setShareStatus("");
     onClose();
   }, [onClose]);
+
+  useEffect(() => {
+    if (isCartReady && validItems.length > 0 && donationStorageKey) {
+      setDonationSelected(window.sessionStorage.getItem(donationStorageKey) === "true");
+    }
+  }, [donationStorageKey, isCartReady, validItems.length]);
+
+  useEffect(() => {
+    if (isCartReady && validItems.length === 0 && stage !== "success") {
+      setDonationSelected(false);
+      if (donationStorageKey) window.sessionStorage.removeItem(donationStorageKey);
+    }
+  }, [donationStorageKey, isCartReady, stage, validItems.length]);
 
   const handleShare = async () => {
     const shareData = { title: "QuickCart", text: "Shop fresh essentials on QuickCart", url: window.location.href };
@@ -122,9 +140,6 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
   useEffect(() => {
     if (!isOpen || !isUser) return;
     let active = true;
-    const loadingTimer = window.setTimeout(() => {
-      if (active) setIsLoadingAddresses(true);
-    }, 0);
     getAddresses(1, 50).then((response) => {
       if (!active || !response?.success) return;
       const saved = (response.data || []) as Address[];
@@ -134,13 +149,8 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
     }).catch((error: unknown) => {
       console.error("Failed to load cart delivery addresses:", error);
       if (active) setDrawerError("Saved addresses could not be loaded. You can retry from checkout.");
-    }).finally(() => {
-      if (active) {
-        window.clearTimeout(loadingTimer);
-        setIsLoadingAddresses(false);
-      }
     });
-    return () => { active = false; window.clearTimeout(loadingTimer); };
+    return () => { active = false; };
   }, [isOpen, isUser]);
 
   useEffect(() => {
@@ -191,11 +201,11 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
   }, []);
 
   const handleOrderSuccess = useCallback((order: Order | undefined, selectedAddress: Address | undefined) => {
-    setOrderSnapshot({ order, address: selectedAddress || address, cart, total: order?.totalAmount ?? orderTotal ?? itemsTotal });
+    setOrderSnapshot({ order, address: selectedAddress || address, cart, total: order?.totalAmount ?? payableTotal ?? itemsTotal });
     setStage("success");
     setDrawerError("");
     void refreshCart();
-  }, [address, cart, itemsTotal, orderTotal, refreshCart]);
+  }, [address, cart, itemsTotal, payableTotal, refreshCart]);
 
   if (!isOpen || !isUser) return null;
 
@@ -237,42 +247,44 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
                 </div>
               ) : (
                 <>
-                  <section className="cart-drawer-delivery" aria-label="Delivery details">
-                    <span className="cart-drawer-delivery-icon" aria-hidden="true">◷</span>
-                    <div><strong>Delivery estimate</strong><span>Delivery timing and shipment details are confirmed during checkout.</span></div>
-                  </section>
                   <section className="cart-drawer-items" aria-label="Cart products">
                     {validItems.map((item, index) => (
-                      <div className="cart-drawer-item-wrap" key={getCartProductId(item.product) || `${index}`}>
+                      <div className="cart-drawer-item-wrap" key={`${getCartProductId(item.product) || index}:${item.variantId ?? ""}`}>
                         {typeof item.product !== "string" && item.product.variants?.find((variant) => variant._id === item.variantId)?.stock === 0 && <p className="cart-drawer-stock-warning">Out of stock. Remove this item to continue.</p>}
-                        <CartItem item={item} onQuantityChange={handleQuantityChange} onRemove={handleRemove} />
+                        <CartItem item={item} onQuantityChange={handleQuantityChange} onRemove={handleRemove} hideRemove />
                       </div>
                     ))}
                   </section>
 
                   <section className="cart-drawer-bill">
-                    <h3>Bill Details</h3>
-                    <div><span>Items total</span><strong>₹{itemsTotal.toFixed(2)}</strong></div>
-                    <div><span>Delivery charge</span><strong>{isLoadingSummary ? "Calculating…" : deliveryCharge === undefined ? "Unavailable" : deliveryCharge > 0 ? `₹${deliveryCharge.toFixed(2)}` : "FREE"}</strong></div>
+                    <h3>Bill details</h3>
+                    <div><span><i aria-hidden="true">▤</i>{donationSelected ? "Sub total" : "Items total"}</span><strong>₹{(itemsTotal + (donationSelected ? 1 : 0)).toFixed(2)}</strong></div>
+                    <div><span><i aria-hidden="true">♧</i>Delivery charge</span><strong className={deliveryCharge === 0 ? "is-free" : ""}>{isLoadingSummary ? "Calculating…" : deliveryCharge === undefined ? "Unavailable" : deliveryCharge > 0 ? `₹${deliveryCharge.toFixed(2)}` : "FREE"}</strong></div>
                     <div className="cart-drawer-grand-total"><span>Grand total</span><strong>{totalLabel}</strong></div>
                     {summaryError ? <p role="alert">{summaryError}</p> : null}
                   </section>
+                  <section className="cart-drawer-donation">
+                    <span className="cart-drawer-donation-icon" aria-hidden="true">♡</span>
+                    <div className="cart-drawer-donation-copy"><strong>Feeding India donation</strong><p>{donationExpanded ? "Optional ₹1 contribution added to your order total. QuickCart does not currently remit donations to Feeding India." : "Optional ₹1 contribution added to your order total."} <button type="button" onClick={() => setDonationExpanded((expanded) => !expanded)}>{donationExpanded ? "read less" : "read more"}</button></p></div>
+                    <label className="cart-drawer-donation-toggle"><span>₹1</span><input type="checkbox" checked={donationSelected} onChange={(event) => {
+                      const selected = event.target.checked;
+                      setDonationSelected(selected);
+                      if (donationStorageKey) {
+                        if (selected) window.sessionStorage.setItem(donationStorageKey, "true");
+                        else window.sessionStorage.removeItem(donationStorageKey);
+                      }
+                    }} aria-label="Add ₹1 donation" /></label>
+                  </section>
+                  <section className="cart-drawer-policy"><strong>Cancellation Policy</strong><p>Cancellation and refund requests are reviewed by QuickCart support based on the order status.</p></section>
                 </>
               )}
             </div>
 
             {validItems.length > 0 && (
               <footer className="cart-drawer-footer">
-                <div className="cart-drawer-address-row">
-                  <span className="cart-drawer-address-pin" aria-hidden="true">⌖</span>
-                  <div>
-                    <strong>{address?.isDefault ? "Home" : "Delivery to"}</strong>
-                    <span>{isLoadingAddresses ? "Loading address…" : getAddressText(address)}</span>
-                  </div>
-                </div>
                 <div className="cart-drawer-proceed-row">
                   <div><strong>{totalLabel}</strong><span>TOTAL</span></div>
-                  <button type="button" onClick={() => setStage("checkout")}>Proceed <span aria-hidden="true">›</span></button>
+                  <button type="button" onClick={() => setStage("checkout")}>Proceed <span aria-hidden="true">→</span></button>
                 </div>
               </footer>
             )}
@@ -288,6 +300,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
               onBack={() => setStage("cart")}
               onAddressChange={handleAddressChange}
               onOrderSuccess={handleOrderSuccess}
+              donationSelected={donationSelected}
             />
           </div>
         )}

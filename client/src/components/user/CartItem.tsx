@@ -7,9 +7,10 @@ interface CartItemProps {
   item: CartItemType;
   onQuantityChange: (productId: string, quantity: number, variantId?: string) => void;
   onRemove: (productId: string, variantId?: string) => void;
+  hideRemove?: boolean;
 }
 
-const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
+const CartItem = ({ item, onQuantityChange, onRemove, hideRemove = false }: CartItemProps) => {
   const { product, quantity } = item;
   const hasProductDetails = typeof product !== "string";
   const productId = hasProductDetails ? product._id : product;
@@ -25,7 +26,7 @@ const CartItem = ({ item, onQuantityChange, onRemove }: CartItemProps) => {
         <button type="button" onClick={() => onQuantityChange(productId, quantity - 1, item.variantId)} aria-label="Decrease quantity">−</button>
         <span>{quantity}</span>
         <button type="button" onClick={() => onQuantityChange(productId, quantity + 1, item.variantId)} disabled={hasProductDetails && quantity >= (variant?.stock ?? 0)} aria-label="Increase quantity">+</button>
-      </div><button type="button" className="cart-remove-button" onClick={() => onRemove(productId, item.variantId)}>Remove</button></div>
+      </div>{!hideRemove && <button type="button" className="cart-remove-button" onClick={() => onRemove(productId, item.variantId)}>Remove</button>}</div>
     </div>
     {hasProductDetails && <div className="cart-item-total">₹{price * quantity}</div>}
   </div>;

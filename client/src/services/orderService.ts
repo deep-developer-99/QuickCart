@@ -4,10 +4,12 @@ import type { PaymentMethod } from "../types/order";
 export const createOrder = async (
   addressId: string,
   paymentMethod: PaymentMethod,
+  donationSelected = false,
 ) => {
   const response = await api.post("/orders", {
     addressId,
     paymentMethod,
+    donationSelected,
   });
 
   return response.data;
@@ -16,21 +18,23 @@ export const createOrder = async (
 export interface CheckoutSummary {
   subtotal: number;
   shippingAmount: number;
+  donationAmount?: number;
   totalAmount: number;
 }
 
-export const getCheckoutSummary = async (): Promise<{
+export const getCheckoutSummary = async (donationSelected = false): Promise<{
   success: boolean;
   data?: CheckoutSummary;
   message?: string;
 }> => {
-  const response = await api.get("/orders/checkout-summary");
+  const response = await api.get("/orders/checkout-summary", { params: { donationSelected } });
   return response.data;
 };
 
-export const createRazorpayOrder = async (addressId: string) => {
+export const createRazorpayOrder = async (addressId: string, donationSelected = false) => {
   const response = await api.post("/orders/razorpay/create-order", {
     addressId,
+    donationSelected,
   });
 
   return response.data;
@@ -41,6 +45,7 @@ export interface VerifyRazorpayPaymentData {
   razorpayPaymentId: string;
   razorpayOrderId: string;
   razorpaySignature: string;
+  donationSelected?: boolean;
 }
 
 export const verifyRazorpayPayment = async (

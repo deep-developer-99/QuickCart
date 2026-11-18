@@ -45,6 +45,7 @@ export interface Order {
   paymentMethod: PaymentMethod;
   paymentId?: string;
   razorpayOrderId?: string;
+  donationAmount?: number;
   totalAmount: number;
   status: OrderStatus;
   createdAt: string;
