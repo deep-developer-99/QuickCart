@@ -588,10 +588,8 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
           {embedded && onBack && (
             <button type="button" className="checkout-back-button" onClick={onBack} aria-label="Back to cart">←</button>
           )}
-          <div>
-            <p><button type="button" className="checkout-brand" onClick={() => navigate("/")}>QuickCart</button></p>
-            <h1>Checkout</h1>
-          </div>
+          {!embedded && <h1>Select Payment Method</h1>}
+          {embedded && <div><p><button type="button" className="checkout-brand" onClick={() => navigate("/")}>QuickCart</button></p><h1>Checkout</h1></div>}
         </div>
 
         {checkoutError && <p className="checkout-flow-error" role="alert">{checkoutError}</p>}
@@ -844,7 +842,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
             </section>
           </div>
 
-          <aside className="checkout-summary">
+          <div className="checkout-right-column"><aside className="checkout-summary">
             <section className="checkout-delivery-summary">
               <h2>Delivery Address</h2>
               {selectedAddressData ? <><strong>{selectedAddressData.addressType || (selectedAddressData.isDefault ? "Home" : "Address")}</strong><p>{[selectedAddressData.buildingName, selectedAddressData.floor && `Floor ${selectedAddressData.floor}`, selectedAddressData.towerWing, selectedAddressData.addressLine, selectedAddressData.city, selectedAddressData.state, selectedAddressData.pincode].filter(Boolean).join(", ")}</p></> : <p>Select a saved address to continue.</p>}
@@ -852,17 +850,14 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
             </section>
             <h2>My Cart <small>({cart.items.reduce((sum, item) => sum + item.quantity, 0)} items)</small></h2>
 
-            {cart.items.map((item) => (
+            <div className="checkout-cart-items">{cart.items.map((item) => (
               <div className="checkout-item" key={typeof item.product === "string" ? item.product : `${item.product._id}:${item.variantId ?? ""}`}>
                 {typeof item.product !== "string" && <img src={item.product.image} alt="" />}
                 <span>{typeof item.product === "string" ? "Product" : item.product.name} × {item.quantity}{typeof item.product !== "string" && item.variantId && <small>{item.product.variants?.find((variant) => variant._id === item.variantId)?.quantity} {item.product.variants?.find((variant) => variant._id === item.variantId)?.unit}</small>}</span>
 
-                {typeof item.product !== "string" && <strong>
-                  ₹
-                  {getCartItemUnitPrice(item) * item.quantity}
-                </strong>}
+                {typeof item.product !== "string" && <strong>₹{getCartItemUnitPrice(item) * item.quantity}{item.variantId && item.product.variants?.find((variant) => variant._id === item.variantId)?.discountPrice != null && <del>₹{item.product.variants.find((variant) => variant._id === item.variantId)?.price}</del>}</strong>}
               </div>
-            ))}
+            ))}</div>
 
             <div className="checkout-total checkout-subtotal">
               <span>{donationAmountSelected ? "Sub total" : "Items total"}</span>
@@ -880,21 +875,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
               <strong>{total === undefined ? "Unavailable" : `₹${total}`}</strong>
             </div>
 
-            <button
-              type="button"
-              className="place-order-button"
-              onClick={handlePlaceOrder}
-              disabled={isSubmitting || !paymentMethod}
-            >
-              {isSubmitting
-                ? paymentMethod === "RAZORPAY"
-                  ? "Opening Razorpay..."
-                  : "Placing Order..."
-                : paymentMethod === "RAZORPAY"
-                  ? `Pay ₹${total ?? "…"}`
-                  : "Place Order"}
-            </button>
-          </aside>
+          </aside><button type="button" className="place-order-button" onClick={handlePlaceOrder} disabled={isSubmitting || !paymentMethod}>{isSubmitting ? paymentMethod === "RAZORPAY" ? "Opening Razorpay..." : "Placing Order..." : paymentMethod === "RAZORPAY" ? `Pay ₹${total ?? "…"}` : "Place Order"}</button></div>
         </div>
       </div>
     </div>
