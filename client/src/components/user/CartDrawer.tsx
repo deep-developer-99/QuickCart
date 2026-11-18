@@ -229,11 +229,12 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
       const coordinates = await getCurrentLocation();
       const resolved = await reverseGeocodeFromBackend(coordinates.latitude, coordinates.longitude);
       setSelectedLocation({ ...coordinates, address: resolved });
+      setSearchQuery(resolved.displayName);
     } catch (error) { setLocationError(error instanceof Error ? error.message : "Unable to detect your location."); }
     finally { setIsLocating(false); }
   };
 
-  useEffect(() => { if (addressModalOpen) void locateCurrentPosition(); }, [addressModalOpen]);
+  useEffect(() => { if (addressModalOpen && !editingAddress) void locateCurrentPosition(); }, [addressModalOpen, editingAddress]);
 
   if (!isOpen || !isUser) return null;
 
@@ -361,7 +362,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
             <h3>Your saved address</h3>
             {addresses.map((saved) => <div className="cart-drawer-address-card" key={saved._id}>
               <button type="button" className="cart-drawer-address-select" onClick={() => { setAddress(saved); setStage("cart"); }}>{saved.addressType === "Work" ? "▣" : saved.addressType === "Hotel" ? "▤" : saved.isDefault ? "⌂" : "⌖"}<span><strong>{saved.addressType || (saved.isDefault ? "Home" : "Other")}</strong><small>{getAddressText(saved)}</small></span></button>
-              <button type="button" className="cart-drawer-address-edit" aria-label="Edit address" onClick={() => { setEditingAddress(saved); setAddressForm({ fullName: saved.fullName, phone: saved.phone, addressLine: saved.addressLine, city: saved.city, state: saved.state, pincode: saved.pincode }); setAddressFormOpen(true); }}>✎</button>
+              <button type="button" className="cart-drawer-address-edit" aria-label="Edit address" onClick={() => { setEditingAddress(saved); setAddressType(saved.addressType || "Home"); setAddressForm({ fullName: saved.fullName, phone: saved.phone || "", addressLine: saved.addressLine, city: saved.city, state: saved.state, pincode: saved.pincode, buildingName: saved.buildingName || "", floor: saved.floor || "", towerWing: saved.towerWing || "", landmark: saved.landmark || "" }); setSelectedLocation(saved.latitude !== undefined && saved.longitude !== undefined ? { latitude: saved.latitude, longitude: saved.longitude, accuracy: 0, address: { addressLine: saved.formattedAddress || saved.addressLine, city: saved.city, state: saved.state, pincode: saved.pincode, displayName: saved.formattedAddress || getAddressText(saved) } } : undefined); setAddressModalOpen(true); }}>✎</button>
             </div>)}
             {!addresses.length && !addressFormOpen && <p className="cart-drawer-address-empty">No saved addresses yet.</p>}
           </div>
@@ -375,7 +376,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
               {locationResults.length > 0 && <div className="cart-address-suggestions">{locationResults.map((result) => <button key={`${result.latitude}:${result.longitude}`} type="button" onClick={async () => { setLocationResults([]); try { const resolved = await reverseGeocodeFromBackend(result.latitude, result.longitude); setSelectedLocation({ latitude: result.latitude, longitude: result.longitude, accuracy: 0, address: resolved }); } catch (error) { setLocationError(error instanceof Error ? error.message : "Unable to resolve location."); } }}>{result.displayName}</button>)}</div>}
               <AddressMap latitude={selectedLocation?.latitude} longitude={selectedLocation?.longitude} onDetectLocation={() => void locateCurrentPosition()} isDetecting={isLocating} onLocationChange={setSelectedLocation} />
               <button className="cart-address-current-location" type="button" onClick={() => void locateCurrentPosition()}>◎ Go to current location</button>
-              <div className="cart-address-preview"><strong>Delivering your order to</strong><span>{selectedLocation?.address.displayName || "Select a point on the map"}</span></div>
+              <div className="cart-address-preview"><strong>Delivering your order to</strong><b>{addressForm.buildingName?.trim() || selectedLocation?.address.displayName?.split(",")[0] || "Selected location"}</b><span>{selectedLocation?.address.displayName || "Select a point on the map"}</span></div>
               {locationError && <p className="cart-address-location-error" role="alert">{locationError}</p>}
             </div>
             <form className="cart-address-form-column" onSubmit={async (event) => {
@@ -386,7 +387,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
               setIsSavingAddress(true);
               const resolved = selectedLocation.address;
               const payload: CreateAddressData = { ...addressForm, phone, addressType, latitude: selectedLocation.latitude, longitude: selectedLocation.longitude, formattedAddress: resolved.displayName, addressLine: [addressForm.buildingName, addressForm.floor && `Floor ${addressForm.floor}`, addressForm.towerWing, addressForm.landmark, resolved.addressLine].filter(Boolean).join(", "), city: resolved.city || addressForm.city || "", state: resolved.state || addressForm.state || "", pincode: resolved.pincode || addressForm.pincode || "" };
-              try { const result = await createAddress(payload); const refreshed = await getAddresses(1, 50); const saved = (refreshed.data || []) as Address[]; setAddresses(saved); const created = saved.find((item) => item._id === result?.data?._id); if (created) { setAddress(created); setAddressModalOpen(false); setStage("cart"); } else setAddressError("Address saved but could not be selected."); }
+              try { const result = editingAddress ? await updateAddress(editingAddress._id, payload) : await createAddress(payload); const refreshed = await getAddresses(1, 50); const saved = (refreshed.data || []) as Address[]; setAddresses(saved); const created = saved.find((item) => item._id === (editingAddress?._id ?? result?.data?._id)); if (created) { setAddress(created); setAddressModalOpen(false); setStage("cart"); setEditingAddress(undefined); } else setAddressError("Address saved but could not be selected."); }
               catch (error) { setAddressError(error instanceof Error ? error.message : "Could not save address."); }
               finally { setIsSavingAddress(false); }
             }}>
@@ -399,7 +400,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
               <h3>Enter your details for seamless delivery experience</h3>
               <input required value={addressForm.fullName} placeholder="Your name *" onChange={(event) => setAddressForm((current) => ({ ...current, fullName: event.target.value }))} />
               <input value={addressForm.phone ?? ""} placeholder="Your phone number (optional)" onChange={(event) => setAddressForm((current) => ({ ...current, phone: event.target.value }))} />
-              {addressError && <p role="alert">{addressError}</p>}<button className="cart-address-save" disabled={isSavingAddress}>{isSavingAddress ? "Saving…" : "Save Address"}</button>
+              {addressError && <p role="alert">{addressError}</p>}<button className="cart-address-save" disabled={isSavingAddress}>{isSavingAddress ? "Saving…" : editingAddress ? "Update Address" : "Save Address"}</button>
             </form>
           </section>
         </div>}
