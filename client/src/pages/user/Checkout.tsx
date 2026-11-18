@@ -66,13 +66,16 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
 
   const [addresses, setAddresses] = useState<Address[]>([]);
 
-  const [selectedAddress, setSelectedAddress] = useState(initialSelectedAddress || "");
+  const routeState = location.state as { selectedAddressId?: string; donationSelected?: boolean } | null;
+  const [selectedAddress, setSelectedAddress] = useState(initialSelectedAddress || routeState?.selectedAddressId || (user?.id ? window.sessionStorage.getItem(`quickcart-selected-address:${user.id}`) || "" : ""));
   const [editingAddressId, setEditingAddressId] = useState("");
   const [showAddressPicker, setShowAddressPicker] = useState(false);
   const [addressError, setAddressError] = useState("");
   const addressPickerRef = useRef<HTMLDivElement>(null);
 
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "RAZORPAY">("COD");
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "RAZORPAY" | "">("");
+  const [checkoutDonationSelected] = useState(Boolean(routeState?.donationSelected ?? (user?.id && window.sessionStorage.getItem(`quickcart-cart-donation:${user.id}`) === "true")));
+  const donationAmountSelected = embedded ? donationSelected : checkoutDonationSelected;
 
   const [showAddressForm, setShowAddressForm] = useState(
     Boolean(
@@ -144,7 +147,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
         setAddresses(addressData);
 
         try {
-          const summaryResponse = await getCheckoutSummary(donationSelected);
+          const summaryResponse = await getCheckoutSummary(donationAmountSelected);
           if (summaryResponse?.success && summaryResponse.data) {
             setCheckoutSummary(summaryResponse.data);
           }
@@ -157,9 +160,10 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
           (address: Address) => address.isDefault,
         );
 
-        if (!initialSelectedAddress && defaultAddress) {
-          setSelectedAddress(defaultAddress._id);
-        }
+        const requestedAddress = initialSelectedAddress || routeState?.selectedAddressId || (user?.id ? window.sessionStorage.getItem(`quickcart-selected-address:${user.id}`) || "" : "");
+        const validSelection = addressData.find((address: Address) => address._id === requestedAddress);
+        const nextAddress = validSelection || defaultAddress;
+        if (nextAddress) setSelectedAddress(nextAddress._id);
       } catch (error) {
         console.error("Failed to load checkout:", error);
         setAddressError("Unable to load saved addresses.");
@@ -169,11 +173,15 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
     };
 
     loadCheckout();
-  }, [donationSelected, initialSelectedAddress, user?.id]);
+  }, [donationAmountSelected, initialSelectedAddress, routeState?.selectedAddressId, user?.id]);
 
   useEffect(() => {
     onAddressChange?.(addresses.find((address) => address._id === selectedAddress));
   }, [addresses, onAddressChange, selectedAddress]);
+
+  useEffect(() => {
+    if (user?.id && selectedAddress) window.sessionStorage.setItem(`quickcart-selected-address:${user.id}`, selectedAddress);
+  }, [selectedAddress, user?.id]);
 
   /*
    * Automatically detect the user's current location when the
@@ -412,10 +420,11 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
     try {
       setIsSubmitting(true);
 
-      const response = await createOrder(selectedAddress, "COD", donationSelected);
+      const response = await createOrder(selectedAddress, "COD", donationAmountSelected);
       if (embedded && onOrderSuccess) {
         onOrderSuccess(response?.data?.order as Order | undefined, addresses.find((address) => address._id === selectedAddress));
       } else {
+        if (user?.id) { window.sessionStorage.removeItem(`quickcart-selected-address:${user.id}`); window.sessionStorage.removeItem(`quickcart-cart-donation:${user.id}`); }
         navigate("/order-confirmation");
       }
       setCheckoutError("");
@@ -442,7 +451,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
         throw new Error("Unable to load Razorpay Checkout.");
       }
 
-      const response = await createRazorpayOrder(selectedAddress, donationSelected);
+      const response = await createRazorpayOrder(selectedAddress, donationAmountSelected);
 
       if (!response?.success || !response?.data) {
         throw new Error(
@@ -478,12 +487,13 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
               razorpayPaymentId: paymentResponse.razorpay_payment_id,
               razorpayOrderId: paymentResponse.razorpay_order_id,
               razorpaySignature: paymentResponse.razorpay_signature,
-              donationSelected,
+              donationSelected: donationAmountSelected,
             });
 
             if (embedded && onOrderSuccess) {
               onOrderSuccess(verified?.data?.order as Order | undefined, selectedAddressData);
             } else {
+              if (user?.id) { window.sessionStorage.removeItem(`quickcart-selected-address:${user.id}`); window.sessionStorage.removeItem(`quickcart-cart-donation:${user.id}`); }
               navigate("/order-confirmation");
             }
             setCheckoutError("");
@@ -579,7 +589,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
             <button type="button" className="checkout-back-button" onClick={onBack} aria-label="Back to cart">←</button>
           )}
           <div>
-            <p>QUICKCART</p>
+            <p><button type="button" className="checkout-brand" onClick={() => navigate("/")}>QuickCart</button></p>
             <h1>Checkout</h1>
           </div>
         </div>
@@ -828,20 +838,24 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
                 <div>
                   <strong>Online Payment</strong>
 
-                  <p>Pay securely using Razorpay.</p>
+                  <p>Pay securely using UPI, cards, netbanking or supported wallets.</p>
                 </div>
               </label>
             </section>
           </div>
 
           <aside className="checkout-summary">
-            <h2>Order Summary</h2>
+            <section className="checkout-delivery-summary">
+              <h2>Delivery Address</h2>
+              {selectedAddressData ? <><strong>{selectedAddressData.addressType || (selectedAddressData.isDefault ? "Home" : "Address")}</strong><p>{[selectedAddressData.buildingName, selectedAddressData.floor && `Floor ${selectedAddressData.floor}`, selectedAddressData.towerWing, selectedAddressData.addressLine, selectedAddressData.city, selectedAddressData.state, selectedAddressData.pincode].filter(Boolean).join(", ")}</p></> : <p>Select a saved address to continue.</p>}
+              <button type="button" onClick={() => navigate("/cart")}>Change</button>
+            </section>
+            <h2>My Cart <small>({cart.items.reduce((sum, item) => sum + item.quantity, 0)} items)</small></h2>
 
             {cart.items.map((item) => (
               <div className="checkout-item" key={typeof item.product === "string" ? item.product : `${item.product._id}:${item.variantId ?? ""}`}>
-                <span>
-                  {typeof item.product === "string" ? "Product" : item.product.name} × {item.quantity}
-                </span>
+                {typeof item.product !== "string" && <img src={item.product.image} alt="" />}
+                <span>{typeof item.product === "string" ? "Product" : item.product.name} × {item.quantity}{typeof item.product !== "string" && item.variantId && <small>{item.product.variants?.find((variant) => variant._id === item.variantId)?.quantity} {item.product.variants?.find((variant) => variant._id === item.variantId)?.unit}</small>}</span>
 
                 {typeof item.product !== "string" && <strong>
                   ₹
@@ -851,7 +865,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
             ))}
 
             <div className="checkout-total checkout-subtotal">
-              <span>{donationSelected ? "Sub total" : "Items total"}</span>
+              <span>{donationAmountSelected ? "Sub total" : "Items total"}</span>
               <strong>₹{(subtotal + (checkoutSummary?.donationAmount ?? 0)).toFixed(2)}</strong>
             </div>
 
@@ -870,14 +884,14 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
               type="button"
               className="place-order-button"
               onClick={handlePlaceOrder}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !paymentMethod}
             >
               {isSubmitting
                 ? paymentMethod === "RAZORPAY"
                   ? "Opening Razorpay..."
                   : "Placing Order..."
                 : paymentMethod === "RAZORPAY"
-                  ? "Pay with Razorpay"
+                  ? `Pay ₹${total ?? "…"}`
                   : "Place Order"}
             </button>
           </aside>
