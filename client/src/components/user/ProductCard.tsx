@@ -92,7 +92,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
     if (!isUser) {
       openLoginModal({ onAuthenticated: async () => {
         try {
-          await addProduct(product._id, 1, chosenVariant._id);
+          await addProduct(product, 1, chosenVariant._id);
           setIsVariantDialogOpen(false);
         } catch (error) {
           console.error("Failed to add product to cart:", error);
@@ -103,7 +103,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
 
     try {
       setIsUpdating(true);
-      await addProduct(product._id, 1, chosenVariant._id);
+      await addProduct(product, 1, chosenVariant._id);
       setVariantFeedback("Added to cart");
       setIsVariantDialogOpen(false);
     } catch (error) {
@@ -111,7 +111,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
       setVariantFeedback(axios.isAxiosError(error) ? error.response?.data?.message || "Could not add this option." : "Could not add this option.");
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         openLoginModal({ onAuthenticated: async () => {
-          try { await addProduct(product._id, 1, chosenVariant._id); }
+          try { await addProduct(product, 1, chosenVariant._id); }
           catch (retryError) { console.error("Failed to add product to cart:", retryError); }
         } });
       }
@@ -132,7 +132,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
       setIsUpdating(true);
       setVariantFeedback("");
       if (nextQuantity === 0) await removeProduct(product._id, item._id);
-      else if (nextQuantity > currentQuantity) await addProduct(product._id, nextQuantity - currentQuantity, item._id);
+      else if (nextQuantity > currentQuantity) await addProduct(product, nextQuantity - currentQuantity, item._id);
       else await updateProductQuantity(product._id, nextQuantity, item._id);
     } catch (error) {
       console.error("Failed to update variant quantity:", error);

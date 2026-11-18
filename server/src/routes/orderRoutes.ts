@@ -43,6 +43,8 @@ router.get(
 // User payment/order routes
 router.post("/", authMiddleware("user"), createOrderController);
 router.post("/buy-now", authMiddleware("user"), createBuyNowOrderController);
+// POST accepts local cart identifiers/quantities; GET remains for legacy clients.
+router.post("/checkout-summary", authMiddleware("user"), getCheckoutSummaryController);
 router.get("/checkout-summary", authMiddleware("user"), getCheckoutSummaryController);
 
 router.post(

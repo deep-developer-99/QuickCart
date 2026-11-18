@@ -5,11 +5,15 @@ export const createOrder = async (
   addressId: string,
   paymentMethod: PaymentMethod,
   donationSelected = false,
+  items: Array<{ productId: string; variantId: string; quantity: number }> = [],
+  expectedTotal?: number,
 ) => {
   const response = await api.post("/orders", {
     addressId,
     paymentMethod,
     donationSelected,
+    items,
+    expectedTotal,
   });
 
   return response.data;
@@ -20,21 +24,36 @@ export interface CheckoutSummary {
   shippingAmount: number;
   donationAmount?: number;
   totalAmount: number;
+  items: Array<{
+    productId: string;
+    variantId: string;
+    name: string;
+    image?: string;
+    variantQuantity: number;
+    variantUnit: string;
+    quantity: number;
+    price: number;
+    discountPrice?: number;
+    sellingPrice: number;
+    itemTotal: number;
+  }>;
 }
 
-export const getCheckoutSummary = async (donationSelected = false): Promise<{
+export const getCheckoutSummary = async (donationSelected = false, items: Array<{ productId: string; variantId: string; quantity: number }> = []): Promise<{
   success: boolean;
   data?: CheckoutSummary;
   message?: string;
 }> => {
-  const response = await api.get("/orders/checkout-summary", { params: { donationSelected } });
+  const response = await api.post("/orders/checkout-summary", { donationSelected, items });
   return response.data;
 };
 
-export const createRazorpayOrder = async (addressId: string, donationSelected = false) => {
+export const createRazorpayOrder = async (addressId: string, donationSelected = false, items: Array<{ productId: string; variantId: string; quantity: number }> = [], expectedTotal?: number) => {
   const response = await api.post("/orders/razorpay/create-order", {
     addressId,
     donationSelected,
+    items,
+    expectedTotal,
   });
 
   return response.data;
@@ -46,6 +65,8 @@ export interface VerifyRazorpayPaymentData {
   razorpayOrderId: string;
   razorpaySignature: string;
   donationSelected?: boolean;
+  items: Array<{ productId: string; variantId: string; quantity: number }>;
+  expectedTotal?: number;
 }
 
 export const verifyRazorpayPayment = async (

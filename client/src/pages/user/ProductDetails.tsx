@@ -176,7 +176,7 @@ const ProductDetails = () => {
       openLoginModal({
         onAuthenticated: async () => {
           try {
-            await addProduct(product._id, 1, selectedVariant?._id);
+            await addProduct(product, 1, selectedVariant?._id);
             setSuccess("Product added to cart successfully.");
           } catch (requestError) {
             setError(axios.isAxiosError(requestError) && requestError.response?.data?.message
@@ -192,7 +192,7 @@ const ProductDetails = () => {
       setIsAdding(true);
       setError("");
       setSuccess("");
-      await addProduct(product._id, 1, selectedVariant?._id);
+      await addProduct(product, 1, selectedVariant?._id);
       setSuccess("Product added to cart successfully.");
     } catch (requestError) {
       console.error("Add to cart error:", requestError);
@@ -200,7 +200,7 @@ const ProductDetails = () => {
         openLoginModal({
           onAuthenticated: async () => {
             try {
-              await addProduct(product._id, 1, selectedVariant?._id);
+              await addProduct(product, 1, selectedVariant?._id);
               setSuccess("Product added to cart successfully.");
             } catch (retryError) {
               setError(axios.isAxiosError(retryError) && retryError.response?.data?.message

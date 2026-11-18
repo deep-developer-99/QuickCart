@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import axios from "axios";
 
-import { getCart } from "../../services/cartService";
 import { getCheckoutSummary } from "../../services/orderService";
 
 import { createAddress, getAddresses, updateAddress } from "../../services/addressService";
@@ -25,10 +24,10 @@ import type { Order } from "../../types/order";
 import type { CheckoutSummary } from "../../services/orderService";
 
 import { loadRazorpayScript } from "../../utils/razorpay";
-import { normalizeCartResponse } from "../../utils/normalizeCartResponse";
-import { getCartItemUnitPrice, getCartSubtotal } from "../../utils/hasValidCartItems";
+import { getCartItemUnitPrice, getCartProductId, getCartSubtotal } from "../../utils/hasValidCartItems";
 
 import { useAppSelector } from "../../hooks/reduxHooks";
+import { useCart } from "../../context/useCart";
 import { useTheme } from "../../theme/ThemeContext";
 
 import "./Checkout.css";
@@ -60,9 +59,11 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
   const { colors } = useTheme();
 
   const user = useAppSelector((state) => state.auth.user);
+  const { cart: localCart, isCartReady, removePurchasedItems } = useCart();
 
   const [cart, setCart] = useState<Cart | null>(null);
   const [checkoutSummary, setCheckoutSummary] = useState<CheckoutSummary | null>(null);
+  const [priceChangesAccepted, setPriceChangesAccepted] = useState(false);
 
   const [addresses, setAddresses] = useState<Address[]>([]);
 
@@ -109,6 +110,18 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
   const addressSaveLockRef = useRef(false);
   const autoPaymentStartedRef = useRef(false);
 
+  const getCheckoutItems = () => (cart?.items ?? []).flatMap((item) => {
+    const productId = typeof item.product === "string" ? item.product : item.product._id;
+    return productId && item.variantId ? [{ productId, variantId: item.variantId, quantity: item.quantity }] : [];
+  });
+  const refreshVerifiedSummary = async () => {
+    const response = await getCheckoutSummary(donationAmountSelected, getCheckoutItems());
+    if (response?.success && response.data) {
+      setCheckoutSummary(response.data);
+      setPriceChangesAccepted(false);
+    }
+  };
+
   useEffect(() => {
     if (!showAddressPicker) return;
 
@@ -129,50 +142,57 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
     };
   }, [showAddressPicker]);
 
-  // Load cart and saved addresses once when Checkout mounts.
+  // Validate local cart identifiers and quantities against current server prices and stock.
   useEffect(() => {
-    const loadCheckout = async () => {
-      try {
-        setAddressError("");
-        const [cartResponse, addressResponse] = await Promise.all([
-          getCart(),
-          getAddresses(1, 50),
-        ]);
+    if (!isCartReady) return;
+    let active = true;
+    setIsLoading(true);
+    setCart(localCart);
+    setCheckoutSummary(null);
+    setCheckoutError("");
+    const lines = (localCart?.items ?? []).map((item) => ({ productId: typeof item.product === "string" ? item.product : item.product._id, variantId: item.variantId ?? "", quantity: item.quantity }));
+    if (lines.length === 0) {
+      setIsLoading(false);
+      return () => { active = false; };
+    }
+    getCheckoutSummary(donationAmountSelected, lines)
+      .then((response) => {
+        if (!active) return;
+        if (!response?.success || !response.data) throw new Error(response?.message || "Unable to verify current prices and stock.");
+        setCheckoutSummary(response.data);
+        setPriceChangesAccepted(false);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        console.error("Failed to validate checkout items:", error);
+        const message = axios.isAxiosError(error) ? error.response?.data?.message || "Unable to verify current prices and stock." : error instanceof Error ? error.message : "Unable to verify current prices and stock.";
+        setCheckoutError(message);
+      })
+      .finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; };
+  }, [donationAmountSelected, isCartReady, localCart]);
 
-        const cartData = normalizeCartResponse(cartResponse, user?.id ?? "");
-
-        const addressData = addressResponse.data || [];
-
-        setCart(cartData);
-        setAddresses(addressData);
-
-        try {
-          const summaryResponse = await getCheckoutSummary(donationAmountSelected);
-          if (summaryResponse?.success && summaryResponse.data) {
-            setCheckoutSummary(summaryResponse.data);
-          }
-        } catch (summaryError) {
-          console.error("Failed to calculate checkout summary:", summaryError);
-          setCheckoutError("The order total could not be calculated. Please review your cart and try again.");
-        }
-
-        const requestedAddress = initialSelectedAddress || routeState?.selectedAddressId || (user?.id ? window.sessionStorage.getItem(`quickcart-selected-address:${user.id}`) || "" : "");
-        const validSelection = addressData.find((address: Address) => address._id === requestedAddress);
-        if (validSelection) setSelectedAddress(validSelection._id);
-        else {
-          setSelectedAddress("");
-          if (requestedAddress && user?.id) window.sessionStorage.removeItem(`quickcart-selected-address:${user.id}`);
-        }
-      } catch (error) {
-        console.error("Failed to load checkout:", error);
-        setAddressError("Unable to load saved addresses.");
-      } finally {
-        setIsLoading(false);
+  useEffect(() => {
+    let active = true;
+    getAddresses(1, 50).then((response) => {
+      if (!active) return;
+      const saved = (response.data || []) as Address[];
+      setAddresses(saved);
+      const requestedAddress = initialSelectedAddress || routeState?.selectedAddressId || (user?.id ? window.sessionStorage.getItem(`quickcart-selected-address:${user.id}`) || "" : "");
+      const validSelection = saved.find((address) => address._id === requestedAddress);
+      if (validSelection) setSelectedAddress(validSelection._id);
+      else {
+        setSelectedAddress("");
+        if (requestedAddress && user?.id) window.sessionStorage.removeItem(`quickcart-selected-address:${user.id}`);
       }
-    };
-
-    loadCheckout();
-  }, [donationAmountSelected, initialSelectedAddress, routeState?.selectedAddressId, user?.id]);
+    }).catch((error: unknown) => {
+      if (active) {
+        console.error("Failed to load checkout addresses:", error);
+        setAddressError("Unable to load saved addresses.");
+      }
+    });
+    return () => { active = false; };
+  }, [initialSelectedAddress, routeState?.selectedAddressId, user?.id]);
 
   useEffect(() => {
     onAddressChange?.(addresses.find((address) => address._id === selectedAddress));
@@ -181,6 +201,12 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
   useEffect(() => {
     if (user?.id && selectedAddress) window.sessionStorage.setItem(`quickcart-selected-address:${user.id}`, selectedAddress);
   }, [selectedAddress, user?.id]);
+
+  const changedPrices = (checkoutSummary?.items ?? []).filter((verified) => {
+    const item = cart?.items.find((entry) => (typeof entry.product === "string" ? entry.product : entry.product._id) === verified.productId && entry.variantId === verified.variantId);
+    return item && Math.abs(getCartItemUnitPrice(item) - verified.sellingPrice) > 0.009;
+  });
+  const hasUnacceptedPriceChanges = changedPrices.length > 0 && !priceChangesAccepted;
 
   /*
    * Automatically detect the user's current location when the
@@ -418,8 +444,10 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
   const handleCodOrder = async () => {
     try {
       setIsSubmitting(true);
-
-      const response = await createOrder(selectedAddress, "COD", donationAmountSelected);
+      const orderedItems = getCheckoutItems();
+      const expectedTotal = checkoutSummary?.totalAmount;
+      const response = await createOrder(selectedAddress, "COD", donationAmountSelected, orderedItems, expectedTotal);
+      await removePurchasedItems(orderedItems);
       if (embedded && onOrderSuccess) {
         onOrderSuccess(response?.data?.order as Order | undefined, addresses.find((address) => address._id === selectedAddress));
       } else {
@@ -429,6 +457,9 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
       setCheckoutError("");
     } catch (error) {
       console.error("Failed to place COD order:", error);
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        try { await refreshVerifiedSummary(); } catch (refreshError) { console.error("Unable to refresh checkout prices:", refreshError); }
+      }
       const message = axios.isAxiosError(error)
         ? error.response?.data?.message || "Failed to place order."
         : error instanceof Error ? error.message : "Failed to place order.";
@@ -443,6 +474,8 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
   const handleRazorpayPayment = async () => {
     try {
       setIsSubmitting(true);
+      const orderedItems = getCheckoutItems();
+      const expectedTotal = checkoutSummary?.totalAmount;
 
       const isLoaded = await loadRazorpayScript();
 
@@ -450,7 +483,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
         throw new Error("Unable to load Razorpay Checkout.");
       }
 
-      const response = await createRazorpayOrder(selectedAddress, donationAmountSelected);
+      const response = await createRazorpayOrder(selectedAddress, donationAmountSelected, orderedItems, expectedTotal);
 
       if (!response?.success || !response?.data) {
         throw new Error(
@@ -487,7 +520,10 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
               razorpayOrderId: paymentResponse.razorpay_order_id,
               razorpaySignature: paymentResponse.razorpay_signature,
               donationSelected: donationAmountSelected,
+              items: orderedItems,
+              expectedTotal,
             });
+            await removePurchasedItems(orderedItems);
 
             if (embedded && onOrderSuccess) {
               onOrderSuccess(verified?.data?.order as Order | undefined, selectedAddressData);
@@ -519,6 +555,9 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
       razorpay.open();
     } catch (error) {
       console.error("Razorpay payment error:", error);
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        try { await refreshVerifiedSummary(); } catch (refreshError) { console.error("Unable to refresh checkout prices:", refreshError); }
+      }
       const message = axios.isAxiosError(error)
         ? error.response?.data?.message || "Unable to start Razorpay payment."
         : error instanceof Error ? error.message : "Unable to start Razorpay payment.";
@@ -541,6 +580,14 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
       setCheckoutError("Your cart is empty.");
       return;
     }
+    if (hasUnacceptedPriceChanges) {
+      setCheckoutError("Review and accept the updated item prices before continuing.");
+      return;
+    }
+    if (!checkoutSummary) {
+      setCheckoutError("Checkout prices are still being verified. Please try again shortly.");
+      return;
+    }
 
     setCheckoutError("");
     submissionLockRef.current = true;
@@ -553,11 +600,11 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
   };
 
   useEffect(() => {
-    if (!autoStartPayment || autoPaymentStartedRef.current || isLoading || !cart?.items.length || !selectedAddress) return;
+    if (!autoStartPayment || autoPaymentStartedRef.current || isLoading || hasUnacceptedPriceChanges || !checkoutSummary || !cart?.items.length || !selectedAddress) return;
     autoPaymentStartedRef.current = true;
     submissionLockRef.current = true;
     void handleRazorpayPayment();
-  }, [autoStartPayment, cart, isLoading, selectedAddress]);
+  }, [autoStartPayment, cart, checkoutSummary, hasUnacceptedPriceChanges, isLoading, selectedAddress]);
 
   if (isLoading) {
     return <div className="checkout-message">Loading checkout...</div>;
@@ -575,7 +622,6 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
   const subtotal = checkoutSummary?.subtotal ?? cartSubtotal;
   const shippingAmount = checkoutSummary?.shippingAmount;
   const total = checkoutSummary?.totalAmount;
-
   const selectedAddressData = addresses.find(
     (address) => address._id === selectedAddress,
   );
@@ -848,13 +894,22 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
             </section>
             <h2>My Cart <small>({cart.items.reduce((sum, item) => sum + item.quantity, 0)} items)</small></h2>
 
+            {changedPrices.length > 0 && <div className="checkout-flow-error" role="status">
+              <strong>Some item prices changed.</strong>
+              {changedPrices.map((verified) => {
+                const item = cart.items.find((entry) => (typeof entry.product === "string" ? entry.product : entry.product._id) === verified.productId && entry.variantId === verified.variantId);
+                return <p key={`${verified.productId}:${verified.variantId}`}>{verified.name}: ₹{item ? getCartItemUnitPrice(item).toFixed(2) : "—"} → ₹{verified.sellingPrice.toFixed(2)}</p>;
+              })}
+              {!priceChangesAccepted && <button type="button" onClick={() => { setPriceChangesAccepted(true); setCheckoutError(""); }}>Review and accept updated prices</button>}
+              {priceChangesAccepted && <p>Updated prices accepted.</p>}
+            </div>}
             <div className="checkout-cart-items">{cart.items.map((item) => (
               <div className="checkout-item" key={typeof item.product === "string" ? item.product : `${item.product._id}:${item.variantId ?? ""}`}>
                 {typeof item.product !== "string" && <img src={item.product.image} alt="" />}
                 <b className="checkout-item-quantity">{item.quantity}×</b>
                 <span>{typeof item.product === "string" ? "Product" : item.product.name}{typeof item.product !== "string" && item.variantId && <small>{item.product.variants?.find((variant) => variant._id === item.variantId)?.quantity} {item.product.variants?.find((variant) => variant._id === item.variantId)?.unit}</small>}</span>
 
-                {typeof item.product !== "string" && <strong>₹{getCartItemUnitPrice(item) * item.quantity}{item.variantId && item.product.variants?.find((variant) => variant._id === item.variantId)?.discountPrice != null && <del>₹{item.product.variants.find((variant) => variant._id === item.variantId)?.price}</del>}</strong>}
+                {typeof item.product !== "string" && <strong>₹{((checkoutSummary?.items.find((verified) => verified.productId === getCartProductId(item.product) && verified.variantId === item.variantId)?.sellingPrice ?? getCartItemUnitPrice(item)) * item.quantity).toFixed(2)}{item.variantId && item.product.variants?.find((variant) => variant._id === item.variantId)?.discountPrice != null && <del>₹{item.product.variants.find((variant) => variant._id === item.variantId)?.price}</del>}</strong>}
               </div>
             ))}</div>
 
@@ -874,7 +929,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
               <strong>{total === undefined ? "Unavailable" : `₹${total.toFixed(2)}`}</strong>
             </div>
 
-          </aside><button type="button" className="place-order-button" onClick={handlePlaceOrder} disabled={isSubmitting || !paymentMethod}>{isSubmitting ? paymentMethod === "RAZORPAY" ? "Opening Razorpay..." : "Placing Order..." : paymentMethod === "RAZORPAY" ? `Pay ₹${total ?? "…"}` : "Place Order"}</button></div>
+          </aside><button type="button" className="place-order-button" onClick={handlePlaceOrder} disabled={isSubmitting || !paymentMethod || !checkoutSummary || hasUnacceptedPriceChanges}>{isSubmitting ? paymentMethod === "RAZORPAY" ? "Opening Razorpay..." : "Placing Order..." : paymentMethod === "RAZORPAY" ? `Pay ₹${total ?? "…"}` : "Place Order"}</button></div>
         </div>
       </div>
     </div>

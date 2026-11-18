@@ -4,6 +4,7 @@ import Order from "../models/Order";
 import Cart from "../models/Cart";
 import Address from "../models/Address";
 import Product from "../models/Product";
+import { normalizeCheckoutItems } from "./checkoutService";
 import {
   notifyCustomerAboutOrderStatus,
   notifyVendorsAboutNewOrder,
@@ -18,6 +19,8 @@ interface CreateOrderData {
   paytmOrderId?: string;
   paymentAttemptId?: string;
   donationSelected?: boolean;
+  cartItems?: unknown;
+  expectedTotal?: number;
 }
 
 interface CreateBuyNowOrderData {
@@ -41,6 +44,8 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
     paytmOrderId,
     paymentAttemptId,
     donationSelected = false,
+    cartItems: requestedItems,
+    expectedTotal,
   } = data;
 
   if (paymentAttemptId) {
@@ -64,13 +69,17 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
     }
 
     // 1. Get user's cart
-    const cart = await Cart.findOne({
-      user: userId,
-    }).session(session);
-
-    if (!cart || cart.items.length === 0) {
-      throw new Error("Cart is empty");
-    }
+    const cart = requestedItems === undefined
+      ? await Cart.findOne({ user: userId }).session(session)
+      : null;
+    const items = requestedItems === undefined
+      ? (cart?.items ?? []).map((item: any) => ({
+          productId: item.product.toString(),
+          variantId: item.variantId?.toString() ?? "",
+          quantity: item.quantity,
+        }))
+      : normalizeCheckoutItems(requestedItems);
+    if (items.length === 0) throw new Error("Cart is empty");
 
     // 2. Check address belongs to this user
     const address = await Address.findOne({
@@ -87,9 +96,9 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
     const orderItems = [];
 
     // 3. Validate products and calculate total
-    for (const cartItem of cart.items) {
+    for (const cartItem of items) {
       const product = await Product.findOne({
-        _id: cartItem.product,
+        _id: cartItem.productId,
         isActive: true,
       }).session(session);
 
@@ -97,7 +106,7 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
         throw new Error("One or more products are no longer available");
       }
 
-      const variant = cartItem.variantId ? product.variants?.find((item: any) => item._id.toString() === cartItem.variantId?.toString() && item.isActive) : undefined;
+      const variant = cartItem.variantId ? product.variants?.find((item: any) => item._id.toString() === cartItem.variantId && item.isActive) : undefined;
       if (!variant) throw new Error(`Select an available variant for ${product.name}`);
       if (variant.stock < cartItem.quantity) {
         throw new Error(`Insufficient stock for ${product.name}`);
@@ -128,13 +137,16 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
     const shippingAmount = subtotal <= 99 ? 40 : 0;
     const donationAmount = donationSelected ? 1 : 0;
     totalAmount = subtotal + shippingAmount + donationAmount;
+    if (expectedTotal !== undefined && (!Number.isFinite(expectedTotal) || Math.abs(totalAmount - expectedTotal) > 0.009)) {
+      throw new Error("Checkout total changed. Review the latest prices and try again.");
+    }
 
     // 4. Reduce stock safely
-    for (const cartItem of cart.items) {
+    for (const cartItem of items) {
       const variantId = cartItem.variantId;
       if (!variantId) throw new Error("Cart item is missing a selected variant");
       const updatedProduct = await Product.findOneAndUpdate(
-        { _id: cartItem.product, isActive: true, variants: { $elemMatch: { _id: variantId, isActive: true, stock: { $gte: cartItem.quantity } } } },
+        { _id: cartItem.productId, isActive: true, variants: { $elemMatch: { _id: variantId, isActive: true, stock: { $gte: cartItem.quantity } } } },
         { $inc: { "variants.$.stock": -cartItem.quantity } },
         {
           new: true,
@@ -175,11 +187,10 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
     );
 
     // 6. Clear cart
-    cart.items = [];
-
-    await cart.save({
-      session,
-    });
+    if (cart) {
+      cart.items = [];
+      await cart.save({ session });
+    }
 
     // 7. Commit transaction
     await session.commitTransaction();

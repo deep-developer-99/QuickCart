@@ -75,6 +75,8 @@ export const createCashfreeSessionController = async (
       productId,
       quantity = 1,
       paymentMethod,
+      items,
+      expectedTotal,
     } = req.body as {
       addressId?: string;
       checkoutMode?: "cart" | "buyNow";
@@ -82,6 +84,8 @@ export const createCashfreeSessionController = async (
       variantId?: string;
       quantity?: number;
       paymentMethod?: CashfreePaymentMethod;
+      items?: unknown;
+      expectedTotal?: number;
     };
     if (!addressId || !Types.ObjectId.isValid(addressId)) {
       res
@@ -156,7 +160,11 @@ export const createCashfreeSessionController = async (
       resolvedProductId = product._id.toString();
       resolvedQuantity = parsedQuantity;
     } else {
-      const checkout = await calculateCheckout(req.user.id);
+      const checkout = await calculateCheckout(req.user.id, false, items);
+      if (expectedTotal !== undefined && (!Number.isFinite(Number(expectedTotal)) || Math.abs(checkout.totalAmount - Number(expectedTotal)) > 0.009)) {
+        res.status(409).json({ success: false, message: "Checkout total changed. Review the latest prices and try again." });
+        return;
+      }
       itemsSnapshot = checkout.items.map((item) => toSnapshotItem(item.product, item.quantity, { _id: item.variantId, quantity: item.variantQuantity, unit: item.variantUnit, price: item.price, discountPrice: item.discountPrice }, item.price, item.discountedPrice));
     }
 

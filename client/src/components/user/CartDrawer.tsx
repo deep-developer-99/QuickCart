@@ -5,8 +5,6 @@ import { useCart } from "../../context/useCart";
 import { useAppSelector } from "../../hooks/reduxHooks";
 import { getCartProductId, getCartSubtotal, getValidCartItems, hasValidCartItems } from "../../utils/hasValidCartItems";
 import { createAddress, getAddresses, updateAddress } from "../../services/addressService";
-import { getCheckoutSummary } from "../../services/orderService";
-import type { CheckoutSummary } from "../../services/orderService";
 import type { Address, CreateAddressData } from "../../types/address";
 import type { Order } from "../../types/order";
 import CartItem from "./CartItem";
@@ -37,7 +35,7 @@ const getAddressText = (address?: Address) => address
   : "Add a delivery address to continue";
 
 const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDrawerProps) => {
-  const { cart, isLoading, isCartReady, refreshCart, updateProductQuantity, removeProduct } = useCart();
+  const { cart, isLoading, isCartReady, updateProductQuantity, removeProduct } = useCart();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const isUser = isAuthenticated && user?.role === "user";
   const donationStorageKey = user?.id ? `quickcart-cart-donation:${user.id}` : "";
@@ -63,8 +61,6 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [addressForm, setAddressForm] = useState<CreateAddressData>({ fullName: "", phone: "", addressLine: "", city: "", state: "", pincode: "" });
   const [addressError, setAddressError] = useState("");
-  const [summaryResult, setSummaryResult] = useState<{ key: string; data: CheckoutSummary } | null>(null);
-  const [summaryFailure, setSummaryFailure] = useState<{ key: string; message: string } | null>(null);
   const [drawerError, setDrawerError] = useState("");
   const [shareStatus, setShareStatus] = useState("");
   const [donationSelected, setDonationSelected] = useState(() => Boolean(
@@ -76,19 +72,11 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
   const validItems = getValidCartItems(cart);
   const validItemCount = validItems.reduce((sum, item) => sum + item.quantity, 0);
   const calculatedItemsTotal = getCartSubtotal(validItems) ?? 0;
-  const cartSummaryKey = validItems.map((item) => typeof item.product === "string"
-    ? `${item.product}:${item.quantity}`
-    : `${item.product._id}:${item.variantId ?? ""}:${item.quantity}:${item.product.variants?.map((variant) => `${variant._id}:${variant.price}:${variant.discountPrice ?? ""}:${variant.stock}`).join(",") ?? ""}`).join("|");
-  const checkoutSummary = summaryResult?.key === cartSummaryKey ? summaryResult.data : null;
-  const summaryError = summaryFailure?.key === cartSummaryKey ? summaryFailure.message : "";
-  const isLoadingSummary = Boolean(isOpen && validItems.length && !checkoutSummary && !summaryError);
-  const itemsTotal = checkoutSummary?.subtotal ?? calculatedItemsTotal;
-  const deliveryCharge = checkoutSummary?.shippingAmount;
-  const orderTotal = checkoutSummary?.totalAmount;
-  const payableTotal = orderTotal === undefined ? undefined : orderTotal + (donationSelected ? 1 : 0);
-  const totalLabel = payableTotal !== undefined
-    ? `₹${payableTotal.toFixed(2)}`
-    : isLoadingSummary ? "Calculating…" : "Unavailable";
+  const itemsTotal = calculatedItemsTotal;
+  const deliveryCharge = validItems.length > 0 && itemsTotal <= 99 ? 40 : 0;
+  const orderTotal = itemsTotal + deliveryCharge;
+  const payableTotal = orderTotal + (donationSelected ? 1 : 0);
+  const totalLabel = `₹${payableTotal.toFixed(2)}`;
   const handleClose = useCallback(() => {
     setStage("cart");
     setDrawerError("");
@@ -179,25 +167,6 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
     return () => { active = false; };
   }, [isOpen, isUser, stage, user?.id]);
 
-  useEffect(() => {
-    if (!isOpen || !isUser || validItems.length === 0) return;
-
-    let active = true;
-    getCheckoutSummary().then((response) => {
-      if (!active) return;
-      if (!response?.success || !response.data) {
-        throw new Error(response?.message || "Unable to calculate current cart total.");
-      }
-      setSummaryResult({ key: cartSummaryKey, data: response.data });
-      setSummaryFailure(null);
-    }).catch((error: unknown) => {
-      if (!active) return;
-      console.error("Failed to calculate cart total:", error);
-      setSummaryFailure({ key: cartSummaryKey, message: error instanceof Error ? error.message : "Unable to calculate current cart total." });
-    });
-    return () => { active = false; };
-  }, [cart, cartSummaryKey, isOpen, isUser, validItems.length]);
-
   const handleBackdropMouseDown = (event: MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) handleClose();
   };
@@ -230,8 +199,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
     setOrderSnapshot({ order, address: selectedAddress || address, cart, total: order?.totalAmount ?? payableTotal ?? itemsTotal });
     setStage("success");
     setDrawerError("");
-    void refreshCart();
-  }, [address, cart, itemsTotal, payableTotal, refreshCart]);
+  }, [address, cart, itemsTotal, payableTotal]);
 
   const locateCurrentPosition = async () => {
     setIsLocating(true); setLocationError("");
@@ -346,9 +314,8 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
                   <section className="cart-drawer-bill">
                     <h3>Bill details</h3>
                     <div><span><i aria-hidden="true">▤</i>{donationSelected ? "Sub total" : "Items total"}</span><strong>₹{(itemsTotal + (donationSelected ? 1 : 0)).toFixed(2)}</strong></div>
-                    <div><span><i aria-hidden="true">♧</i>Delivery charge</span><strong className={deliveryCharge === 0 ? "is-free" : ""}>{isLoadingSummary ? "Calculating…" : deliveryCharge === undefined ? "Unavailable" : deliveryCharge > 0 ? `₹${deliveryCharge.toFixed(2)}` : "FREE"}</strong></div>
+                    <div><span><i aria-hidden="true">♧</i>Delivery charge</span><strong className={deliveryCharge === 0 ? "is-free" : ""}>{deliveryCharge > 0 ? `₹${deliveryCharge.toFixed(2)}` : "FREE"}</strong></div>
                     <div className="cart-drawer-grand-total"><span>Grand total</span><strong>{totalLabel}</strong></div>
-                    {summaryError ? <p role="alert">{summaryError}</p> : null}
                   </section>
                   <section className="cart-drawer-donation">
                     <span className="cart-drawer-donation-icon" aria-hidden="true">♡</span>
@@ -370,7 +337,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
             {validItems.length > 0 && (
               <footer className="cart-drawer-footer">
                 {selectedAddress && <div className="cart-drawer-selected-address"><span aria-hidden="true">⌖</span><div><strong>Delivering to {selectedAddress.addressType || (selectedAddress.isDefault ? "Home" : "Saved address")}</strong><small>{getAddressText(selectedAddress)}</small></div><button type="button" onClick={() => setStage("address")}>Change</button></div>}
-                <button type="button" className="cart-drawer-proceed-row" disabled={isLoadingAddresses || isLoadingSummary || payableTotal === undefined} onClick={() => {
+                <button type="button" className="cart-drawer-proceed-row" disabled={isLoadingAddresses} onClick={() => {
                     if (!selectedAddress) setStage("address");
                     else {
                       window.sessionStorage.setItem(`quickcart-selected-address:${user?.id}`, selectedAddress._id);
