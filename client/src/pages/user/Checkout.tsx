@@ -24,6 +24,7 @@ import type { Order } from "../../types/order";
 import type { CheckoutSummary } from "../../services/orderService";
 
 import { loadRazorpayScript } from "../../utils/razorpay";
+import { getConfirmedOrder } from "../../utils/confirmedOrder";
 import { getCartItemUnitPrice, getCartProductId, getCartSubtotal } from "../../utils/hasValidCartItems";
 
 import { useAppSelector } from "../../hooks/reduxHooks";
@@ -447,9 +448,10 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
       const orderedItems = getCheckoutItems();
       const expectedTotal = checkoutSummary?.totalAmount;
       const response = await createOrder(selectedAddress, "COD", donationAmountSelected, orderedItems, expectedTotal);
+      const confirmedOrder = getConfirmedOrder<Order>(response, "The order was not confirmed. Your cart is unchanged.");
       await removePurchasedItems(orderedItems);
       if (embedded && onOrderSuccess) {
-        onOrderSuccess(response?.data?.order as Order | undefined, addresses.find((address) => address._id === selectedAddress));
+        onOrderSuccess(confirmedOrder, addresses.find((address) => address._id === selectedAddress));
       } else {
         if (user?.id) window.sessionStorage.removeItem(`quickcart-cart-donation:${user.id}`);
         navigate("/order-confirmation");
@@ -523,10 +525,11 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
               items: orderedItems,
               expectedTotal,
             });
+            const confirmedOrder = getConfirmedOrder<Order>(verified, "Payment was not verified. Your cart is unchanged.");
             await removePurchasedItems(orderedItems);
 
             if (embedded && onOrderSuccess) {
-              onOrderSuccess(verified?.data?.order as Order | undefined, selectedAddressData);
+              onOrderSuccess(confirmedOrder, selectedAddressData);
             } else {
               if (user?.id) window.sessionStorage.removeItem(`quickcart-cart-donation:${user.id}`);
               navigate("/order-confirmation");
