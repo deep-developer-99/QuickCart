@@ -14,6 +14,12 @@ export interface Address {
   longitude?: number;
 
   isDefault: boolean;
+  addressType?: "Home" | "Work" | "Hotel" | "Other";
+  buildingName?: string;
+  floor?: string;
+  towerWing?: string;
+  landmark?: string;
+  formattedAddress?: string;
 }
 
 export interface CreateAddressData {
@@ -29,4 +35,10 @@ export interface CreateAddressData {
   longitude?: number;
 
   isDefault?: boolean;
+  addressType?: "Home" | "Work" | "Hotel" | "Other";
+  buildingName?: string;
+  floor?: string;
+  towerWing?: string;
+  landmark?: string;
+  formattedAddress?: string;
 }

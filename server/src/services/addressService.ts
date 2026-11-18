@@ -15,6 +15,12 @@ interface CreateAddressData {
   longitude?: number;
 
   isDefault?: boolean;
+  addressType?: "Home" | "Work" | "Hotel" | "Other";
+  buildingName?: string;
+  floor?: string;
+  towerWing?: string;
+  landmark?: string;
+  formattedAddress?: string;
 }
 
 interface UpdateAddressData {
@@ -30,6 +36,12 @@ interface UpdateAddressData {
   longitude?: number;
 
   isDefault?: boolean;
+  addressType?: "Home" | "Work" | "Hotel" | "Other";
+  buildingName?: string;
+  floor?: string;
+  towerWing?: string;
+  landmark?: string;
+  formattedAddress?: string;
 }
 
 // Create Address

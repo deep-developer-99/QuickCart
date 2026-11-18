@@ -4,17 +4,19 @@ import type { MouseEvent } from "react";
 import { useCart } from "../../context/useCart";
 import { useAppSelector } from "../../hooks/reduxHooks";
 import { getCartProductId, getCartSubtotal, getValidCartItems, hasValidCartItems } from "../../utils/hasValidCartItems";
-import { getAddresses } from "../../services/addressService";
+import { createAddress, getAddresses, updateAddress } from "../../services/addressService";
 import { getCheckoutSummary } from "../../services/orderService";
 import type { CheckoutSummary } from "../../services/orderService";
-import type { Address } from "../../types/address";
+import type { Address, CreateAddressData } from "../../types/address";
 import type { Order } from "../../types/order";
 import CartItem from "./CartItem";
 import Checkout from "../../pages/user/Checkout";
+import AddressMap from "../common/AddressMap";
+import { getCurrentLocation, reverseGeocodeFromBackend, searchLocations, type DetectedLocation, type LocationSearchResult } from "../../services/locationService";
 
 import "./CartDrawer.css";
 
-type DrawerStage = "cart" | "checkout" | "success";
+type DrawerStage = "cart" | "address" | "checkout" | "success";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -41,6 +43,19 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
   const donationStorageKey = user?.id ? `quickcart-cart-donation:${user.id}` : "";
   const [stage, setStage] = useState<DrawerStage>("cart");
   const [address, setAddress] = useState<Address>();
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [editingAddress, setEditingAddress] = useState<Address>();
+  const [addressFormOpen, setAddressFormOpen] = useState(false);
+  const [addressModalOpen, setAddressModalOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<DetectedLocation>();
+  const [locationError, setLocationError] = useState("");
+  const [isLocating, setIsLocating] = useState(false);
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [addressType, setAddressType] = useState<CreateAddressData["addressType"]>("Home");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [locationResults, setLocationResults] = useState<LocationSearchResult[]>([]);
+  const [addressForm, setAddressForm] = useState<CreateAddressData>({ fullName: "", phone: "", addressLine: "", city: "", state: "", pincode: "" });
+  const [addressError, setAddressError] = useState("");
   const [summaryResult, setSummaryResult] = useState<{ key: string; data: CheckoutSummary } | null>(null);
   const [summaryFailure, setSummaryFailure] = useState<{ key: string; message: string } | null>(null);
   const [drawerError, setDrawerError] = useState("");
@@ -138,20 +153,21 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
   }, [cart, handleClose, isCartReady, isOpen, isUser, stage]);
 
   useEffect(() => {
-    if (!isOpen || !isUser) return;
+    if (!isOpen || !isUser || (stage !== "cart" && stage !== "address")) return;
     let active = true;
     getAddresses(1, 50).then((response) => {
       if (!active || !response?.success) return;
       const saved = (response.data || []) as Address[];
+      setAddresses(saved);
       setAddress((current) => current && saved.some((item) => item._id === current._id)
         ? saved.find((item) => item._id === current._id)
-        : saved.find((item) => item.isDefault) || saved[0]);
+        : undefined);
     }).catch((error: unknown) => {
       console.error("Failed to load cart delivery addresses:", error);
       if (active) setDrawerError("Saved addresses could not be loaded. You can retry from checkout.");
     });
     return () => { active = false; };
-  }, [isOpen, isUser]);
+  }, [isOpen, isUser, stage]);
 
   useEffect(() => {
     if (!isOpen || !isUser || validItems.length === 0) return;
@@ -207,9 +223,21 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
     void refreshCart();
   }, [address, cart, itemsTotal, payableTotal, refreshCart]);
 
+  const locateCurrentPosition = async () => {
+    setIsLocating(true); setLocationError("");
+    try {
+      const coordinates = await getCurrentLocation();
+      const resolved = await reverseGeocodeFromBackend(coordinates.latitude, coordinates.longitude);
+      setSelectedLocation({ ...coordinates, address: resolved });
+    } catch (error) { setLocationError(error instanceof Error ? error.message : "Unable to detect your location."); }
+    finally { setIsLocating(false); }
+  };
+
+  useEffect(() => { if (addressModalOpen) void locateCurrentPosition(); }, [addressModalOpen]);
+
   if (!isOpen || !isUser) return null;
 
-  const heading = stage === "cart" ? "My Cart" : stage === "checkout" ? "Checkout" : "Order placed";
+  const heading = stage === "cart" ? "My Cart" : stage === "address" ? "Select delivery address" : stage === "checkout" ? "Payment" : "Order placed";
 
   return (
     <div className={`cart-drawer-overlay${isClosing ? " cart-drawer-overlay--closing" : ""}`} onMouseDown={handleBackdropMouseDown}>
@@ -217,6 +245,8 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
         <header className="cart-drawer-header">
           {stage === "cart" ? (
             <button type="button" className="cart-drawer-back" onClick={handleClose} aria-label="Back to shopping">←</button>
+          ) : stage === "address" ? (
+            <button type="button" className="cart-drawer-back" onClick={() => { setAddressFormOpen(false); setStage("cart"); }} aria-label="Back to cart">←</button>
           ) : stage !== "success" ? (
             <button type="button" className="cart-drawer-back" onClick={() => setStage("cart")} aria-label="Back to cart">←</button>
           ) : null}
@@ -282,9 +312,13 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
 
             {validItems.length > 0 && (
               <footer className="cart-drawer-footer">
+                {address && <div className="cart-drawer-selected-address"><span aria-hidden="true">⌖</span><div><strong>Delivering to {address.isDefault ? "Home" : "Saved address"}</strong><small>{getAddressText(address)}</small></div><button type="button" onClick={() => setStage("address")}>Change</button></div>}
                 <div className="cart-drawer-proceed-row">
                   <div><strong>{totalLabel}</strong><span>TOTAL</span></div>
-                  <button type="button" onClick={() => setStage("checkout")}>Proceed <span aria-hidden="true">→</span></button>
+                  <button type="button" disabled={Boolean(address && !payableTotal)} onClick={() => {
+                    if (!address) setStage("address");
+                    else setStage("checkout");
+                  }}>{address ? "Proceed To Pay" : "Proceed"} <span aria-hidden="true">→</span></button>
                 </div>
               </footer>
             )}
@@ -301,9 +335,74 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
               onAddressChange={handleAddressChange}
               onOrderSuccess={handleOrderSuccess}
               donationSelected={donationSelected}
+              autoStartPayment
             />
           </div>
         )}
+
+        {stage === "address" && (
+          <div className="cart-drawer-address-content">
+            <button className="cart-drawer-add-address" type="button" onClick={() => { setEditingAddress(undefined); setAddressType("Home"); setSelectedLocation(undefined); setAddressForm({ fullName: user?.name ?? "", phone: user?.phone ?? "", addressLine: "", city: "", state: "", pincode: "", buildingName: "", floor: "", towerWing: "", landmark: "" }); setAddressModalOpen(true); }}>＋ Add a new address</button>
+            {addressFormOpen && <form className="cart-drawer-address-form" onSubmit={async (event) => {
+              event.preventDefault(); setAddressError("");
+              try {
+                const response = editingAddress ? await updateAddress(editingAddress._id, addressForm) : await createAddress(addressForm);
+                const savedId = response?.data?.data?._id ?? response?.address?._id;
+                const refreshed = await getAddresses(1, 50);
+                const saved = (refreshed.data || []) as Address[];
+                setAddresses(saved);
+                const selected = saved.find((entry) => entry._id === savedId) ?? saved[0];
+                if (selected) { setAddress(selected); setAddressFormOpen(false); setEditingAddress(undefined); setStage("cart"); }
+              } catch (error) { setAddressError(error instanceof Error ? error.message : "Could not save address."); }
+            }}>
+              {(["fullName", "phone", "addressLine", "city", "state", "pincode"] as const).map((field) => <input key={field} required value={addressForm[field] ?? ""} placeholder={field === "fullName" ? "Full name" : field === "addressLine" ? "Address" : field[0].toUpperCase() + field.slice(1)} onChange={(event) => setAddressForm((current) => ({ ...current, [field]: event.target.value }))} />)}
+              <button type="submit">{editingAddress ? "Save address" : "Save and select"}</button>{addressError && <p role="alert">{addressError}</p>}
+            </form>}
+            <h3>Your saved address</h3>
+            {addresses.map((saved) => <div className="cart-drawer-address-card" key={saved._id}>
+              <button type="button" className="cart-drawer-address-select" onClick={() => { setAddress(saved); setStage("cart"); }}>{saved.addressType === "Work" ? "▣" : saved.addressType === "Hotel" ? "▤" : saved.isDefault ? "⌂" : "⌖"}<span><strong>{saved.addressType || (saved.isDefault ? "Home" : "Other")}</strong><small>{getAddressText(saved)}</small></span></button>
+              <button type="button" className="cart-drawer-address-edit" aria-label="Edit address" onClick={() => { setEditingAddress(saved); setAddressForm({ fullName: saved.fullName, phone: saved.phone, addressLine: saved.addressLine, city: saved.city, state: saved.state, pincode: saved.pincode }); setAddressFormOpen(true); }}>✎</button>
+            </div>)}
+            {!addresses.length && !addressFormOpen && <p className="cart-drawer-address-empty">No saved addresses yet.</p>}
+          </div>
+        )}
+
+        {addressModalOpen && <div className="cart-address-modal-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setAddressModalOpen(false); }}>
+          <section className="cart-address-modal" role="dialog" aria-modal="true" aria-label="Add new address">
+            <button type="button" className="cart-address-modal-close" onClick={() => setAddressModalOpen(false)} aria-label="Close">×</button>
+            <div className="cart-address-map-column">
+              <form className="cart-address-search" onSubmit={async (event) => { event.preventDefault(); try { setLocationResults(await searchLocations(searchQuery)); } catch (error) { setLocationError(error instanceof Error ? error.message : "Location search failed."); } }}><input value={searchQuery} placeholder="Search for area, street name..." onChange={(event) => setSearchQuery(event.target.value)} /><button type="submit">Search</button></form>
+              {locationResults.length > 0 && <div className="cart-address-suggestions">{locationResults.map((result) => <button key={`${result.latitude}:${result.longitude}`} type="button" onClick={async () => { setLocationResults([]); try { const resolved = await reverseGeocodeFromBackend(result.latitude, result.longitude); setSelectedLocation({ latitude: result.latitude, longitude: result.longitude, accuracy: 0, address: resolved }); } catch (error) { setLocationError(error instanceof Error ? error.message : "Unable to resolve location."); } }}>{result.displayName}</button>)}</div>}
+              <AddressMap latitude={selectedLocation?.latitude} longitude={selectedLocation?.longitude} onDetectLocation={() => void locateCurrentPosition()} isDetecting={isLocating} onLocationChange={setSelectedLocation} />
+              <button className="cart-address-current-location" type="button" onClick={() => void locateCurrentPosition()}>◎ Go to current location</button>
+              <div className="cart-address-preview"><strong>Delivering your order to</strong><span>{selectedLocation?.address.displayName || "Select a point on the map"}</span></div>
+              {locationError && <p className="cart-address-location-error" role="alert">{locationError}</p>}
+            </div>
+            <form className="cart-address-form-column" onSubmit={async (event) => {
+              event.preventDefault(); setAddressError("");
+              if (!selectedLocation) { setAddressError("Select a delivery location on the map."); return; }
+              const phone = addressForm.phone?.replace(/\D/g, "") ?? "";
+              if (phone && !/^[6-9]\d{9}$/.test(phone)) { setAddressError("Enter a valid 10-digit Indian phone number."); return; }
+              setIsSavingAddress(true);
+              const resolved = selectedLocation.address;
+              const payload: CreateAddressData = { ...addressForm, phone, addressType, latitude: selectedLocation.latitude, longitude: selectedLocation.longitude, formattedAddress: resolved.displayName, addressLine: [addressForm.buildingName, addressForm.floor && `Floor ${addressForm.floor}`, addressForm.towerWing, addressForm.landmark, resolved.addressLine].filter(Boolean).join(", "), city: resolved.city || addressForm.city || "", state: resolved.state || addressForm.state || "", pincode: resolved.pincode || addressForm.pincode || "" };
+              try { const result = await createAddress(payload); const refreshed = await getAddresses(1, 50); const saved = (refreshed.data || []) as Address[]; setAddresses(saved); const created = saved.find((item) => item._id === result?.data?._id); if (created) { setAddress(created); setAddressModalOpen(false); setStage("cart"); } else setAddressError("Address saved but could not be selected."); }
+              catch (error) { setAddressError(error instanceof Error ? error.message : "Could not save address."); }
+              finally { setIsSavingAddress(false); }
+            }}>
+              <h2>Enter complete address</h2><label>Save address as *</label>
+              <div className="cart-address-types">{(["Home", "Work", "Hotel", "Other"] as const).map((type) => <button key={type} type="button" className={addressType === type ? "selected" : ""} onClick={() => setAddressType(type)}>{type}</button>)}</div>
+              {([ ["buildingName", "Office / Building name *", true], ["floor", "Floor *", true], ["towerWing", "Tower / Wing (optional)", false], ["landmark", "Nearby landmark (optional)", false] ] as const).map(([field, placeholder, required]) => <input key={field} required={required} value={addressForm[field] ?? ""} placeholder={placeholder} onChange={(event) => setAddressForm((current) => ({ ...current, [field]: event.target.value }))} />)}
+              <input required value={addressForm.city || selectedLocation?.address.city || ""} placeholder="City / locality *" onChange={(event) => setAddressForm((current) => ({ ...current, city: event.target.value }))} />
+              <input required value={addressForm.state || selectedLocation?.address.state || ""} placeholder="State *" onChange={(event) => setAddressForm((current) => ({ ...current, state: event.target.value }))} />
+              <input required value={addressForm.pincode || selectedLocation?.address.pincode || ""} placeholder="Postal code *" onChange={(event) => setAddressForm((current) => ({ ...current, pincode: event.target.value }))} />
+              <h3>Enter your details for seamless delivery experience</h3>
+              <input required value={addressForm.fullName} placeholder="Your name *" onChange={(event) => setAddressForm((current) => ({ ...current, fullName: event.target.value }))} />
+              <input value={addressForm.phone ?? ""} placeholder="Your phone number (optional)" onChange={(event) => setAddressForm((current) => ({ ...current, phone: event.target.value }))} />
+              {addressError && <p role="alert">{addressError}</p>}<button className="cart-address-save" disabled={isSavingAddress}>{isSavingAddress ? "Saving…" : "Save Address"}</button>
+            </form>
+          </section>
+        </div>}
 
         {stage === "success" && orderSnapshot && (
           <div className="cart-drawer-success">

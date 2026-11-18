@@ -15,6 +15,12 @@ export interface IAddress extends Document {
   longitude?: number;
 
   isDefault: boolean;
+  addressType?: "Home" | "Work" | "Hotel" | "Other";
+  buildingName?: string;
+  floor?: string;
+  towerWing?: string;
+  landmark?: string;
+  formattedAddress?: string;
 
   createdAt: Date;
   updatedAt: Date;
@@ -36,7 +42,7 @@ const addressSchema = new Schema<IAddress>(
 
     phone: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
     },
 
@@ -80,6 +86,12 @@ const addressSchema = new Schema<IAddress>(
       type: Boolean,
       default: false,
     },
+    addressType: { type: String, enum: ["Home", "Work", "Hotel", "Other"], default: "Home" },
+    buildingName: { type: String, trim: true, maxlength: 120 },
+    floor: { type: String, trim: true, maxlength: 40 },
+    towerWing: { type: String, trim: true, maxlength: 80 },
+    landmark: { type: String, trim: true, maxlength: 120 },
+    formattedAddress: { type: String, trim: true, maxlength: 500 },
   },
   {
     timestamps: true,

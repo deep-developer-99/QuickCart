@@ -51,9 +51,10 @@ interface CheckoutProps {
   onAddressChange?: (address: Address | undefined) => void;
   onOrderSuccess?: (order: Order | undefined, address: Address | undefined) => void;
   donationSelected?: boolean;
+  autoStartPayment?: boolean;
 }
 
-const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressChange, onOrderSuccess, donationSelected = false }: CheckoutProps) => {
+const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressChange, onOrderSuccess, donationSelected = false, autoStartPayment = false }: CheckoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { colors } = useTheme();
@@ -103,6 +104,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
   const [checkoutError, setCheckoutError] = useState("");
   const submissionLockRef = useRef(false);
   const addressSaveLockRef = useRef(false);
+  const autoPaymentStartedRef = useRef(false);
 
   useEffect(() => {
     if (!showAddressPicker) return;
@@ -464,6 +466,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
         prefill: {
           name: selectedAddressData?.fullName,
           contact: selectedAddressData?.phone,
+          email: user?.email,
         },
         theme: {
           color: colors.primary,
@@ -539,6 +542,13 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
 
     await handleRazorpayPayment();
   };
+
+  useEffect(() => {
+    if (!autoStartPayment || autoPaymentStartedRef.current || isLoading || !cart?.items.length || !selectedAddress) return;
+    autoPaymentStartedRef.current = true;
+    submissionLockRef.current = true;
+    void handleRazorpayPayment();
+  }, [autoStartPayment, cart, isLoading, selectedAddress]);
 
   if (isLoading) {
     return <div className="checkout-message">Loading checkout...</div>;
