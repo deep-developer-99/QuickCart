@@ -9,5 +9,5 @@ import {
 const router = Router();
 router.post("/forward", authMiddleware("user", "vendor"), forwardGeocodeController);
 router.get("/reverse", authMiddleware("user", "vendor"), reverseGeocodeController);
-router.post("/search", authMiddleware("vendor"), searchLocationsController);
+router.post("/search", authMiddleware("user", "vendor"), searchLocationsController);
 export default router;

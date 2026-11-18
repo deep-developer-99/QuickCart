@@ -139,19 +139,14 @@ const AddressMap = ({
       const nextLongitude = center.lng;
       const requestId = ++geocodeRequestRef.current;
 
+      onLocationChangeRef.current({
+        latitude: nextLatitude,
+        longitude: nextLongitude,
+        accuracy: 0,
+        address: { addressLine: "", city: "", state: "", pincode: "", displayName: "" },
+      });
+
       if (!reverseGeocodeOnMoveRef.current) {
-        onLocationChangeRef.current({
-          latitude: nextLatitude,
-          longitude: nextLongitude,
-          accuracy: 0,
-          address: {
-            addressLine: "",
-            city: "",
-            state: "",
-            pincode: "",
-            displayName: "",
-          },
-        });
         return;
       }
 

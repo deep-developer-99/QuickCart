@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 
 import { useCart } from "../../context/useCart";
@@ -12,7 +12,7 @@ import type { Order } from "../../types/order";
 import CartItem from "./CartItem";
 import Checkout from "../../pages/user/Checkout";
 import AddressMap from "../common/AddressMap";
-import { getCurrentLocation, reverseGeocodeFromBackend, searchLocations, type DetectedLocation, type LocationSearchResult } from "../../services/locationService";
+import { extractAddressComponents, getCurrentLocation, reverseGeocodeFromBackend, searchLocations, type DetectedLocation, type LocationSearchResult } from "../../services/locationService";
 
 import "./CartDrawer.css";
 
@@ -54,6 +54,11 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
   const [addressType, setAddressType] = useState<CreateAddressData["addressType"]>("Home");
   const [searchQuery, setSearchQuery] = useState("");
   const [locationResults, setLocationResults] = useState<LocationSearchResult[]>([]);
+  const [isSearchingLocations, setIsSearchingLocations] = useState(false);
+  const [locationSearchError, setLocationSearchError] = useState("");
+  const [manualSearchMode, setManualSearchMode] = useState(false);
+  const [activeLocationResult, setActiveLocationResult] = useState(-1);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [addressForm, setAddressForm] = useState<CreateAddressData>({ fullName: "", phone: "", addressLine: "", city: "", state: "", pincode: "" });
   const [addressError, setAddressError] = useState("");
   const [summaryResult, setSummaryResult] = useState<{ key: string; data: CheckoutSummary } | null>(null);
@@ -228,11 +233,57 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
     try {
       const coordinates = await getCurrentLocation();
       const resolved = await reverseGeocodeFromBackend(coordinates.latitude, coordinates.longitude);
-      setSelectedLocation({ ...coordinates, address: resolved });
-      setSearchQuery(resolved.displayName);
+      handleSelectedLocationChange({ ...coordinates, address: resolved });
     } catch (error) { setLocationError(error instanceof Error ? error.message : "Unable to detect your location."); }
     finally { setIsLocating(false); }
   };
+
+  const handleSelectedLocationChange = (location: DetectedLocation) => {
+    setManualSearchMode(false);
+    setLocationResults([]);
+    setLocationSearchError("");
+    setActiveLocationResult(-1);
+    setSelectedLocation(location);
+    setSearchQuery(location.address.displayName || "Resolving address…");
+    setLocationError("");
+    setAddressForm((current) => ({ ...current, city: location.address.city, state: location.address.state, pincode: location.address.pincode }));
+  };
+
+  const handleLocationSuggestionSelect = (result: LocationSearchResult) => {
+    const resolved = extractAddressComponents({ display_name: result.displayName, address: result.address });
+    handleSelectedLocationChange({ latitude: result.latitude, longitude: result.longitude, accuracy: 0, address: resolved });
+  };
+
+  useEffect(() => {
+    if (!addressModalOpen || !manualSearchMode || searchQuery.trim().length < 3) {
+      setLocationResults([]);
+      setIsSearchingLocations(false);
+      setLocationSearchError("");
+      return;
+    }
+    const controller = new AbortController();
+    const query = searchQuery.trim();
+    const timer = window.setTimeout(async () => {
+      setIsSearchingLocations(true);
+      setLocationSearchError("");
+      try {
+        const results = await searchLocations(query, controller.signal);
+        if (!controller.signal.aborted) {
+          setLocationResults(results);
+          setActiveLocationResult(-1);
+          if (!results.length) setLocationSearchError("No matching locations found.");
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setLocationResults([]);
+          setLocationSearchError("Location search is temporarily unavailable. Please try again shortly.");
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsSearchingLocations(false);
+      }
+    }, 500);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [addressModalOpen, manualSearchMode, searchQuery]);
 
   useEffect(() => { if (addressModalOpen && !editingAddress) void locateCurrentPosition(); }, [addressModalOpen, editingAddress]);
 
@@ -314,17 +365,17 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
             {validItems.length > 0 && (
               <footer className="cart-drawer-footer">
                 {address && <div className="cart-drawer-selected-address"><span aria-hidden="true">⌖</span><div><strong>Delivering to {address.isDefault ? "Home" : "Saved address"}</strong><small>{getAddressText(address)}</small></div><button type="button" onClick={() => setStage("address")}>Change</button></div>}
-                <div className="cart-drawer-proceed-row">
-                  <div><strong>{totalLabel}</strong><span>TOTAL</span></div>
-                  <button type="button" disabled={Boolean(address && !payableTotal)} onClick={() => {
+                <button type="button" className="cart-drawer-proceed-row" disabled={isLoadingSummary || payableTotal === undefined} onClick={() => {
                     if (!address) setStage("address");
                     else {
                       window.sessionStorage.setItem(`quickcart-selected-address:${user?.id}`, address._id);
                       window.sessionStorage.setItem(`quickcart-cart-donation:${user?.id}`, donationSelected ? "true" : "false");
                       onNavigate("/checkout");
                     }
-                  }}>{address ? "Proceed To Pay" : "Proceed"} <span aria-hidden="true">→</span></button>
-                </div>
+                  }}>
+                  <div><strong>{totalLabel}</strong><span>TOTAL</span></div>
+                  <span className="cart-drawer-proceed-label">{address ? "Proceed To Pay" : "Proceed"}<span className="cart-drawer-proceed-arrow" aria-hidden="true">→</span></span>
+                </button>
               </footer>
             )}
           </>
@@ -347,7 +398,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
 
         {stage === "address" && (
           <div className="cart-drawer-address-content">
-            <button className="cart-drawer-add-address" type="button" onClick={() => { setEditingAddress(undefined); setAddressType("Home"); setSelectedLocation(undefined); setAddressForm({ fullName: user?.name ?? "", phone: user?.phone ?? "", addressLine: "", city: "", state: "", pincode: "", buildingName: "", floor: "", towerWing: "", landmark: "" }); setAddressModalOpen(true); }}>＋ Add a new address</button>
+            <button className="cart-drawer-add-address" type="button" onClick={() => { setEditingAddress(undefined); setManualSearchMode(false); setLocationResults([]); setAddressType("Home"); setSelectedLocation(undefined); setAddressForm({ fullName: user?.name ?? "", phone: user?.phone ?? "", addressLine: "", city: "", state: "", pincode: "", buildingName: "", floor: "", towerWing: "", landmark: "" }); setAddressModalOpen(true); }}>＋ Add a new address</button>
             {addressFormOpen && <form className="cart-drawer-address-form" onSubmit={async (event) => {
               event.preventDefault(); setAddressError("");
               try {
@@ -366,7 +417,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
             <h3>Your saved address</h3>
             {addresses.map((saved) => <div className="cart-drawer-address-card" key={saved._id}>
               <button type="button" className="cart-drawer-address-select" onClick={() => { setAddress(saved); if (user?.id) window.sessionStorage.setItem(`quickcart-selected-address:${user.id}`, saved._id); setStage("cart"); }}>{saved.addressType === "Work" ? "▣" : saved.addressType === "Hotel" ? "▤" : saved.isDefault ? "⌂" : "⌖"}<span><strong>{saved.addressType || (saved.isDefault ? "Home" : "Other")}</strong><small>{getAddressText(saved)}</small></span></button>
-              <button type="button" className="cart-drawer-address-edit" aria-label="Edit address" onClick={() => { setEditingAddress(saved); setAddressType(saved.addressType || "Home"); setAddressForm({ fullName: saved.fullName, phone: saved.phone || "", addressLine: saved.addressLine, city: saved.city, state: saved.state, pincode: saved.pincode, buildingName: saved.buildingName || "", floor: saved.floor || "", towerWing: saved.towerWing || "", landmark: saved.landmark || "" }); setSelectedLocation(saved.latitude !== undefined && saved.longitude !== undefined ? { latitude: saved.latitude, longitude: saved.longitude, accuracy: 0, address: { addressLine: saved.formattedAddress || saved.addressLine, city: saved.city, state: saved.state, pincode: saved.pincode, displayName: saved.formattedAddress || getAddressText(saved) } } : undefined); setAddressModalOpen(true); }}>✎</button>
+              <button type="button" className="cart-drawer-address-edit" aria-label="Edit address" onClick={() => { setEditingAddress(saved); setManualSearchMode(false); setLocationResults([]); setAddressType(saved.addressType || "Home"); setAddressForm({ fullName: saved.fullName, phone: saved.phone || "", addressLine: saved.addressLine, city: saved.city, state: saved.state, pincode: saved.pincode, buildingName: saved.buildingName || "", floor: saved.floor || "", towerWing: saved.towerWing || "", landmark: saved.landmark || "" }); setSelectedLocation(saved.latitude !== undefined && saved.longitude !== undefined ? { latitude: saved.latitude, longitude: saved.longitude, accuracy: 0, address: { addressLine: saved.formattedAddress || saved.addressLine, city: saved.city, state: saved.state, pincode: saved.pincode, displayName: saved.formattedAddress || getAddressText(saved) } } : undefined); setSearchQuery(saved.formattedAddress || getAddressText(saved)); setAddressModalOpen(true); }}>✎</button>
             </div>)}
             {!addresses.length && !addressFormOpen && <p className="cart-drawer-address-empty">No saved addresses yet.</p>}
           </div>
@@ -376,15 +427,29 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
           <section className="cart-address-modal" role="dialog" aria-modal="true" aria-label="Add new address">
             <button type="button" className="cart-address-modal-close" onClick={() => setAddressModalOpen(false)} aria-label="Close">×</button>
             <div className="cart-address-map-column">
-              <form className="cart-address-search" onSubmit={async (event) => { event.preventDefault(); try { setLocationResults(await searchLocations(searchQuery)); } catch (error) { setLocationError(error instanceof Error ? error.message : "Location search failed."); } }}><input value={searchQuery} placeholder="Search for area, street name..." onChange={(event) => setSearchQuery(event.target.value)} /><button type="submit">Search</button></form>
-              {locationResults.length > 0 && <div className="cart-address-suggestions">{locationResults.map((result) => <button key={`${result.latitude}:${result.longitude}`} type="button" onClick={async () => { setLocationResults([]); try { const resolved = await reverseGeocodeFromBackend(result.latitude, result.longitude); setSelectedLocation({ latitude: result.latitude, longitude: result.longitude, accuracy: 0, address: resolved }); } catch (error) { setLocationError(error instanceof Error ? error.message : "Unable to resolve location."); } }}>{result.displayName}</button>)}</div>}
-              <AddressMap latitude={selectedLocation?.latitude} longitude={selectedLocation?.longitude} onDetectLocation={() => void locateCurrentPosition()} isDetecting={isLocating} onLocationChange={setSelectedLocation} />
+              <form className="cart-address-search" onSubmit={(event) => event.preventDefault()}>
+                <svg className="cart-address-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.2 4.2" /></svg>
+                <input ref={searchInputRef} value={searchQuery} placeholder="Search for area, street name..." onChange={(event) => { setSearchQuery(event.target.value); setManualSearchMode(true); setLocationResults([]); setLocationSearchError(""); }} onKeyDown={(event) => {
+                  if (event.key === "ArrowDown" && locationResults.length) { event.preventDefault(); setActiveLocationResult((index) => (index + 1) % locationResults.length); }
+                  else if (event.key === "ArrowUp" && locationResults.length) { event.preventDefault(); setActiveLocationResult((index) => (index <= 0 ? locationResults.length - 1 : index - 1)); }
+                  else if (event.key === "Enter" && activeLocationResult >= 0 && locationResults[activeLocationResult]) { event.preventDefault(); handleLocationSuggestionSelect(locationResults[activeLocationResult]); }
+                  else if (event.key === "Escape") { setLocationResults([]); setActiveLocationResult(-1); }
+                }} aria-label="Search for an address" aria-autocomplete="list" aria-expanded={locationResults.length > 0} aria-controls="cart-address-suggestions" aria-activedescendant={activeLocationResult >= 0 ? `cart-address-result-${activeLocationResult}` : undefined} />
+                {searchQuery && <button className="cart-address-search-clear" type="button" aria-label="Clear search" onClick={() => { setSearchQuery(""); setManualSearchMode(true); setLocationResults([]); setLocationSearchError(""); searchInputRef.current?.focus(); }}>×</button>}
+              </form>
+              {(locationResults.length > 0 || isSearchingLocations || locationSearchError) && <div id="cart-address-suggestions" className="cart-address-suggestions" role="listbox">
+                {isSearchingLocations && <p className="cart-address-search-status">Searching locations…</p>}
+                {!isSearchingLocations && locationResults.map((result, index) => <button id={`cart-address-result-${index}`} key={`${result.latitude}:${result.longitude}`} type="button" role="option" aria-selected={activeLocationResult === index} className={activeLocationResult === index ? "active" : ""} onMouseDown={(event) => event.preventDefault()} onClick={() => handleLocationSuggestionSelect(result)}><span className="cart-address-result-icon" aria-hidden="true">⌖</span><span><strong>{result.displayName.split(",")[0]}</strong><small>{result.displayName}</small></span></button>)}
+                {!isSearchingLocations && !locationResults.length && locationSearchError && <p className="cart-address-search-status" role="status">{locationSearchError}</p>}
+              </div>}
+              <AddressMap latitude={selectedLocation?.latitude} longitude={selectedLocation?.longitude} onDetectLocation={() => void locateCurrentPosition()} isDetecting={isLocating} onLocationChange={handleSelectedLocationChange} />
               <div className="cart-address-preview"><strong>Delivering your order to</strong>{addressForm.buildingName?.trim() && <b>{addressForm.buildingName.trim()}</b>}<span>{selectedLocation?.address.displayName || "Select a point on the map"}</span></div>
               {locationError && <p className="cart-address-location-error" role="alert">{locationError}</p>}
             </div>
             <form className="cart-address-form-column" onSubmit={async (event) => {
               event.preventDefault(); setAddressError("");
               if (!selectedLocation) { setAddressError("Select a delivery location on the map."); return; }
+              if (!selectedLocation.address.displayName) { setAddressError("Wait for the address to finish updating, or choose another map location."); return; }
               const phone = addressForm.phone?.replace(/\D/g, "") ?? "";
               if (phone && !/^[6-9]\d{9}$/.test(phone)) { setAddressError("Enter a valid 10-digit Indian phone number."); return; }
               setIsSavingAddress(true);

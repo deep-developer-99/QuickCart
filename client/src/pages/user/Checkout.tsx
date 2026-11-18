@@ -846,14 +846,14 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
             <section className="checkout-delivery-summary">
               <h2>Delivery Address</h2>
               {selectedAddressData ? <><strong>{selectedAddressData.addressType || (selectedAddressData.isDefault ? "Home" : "Address")}</strong><p>{[selectedAddressData.buildingName, selectedAddressData.floor && `Floor ${selectedAddressData.floor}`, selectedAddressData.towerWing, selectedAddressData.addressLine, selectedAddressData.city, selectedAddressData.state, selectedAddressData.pincode].filter(Boolean).join(", ")}</p></> : <p>Select a saved address to continue.</p>}
-              <button type="button" onClick={() => navigate("/cart")}>Change</button>
             </section>
             <h2>My Cart <small>({cart.items.reduce((sum, item) => sum + item.quantity, 0)} items)</small></h2>
 
             <div className="checkout-cart-items">{cart.items.map((item) => (
               <div className="checkout-item" key={typeof item.product === "string" ? item.product : `${item.product._id}:${item.variantId ?? ""}`}>
                 {typeof item.product !== "string" && <img src={item.product.image} alt="" />}
-                <span>{typeof item.product === "string" ? "Product" : item.product.name} × {item.quantity}{typeof item.product !== "string" && item.variantId && <small>{item.product.variants?.find((variant) => variant._id === item.variantId)?.quantity} {item.product.variants?.find((variant) => variant._id === item.variantId)?.unit}</small>}</span>
+                <b className="checkout-item-quantity">{item.quantity}×</b>
+                <span>{typeof item.product === "string" ? "Product" : item.product.name}{typeof item.product !== "string" && item.variantId && <small>{item.product.variants?.find((variant) => variant._id === item.variantId)?.quantity} {item.product.variants?.find((variant) => variant._id === item.variantId)?.unit}</small>}</span>
 
                 {typeof item.product !== "string" && <strong>₹{getCartItemUnitPrice(item) * item.quantity}{item.variantId && item.product.variants?.find((variant) => variant._id === item.variantId)?.discountPrice != null && <del>₹{item.product.variants.find((variant) => variant._id === item.variantId)?.price}</del>}</strong>}
               </div>
@@ -865,14 +865,14 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
             </div>
 
             <div className="checkout-total checkout-shipping">
-              <span>Delivery</span>
-              <strong>{shippingAmount === undefined ? "Unavailable" : shippingAmount > 0 ? `₹${shippingAmount}` : "FREE"}</strong>
+              <span>Delivery charge</span>
+              <strong className={shippingAmount === 0 ? "checkout-free-delivery" : ""}>{shippingAmount === undefined ? "Unavailable" : shippingAmount > 0 ? `₹${shippingAmount.toFixed(2)}` : "FREE"}</strong>
             </div>
 
             <div className="checkout-total">
-              <span>Total</span>
+              <span>Grand total</span>
 
-              <strong>{total === undefined ? "Unavailable" : `₹${total}`}</strong>
+              <strong>{total === undefined ? "Unavailable" : `₹${total.toFixed(2)}`}</strong>
             </div>
 
           </aside><button type="button" className="place-order-button" onClick={handlePlaceOrder} disabled={isSubmitting || !paymentMethod}>{isSubmitting ? paymentMethod === "RAZORPAY" ? "Opening Razorpay..." : "Placing Order..." : paymentMethod === "RAZORPAY" ? `Pay ₹${total ?? "…"}` : "Place Order"}</button></div>
