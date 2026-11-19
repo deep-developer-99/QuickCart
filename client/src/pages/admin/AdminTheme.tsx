@@ -1,213 +1,293 @@
-import axios from "axios";
-import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { useTheme } from "../../theme/ThemeContext";
 import {
-  defaultTheme,
+  cssVariableNames,
   themeColorKeys,
-  type ThemeColorKey,
-  type ThemeColors,
+  type ThemeColorKey as Key,
 } from "../../theme/theme";
+import { categories, contrast, settings } from "./themeSettings";
+import { ThemeStorefront } from "./ThemeStorefront";
 import "./AdminTheme.css";
 
-const labels: Record<ThemeColorKey, string> = {
-  primary: "Primary",
-  primaryHover: "Primary hover",
-  primaryActive: "Primary active",
-  secondary: "Secondary",
-  accent: "Accent",
-  pageBackground: "Page background",
-  secondaryBackground: "Secondary background",
-  cardBackground: "Card background",
-  surfaceBackground: "Surface background",
-  modalBackground: "Modal background",
-  headingText: "Heading text",
-  bodyText: "Body text",
-  mutedText: "Muted text",
-  link: "Link",
-  linkHover: "Link hover",
-  onPrimary: "Text on primary",
-  primaryButtonBackground: "Primary button background",
-  primaryButtonText: "Primary button text",
-  secondaryButtonBackground: "Secondary button background",
-  secondaryButtonText: "Secondary button text",
-  inputBackground: "Input background",
-  inputText: "Input text",
-  inputPlaceholder: "Input placeholder",
-  inputBorder: "Input border",
-  inputFocusBorder: "Input focus border",
-  border: "General border",
-  activeNavigation: "Active navigation",
-  selectedTab: "Selected tab",
-  badgeBackground: "Badge background",
-  badgeText: "Badge text",
-  disabledBackground: "Disabled background",
-  disabledText: "Disabled text",
-  focusRing: "Focus ring",
-  success: "Success",
-  warning: "Warning",
-  error: "Error",
-  info: "Information",
-};
-
-const groups: Array<{ title: string; keys: ThemeColorKey[] }> = [
-  { title: "Brand", keys: ["primary", "primaryHover", "primaryActive", "secondary", "accent"] },
-  { title: "Backgrounds and surfaces", keys: ["pageBackground", "secondaryBackground", "cardBackground", "surfaceBackground", "modalBackground"] },
-  { title: "Text and links", keys: ["headingText", "bodyText", "mutedText", "link", "linkHover", "onPrimary"] },
-  { title: "Controls", keys: themeColorKeys.slice(16, 33) },
-  { title: "Status", keys: ["success", "warning", "error", "info"] },
+const valid = (value: string) => /^#[0-9a-f]{6}$/i.test(value);
+const pairs: [Key, Key][] = [
+  ["primaryButtonText", "primaryButtonBackground"],
+  ["secondaryButtonText", "secondaryButtonBackground"],
+  ["headingText", "cardBackground"],
+  ["bodyText", "pageBackground"],
+  ["bodyText", "cardBackground"],
+  ["badgeText", "badgeBackground"],
+  ["inputText", "inputBackground"],
 ];
-
-const AdminTheme = () => {
-  const { colors, publishTheme, resetTheme } = useTheme();
-  const [draft, setDraft] = useState<ThemeColors>(colors);
-  const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState("");
+export default function AdminTheme() {
+  const { colors, isLoading, publishTheme, resetTheme } = useTheme();
+  const [edits, setEdits] = useState<Partial<Record<Key, string>>>({});
+  const [selected, setSelected] = useState<Key>("primary");
+  const [group, setGroup] = useState("Branding");
+  const [query, setQuery] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
-
-  // The provider loads asynchronously; keep the editor draft aligned until the first edit.
+  const draft = { ...colors, ...edits };
+  const preview = { ...colors };
+  for (const k of themeColorKeys) if (valid(draft[k])) preview[k] = draft[k];
+  const dirty = themeColorKeys.filter(
+    (k) => draft[k].toLowerCase() !== colors[k].toLowerCase()
+  );
+  const invalid = dirty.find((k) => !valid(draft[k]));
+  const select = (k: Key) => {
+    setQuery("");
+    setGroup(categories.find((g) => g.keys.includes(k))!.name);
+    setSelected(k);
+    requestAnimationFrame(() => document.getElementById("tc-" + k)?.focus());
+  };
+  const count = dirty.length;
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDraft(colors);
-  }, [colors]);
-
-  const previewStyle = useMemo(
-    () =>
-      Object.fromEntries(
-        Object.entries(draft).map(([key, value]) => [
-          `--preview-${key}`,
-          value,
-        ]),
-      ) as CSSProperties,
-    [draft],
-  );
-
-  const updateColor = (key: ThemeColorKey, value: string) => {
-    setFeedback("");
+    if (!count) return;
+    const unload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    const leave = (e: MouseEvent) => {
+      const link = (e.target as Element).closest<HTMLAnchorElement>("a[href]");
+      if (
+        link &&
+        link.href !== location.href &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        link.target !== "_blank" &&
+        !window.confirm("Leave and discard your unpublished colors?")
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener("beforeunload", unload);
+    document.addEventListener("click", leave, true);
+    return () => {
+      window.removeEventListener("beforeunload", unload);
+      document.removeEventListener("click", leave, true);
+    };
+  }, [count]);
+  const edit = (k: Key, value: string) => {
+    setSelected(k);
+    setEdits((old) => ({ ...old, [k]: value }));
+    setNotice("");
     setError("");
-    setDraft((current) => ({ ...current, [key]: value }));
   };
-
-  const save = async () => {
-    const invalid = themeColorKeys.find(
-      (key) => !/^#[0-9a-fA-F]{6}$/.test(draft[key]),
-    );
-    if (invalid) {
-      setError(`${labels[invalid]} must be a six-digit HEX color.`);
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      setError("");
-      await publishTheme(draft);
-      setFeedback("Theme published successfully.");
-    } catch (requestError) {
-      setError(
-        axios.isAxiosError(requestError)
-          ? requestError.response?.data?.message || "Failed to publish theme."
-          : "Failed to publish theme.",
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const reset = async () => {
+  const commit = async (reset: boolean) => {
     if (
+      reset &&
       !window.confirm(
-        "Reset all published colors to the default QuickCart theme?",
+        "Restore QuickCart defaults on the live website now and discard all draft edits?"
       )
-    ) {
+    )
+      return;
+    if (!reset && invalid) {
+      select(invalid);
       return;
     }
-
+    setBusy(true);
+    setNotice("");
+    setError("");
     try {
-      setIsSaving(true);
-      setError("");
-      const next = await resetTheme();
-      setDraft(next);
-      setFeedback("Theme reset to the QuickCart default.");
-    } catch (requestError) {
+      if (reset) await resetTheme();
+      else await publishTheme(draft);
+      setEdits({});
+      setNotice(reset ? "Published defaults restored." : "Theme published.");
+    } catch {
       setError(
-        axios.isAxiosError(requestError)
-          ? requestError.response?.data?.message || "Failed to reset theme."
-          : "Failed to reset theme.",
+        "The server could not confirm the change. Your draft is still available. Try again."
       );
     } finally {
-      setIsSaving(false);
+      setBusy(false);
     }
   };
-
+  const matches = (k: Key) =>
+    [...settings[k], k, cssVariableNames[k]]
+      .join(" ")
+      .toLowerCase()
+      .includes(query.trim().toLowerCase());
   return (
-    <div className="admin-theme-page">
-      <div className="admin-theme-header">
+    <main className="tc">
+      <header className="tc-head">
         <div>
-          <span className="admin-theme-eyebrow">QUICKCART ADMIN</span>
-          <h1>Theme Settings</h1>
-          <p>Update the published colors used across the storefront.</p>
+          <small>STOREFRONT DESIGN</small>
+          <h1>Theme customizer</h1>
+          <p>Select an element in the preview to change its color.</p>
         </div>
-        <div className="admin-theme-actions">
-          <button type="button" className="admin-theme-reset" onClick={reset} disabled={isSaving}>
-            Reset to Default Theme
+        <div className="tc-actions">
+          <span role="status">
+            {count} unsaved {count === 1 ? "change" : "changes"}
+          </span>
+          <button
+            disabled={!count || busy}
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Discard draft colors and return to the published theme?"
+                )
+              ) {
+                setEdits({});
+                setError("");
+                setNotice("Draft discarded.");
+              }
+            }}
+          >
+            Discard draft
           </button>
-          <button type="button" className="admin-theme-save" onClick={save} disabled={isSaving}>
-            {isSaving ? "Saving..." : "Publish theme"}
+          <button
+            className="tc-publish"
+            disabled={!count || busy || isLoading}
+            onClick={() => commit(false)}
+          >
+            {busy ? "Saving…" : "Publish theme"}
           </button>
         </div>
-      </div>
-
-      {feedback && <div className="admin-theme-feedback">{feedback}</div>}
-      {error && <div className="admin-theme-error">{error}</div>}
-
-      <div className="admin-theme-grid">
-        <section className="admin-theme-form">
-          {groups.map((group) => (
-            <div className="admin-theme-group" key={group.title}>
-              <h2>{group.title}</h2>
-              <div className="admin-theme-fields">
-                {group.keys.map((key) => (
-                  <label key={key}>
-                    <span>{labels[key]}</span>
-                    <div className="admin-theme-input">
-                      <input
-                        type="color"
-                        value={/^#[0-9a-fA-F]{6}$/.test(draft[key]) ? draft[key] : defaultTheme[key]}
-                        onChange={(event) => updateColor(key, event.target.value.toUpperCase())}
-                        aria-label={`${labels[key]} color picker`}
-                      />
-                      <input
-                        type="text"
-                        value={draft[key]}
-                        onChange={(event) => updateColor(key, event.target.value)}
-                        maxLength={7}
-                        aria-label={`${labels[key]} HEX value`}
-                      />
+      </header>
+      {error && <p role="alert">{error}</p>}
+      {notice && <p role="status">{notice}</p>}
+      <div className="tc-grid">
+        <section className="tc-controls">
+          <h2>Color settings</h2>
+          <input
+            type="search"
+            aria-label="Search color settings"
+            placeholder="Find an element or color token…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {categories.map((g) => {
+            const keys = g.keys.filter(matches);
+            if (!keys.length) return null;
+            const open = Boolean(query) || group === g.name;
+            return (
+              <section className="tc-group" key={g.name}>
+                <button
+                  aria-expanded={open}
+                  onClick={() => {
+                    setQuery("");
+                    setGroup(open ? "" : g.name);
+                  }}
+                >
+                  <span aria-hidden>{g.icon}</span>
+                  {g.name}
+                  <b>{open ? "−" : "+"}</b>
+                </button>
+                {open &&
+                  keys.map((k) => (
+                    <div
+                      className={
+                        "tc-field " + (selected === k ? "tc-selected" : "")
+                      }
+                      key={k}
+                    >
+                      <label htmlFor={"tc-" + k}>
+                        {settings[k][0]}{" "}
+                        {dirty.includes(k) && <small>Modified</small>}
+                      </label>
+                      <p>{settings[k][1]}</p>
+                      <div
+                        className="tc-example"
+                        aria-hidden
+                        style={
+                          /background|primary$|secondary$|accent|selectedTab|activeNavigation/i.test(
+                            k
+                          )
+                            ? {
+                                backgroundColor: preview[k],
+                                color:
+                                  contrast(preview[k], "#ffffff") > 4.5
+                                    ? "white"
+                                    : "#172033",
+                              }
+                            : /border|ring/i.test(k)
+                            ? { borderColor: preview[k] }
+                            : { color: preview[k] }
+                        }
+                      >
+                        {/button/i.test(k)
+                          ? "Add to cart"
+                          : /badge/i.test(k)
+                          ? "In season"
+                          : /input|focus/i.test(k)
+                          ? "Search groceries"
+                          : /link/i.test(k)
+                          ? "View produce →"
+                          : /Text|heading/i.test(k)
+                          ? "Fresh groceries"
+                          : settings[k][0]}
+                      </div>
+                      <div className="tc-inputs">
+                        <label title="Published color">
+                          <i style={{ background: colors[k] }} />
+                          Published
+                        </label>
+                        <label>
+                          <input
+                            aria-label={settings[k][0] + " draft picker"}
+                            type="color"
+                            value={preview[k]}
+                            disabled={busy || isLoading}
+                            onChange={(e) => edit(k, e.target.value)}
+                          />
+                          Draft
+                        </label>
+                        <input
+                          id={"tc-" + k}
+                          aria-invalid={!valid(draft[k])}
+                          value={draft[k]}
+                          disabled={busy || isLoading}
+                          onFocus={() => setSelected(k)}
+                          onChange={(e) => edit(k, e.target.value)}
+                          maxLength={7}
+                        />
+                        <button
+                          disabled={!dirty.includes(k) || busy}
+                          onClick={() => edit(k, colors[k])}
+                        >
+                          Revert
+                        </button>
+                      </div>
+                      {!valid(draft[k]) && (
+                        <small role="alert">
+                          Enter six HEX digits after #, such as #15803D.
+                        </small>
+                      )}
                     </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-          ))}
+                  ))}
+              </section>
+            );
+          })}
+          {!themeColorKeys.some(matches) && <p>No matching settings.</p>}
+          <details className="tc-contrast">
+            <summary>
+              Text contrast ·{" "}
+              {
+                pairs.filter(([a, b]) => contrast(preview[a], preview[b]) < 4.5)
+                  .length
+              }{" "}
+              warnings
+            </summary>
+            <p>Normal text should reach 4.5:1.</p>
+            {pairs.map(([a, b]) => {
+              const ratio = contrast(preview[a], preview[b]);
+              return (
+                <p key={a + b}>
+                  {settings[a][0]} on {settings[b][0].toLowerCase()} ·{" "}
+                  <strong>
+                    {ratio.toFixed(2)}:1 {ratio < 4.5 ? "Low" : "Pass"}
+                  </strong>
+                </p>
+              );
+            })}
+          </details>
+          <button disabled={busy || isLoading} onClick={() => commit(true)}>
+            Restore published defaults…
+          </button>
         </section>
-
-        <aside className="admin-theme-preview" style={previewStyle}>
-          <h2>Live preview</h2>
-          <div className="theme-preview-nav">QuickCart <span>Home&nbsp;&nbsp; Categories&nbsp;&nbsp; Account</span></div>
-          <div className="theme-preview-card">
-            <h3>Fresh groceries, delivered fast</h3>
-            <p>Preview how headings, body text, surfaces and controls will look.</p>
-            <div className="theme-preview-actions">
-              <button type="button">Primary action</button>
-              <button type="button">Secondary action</button>
-            </div>
-            <input placeholder="Input preview" readOnly />
-            <span className="theme-preview-badge">Available</span>
-          </div>
-        </aside>
+        <ThemeStorefront colors={preview} selected={selected} select={select} />
       </div>
-    </div>
+    </main>
   );
-};
-
-export default AdminTheme;
+}

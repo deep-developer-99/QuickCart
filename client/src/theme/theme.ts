@@ -84,7 +84,7 @@ export const defaultTheme: ThemeColors = {
   info: "#2563EB",
 };
 
-const cssVariableNames: Record<ThemeColorKey, string> = {
+export const cssVariableNames: Record<ThemeColorKey, string> = {
   primary: "--color-primary",
   primaryHover: "--color-primary-hover",
   primaryActive: "--color-primary-active",
