@@ -378,19 +378,20 @@
   }
 
   .contact-hero {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
     padding: 45px 0 45px;
   }
 
   .contact-hero-art {
-    min-height: 310px;
+    min-height: clamp(240px, 48vw, 310px);
     grid-row: 1;
   }
 
   .contact-art-orbit-one {
-    width: 285px;
-    height: 285px;
+    width: min(285px, 100%);
+    height: auto;
+    aspect-ratio: 1;
   }
 
   .contact-art-orbit-two {
@@ -449,6 +450,7 @@
     gap: 9px;
     padding: 9px 11px;
     font-size: 14px;
+    overflow-wrap: anywhere;
   }
 
   .contact-email-arrow {

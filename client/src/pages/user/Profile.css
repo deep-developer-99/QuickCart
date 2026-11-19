@@ -779,6 +779,12 @@
 
   .profile-photo-button {
     width: 100%;
+    min-height: 44px;
+  }
+
+  .profile-bottom-actions,
+  .profile-section .profile-edit-actions {
+    flex-wrap: wrap;
   }
 }
 

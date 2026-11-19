@@ -1,11 +1,11 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import ProductCard from "../../components/user/ProductCard";
 import { useCart } from "../../context/useCart";
-import { useLoginModal } from "../../context/LoginModalContext";
-import { useAppSelector } from "../../hooks/reduxHooks";
+import { useCartLogin } from "../../hooks/useCartLogin";
 import { getProductById, getProducts } from "../../services/productService";
 import type { Product } from "../../types/product";
 import { getVariantDiscountPercentage, getVariantSellingPrice, hasVariantDiscount } from "../../utils/productPricing";
@@ -15,8 +15,7 @@ import "./ProductDetails.css";
 const ProductDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { addProduct, getQuantity, updateProductQuantity, removeProduct } = useCart();
-  const { openLoginModal } = useLoginModal();
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const confirmCartSession = useCartLogin();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
@@ -29,6 +28,7 @@ const ProductDetails = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const cartUpdatePending = useRef(false);
 
   useEffect(() => {
     let current = true;
@@ -139,7 +139,8 @@ const ProductDetails = () => {
   };
 
   const handleDecrease = async () => {
-    if (!product || cartQuantity <= 0 || isUpdatingQuantity) return;
+    if (!product || cartQuantity <= 0 || cartUpdatePending.current) return;
+    cartUpdatePending.current = true;
     try {
       setIsUpdatingQuantity(true);
       setError("");
@@ -150,71 +151,47 @@ const ProductDetails = () => {
         ? requestError.response.data.message
         : "Failed to update product quantity.");
     } finally {
+      cartUpdatePending.current = false;
       setIsUpdatingQuantity(false);
     }
   };
 
-  const handleIncrease = async () => {
-    if (!product || cartQuantity >= selectedStock || isUpdatingQuantity) return;
+  const handleIncrease = async (event: MouseEvent<HTMLButtonElement>) => {
+    if (!product || cartQuantity >= selectedStock || cartUpdatePending.current) return;
+    cartUpdatePending.current = true;
     try {
       setIsUpdatingQuantity(true);
       setError("");
+      if (!(await confirmCartSession(event.currentTarget))) return;
       await updateProductQuantity(product._id, cartQuantity + 1, selectedVariant?._id);
     } catch (requestError) {
       setError(axios.isAxiosError(requestError) && requestError.response?.data?.message
         ? requestError.response.data.message
         : "Failed to update product quantity.");
     } finally {
+      cartUpdatePending.current = false;
       setIsUpdatingQuantity(false);
     }
   };
 
-  const handleAddToCart = async () => {
-    if (!product || selectedStock <= 0) return;
-    const isUser = isAuthenticated && user?.role === "user";
-    if (!isUser) {
-      openLoginModal({
-        onAuthenticated: async () => {
-          try {
-            await addProduct(product, 1, selectedVariant?._id);
-            setSuccess("Product added to cart successfully.");
-          } catch (requestError) {
-            setError(axios.isAxiosError(requestError) && requestError.response?.data?.message
-              ? requestError.response.data.message
-              : "Failed to add product to cart.");
-          }
-        },
-      });
-      return;
-    }
+  const handleAddToCart = async (event: MouseEvent<HTMLButtonElement>) => {
+    if (!product || selectedStock <= 0 || cartUpdatePending.current) return;
 
+    cartUpdatePending.current = true;
     try {
       setIsAdding(true);
       setError("");
       setSuccess("");
+      if (!(await confirmCartSession(event.currentTarget))) return;
       await addProduct(product, 1, selectedVariant?._id);
       setSuccess("Product added to cart successfully.");
     } catch (requestError) {
       console.error("Add to cart error:", requestError);
-      if (axios.isAxiosError(requestError) && requestError.response?.status === 401) {
-        openLoginModal({
-          onAuthenticated: async () => {
-            try {
-              await addProduct(product, 1, selectedVariant?._id);
-              setSuccess("Product added to cart successfully.");
-            } catch (retryError) {
-              setError(axios.isAxiosError(retryError) && retryError.response?.data?.message
-                ? retryError.response.data.message
-                : "Failed to add product to cart.");
-            }
-          },
-        });
-        return;
-      }
       setError(axios.isAxiosError(requestError) && requestError.response?.data?.message
         ? requestError.response.data.message
         : "Failed to add product to cart.");
     } finally {
+      cartUpdatePending.current = false;
       setIsAdding(false);
     }
   };
@@ -367,7 +344,7 @@ const ProductDetails = () => {
                   <div className="product-cart-stepper" aria-label={`${cartQuantity} in cart`}>
                     <button type="button" onClick={() => void handleDecrease()} disabled={isUpdatingQuantity} aria-label="Decrease quantity">−</button>
                     <span aria-live="polite">{cartQuantity}</span>
-                    <button type="button" onClick={() => void handleIncrease()} disabled={isUpdatingQuantity || cartQuantity >= selectedStock} aria-label="Increase quantity">+</button>
+                    <button type="button" onClick={handleIncrease} disabled={isUpdatingQuantity || cartQuantity >= selectedStock} aria-label="Increase quantity">+</button>
                   </div>
                 ) : (
                   <button type="button" className="add-to-cart-button" onClick={handleAddToCart} disabled={isAdding}>

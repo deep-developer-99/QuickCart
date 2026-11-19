@@ -85,3 +85,9 @@
   background: #fef3f2;
   border: 1px solid #fecdca;
 }
+
+@media (max-width: 480px) {
+  .admin-login-card {
+    padding: 24px 18px;
+  }
+}

@@ -147,6 +147,7 @@
   .quickcart-search { width: 100%; }
 }
 
-@media (max-width: 768px) {
-  .quickcart-search { height: 44px; }
+@media (max-width: 840px) {
+  .quickcart-search { min-height: 44px; height: auto; }
+  .quickcart-search input { font-size: 16px; }
 }

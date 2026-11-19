@@ -59,6 +59,7 @@ button,
 input,
 textarea,
 select {
+  max-inline-size: 100%;
   font: inherit;
 }
 
@@ -100,11 +101,11 @@ img {
 /* User pages use a flex column so the footer stays at the bottom
    when the page content is shorter than the viewport. */
 #root {
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .user-layout {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -117,5 +118,28 @@ img {
 }
 
 .user-layout-main > * {
+  min-width: 0;
   flex: 1 0 auto;
+}
+
+:where(input:not([type="checkbox"], [type="radio"]), textarea, select, fieldset) {
+  min-inline-size: 0;
+}
+
+body:has(
+  .location-selector-backdrop,
+  .address-editor-backdrop,
+  .admin-banner-modal-overlay,
+  .admin-category-modal-overlay,
+  .admin-subcategories-overlay,
+  .ass-modal-overlay,
+  .offer-manager-overlay
+) {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }

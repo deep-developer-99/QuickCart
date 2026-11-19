@@ -1,3 +1,4 @@
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -249,6 +250,8 @@ const AdminCategories = () => {
     }
   };
 
+  const dialogFocus = useDialogFocus<HTMLDivElement>(showForm && !isLoading, () => { if (!isSubmitting) resetForm(); });
+
   if (isLoading) {
     return (
       <div className="admin-categories-page">
@@ -285,6 +288,7 @@ const AdminCategories = () => {
 
         {showForm && (
           <div
+            {...dialogFocus}
             className="admin-category-modal-overlay"
             role="dialog"
             aria-modal="true"

@@ -73,8 +73,8 @@ export const loginWithFirebaseGoogle = async (idToken: string) => {
   return response.data;
 };
 
-export const getCurrentUser = async () => {
-  const response = await api.get("/auth/me");
+export const getCurrentUser = async (config?: { timeout: number }) => {
+  const response = await api.get("/auth/me", config);
 
   return response.data;
 };

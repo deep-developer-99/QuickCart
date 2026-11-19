@@ -8,7 +8,7 @@
 
 .admin-products-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 236px), 1fr));
   gap: 20px;
 }
 
@@ -21,7 +21,7 @@
 
 .admin-product-image-wrapper {
   position: relative;
-  height: 225px;
+  height: clamp(145px, 23vw, 225px);
   background: var(--color-page-background);
   display: flex;
   align-items: center;
@@ -78,7 +78,8 @@
 .admin-product-price {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 6px 10px;
   margin-bottom: 18px;
 }
 
@@ -95,7 +96,7 @@
 
 .admin-product-details {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -115,16 +116,4 @@
 .admin-product-details strong {
   color: var(--color-body-text);
   font-size: 12px;
-}
-
-@media (max-width: 1000px) {
-  .admin-products-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 650px) {
-  .admin-products-grid {
-    grid-template-columns: 1fr;
-  }
 }

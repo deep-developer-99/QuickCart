@@ -150,16 +150,16 @@ const VendorShopLocation = () => {
 
   if (isLoading) {
     return (
-      <main className="vendor-shop-location-page">
+      <div className="vendor-shop-location-page">
         <div className="vendor-shop-location-loading" role="status">
           Loading shop profile…
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="vendor-shop-location-page">
+    <div className="vendor-shop-location-page">
       <div className="vendor-shop-location-container">
         <header className="vendor-shop-location-header">
           <div>
@@ -207,7 +207,7 @@ const VendorShopLocation = () => {
           </div>
         </form>
       </div>
-    </main>
+    </div>
   );
 };
 

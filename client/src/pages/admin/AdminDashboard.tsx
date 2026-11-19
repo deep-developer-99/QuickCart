@@ -223,7 +223,7 @@ const AdminDashboard = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={chartData}
-                  margin={{ top: 15, right: 20, left: 10, bottom: 10 }}
+                  margin={{ top: 15, right: 12, left: 0, bottom: 10 }}
                 >
                   <CartesianGrid strokeDasharray="4 4" vertical={false} />
                   <XAxis
@@ -234,6 +234,7 @@ const AdminDashboard = () => {
                     minTickGap={20}
                   />
                   <YAxis
+                    width={chartMetric === "sales" ? 72 : 48}
                     tick={{ fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}

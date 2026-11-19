@@ -54,7 +54,7 @@
 
 .shop-location-address-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 150px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
   gap: 12px;
   margin-bottom: 12px;
 }

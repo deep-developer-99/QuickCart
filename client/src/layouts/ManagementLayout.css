@@ -1,0 +1,112 @@
+.management-shell {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  min-height: 100dvh;
+  background: var(--color-secondary-background);
+}
+
+.management-content {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.management-navigation {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.management-navigation-content {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.management-navigation-toggle {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .management-shell {
+    display: block;
+  }
+
+  .management-shell > .management-navigation {
+    position: static;
+    width: 100%;
+    height: auto;
+    padding: 10px clamp(12px, 3vw, 24px);
+    border: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .management-navigation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-inline-end: 52px;
+  }
+
+  .management-navigation :is(.admin-sidebar-brand, .vendor-sidebar-brand) {
+    padding: 0;
+    border: 0;
+  }
+
+  .management-navigation-toggle {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-card-background);
+    color: var(--color-heading-text);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .management-navigation-content[data-expanded="false"] {
+    display: none;
+  }
+
+  .management-navigation-content {
+    margin-top: 8px;
+  }
+
+  .management-navigation :is(.admin-sidebar-nav, .vendor-sidebar-nav) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 175px), 1fr));
+    padding-top: 0;
+  }
+
+  .management-navigation :is(.admin-sidebar-divider, .admin-sidebar-label, .vendor-sidebar-section-title) {
+    display: none;
+  }
+
+  .management-navigation :is(.admin-sidebar-bottom, .vendor-sidebar-footer) {
+    margin-top: 10px;
+    padding: 10px 0 0;
+  }
+
+  .management-navigation :is(.admin-account, .vendor-sidebar-account) {
+    display: none;
+  }
+
+  .management-shell > .notification-bell-container {
+    position: absolute;
+    top: 10px;
+    right: clamp(12px, 3vw, 24px);
+  }
+
+  .management-shell > .notification-bell-container .notification-bell-button {
+    width: 44px;
+    height: 44px;
+  }
+}

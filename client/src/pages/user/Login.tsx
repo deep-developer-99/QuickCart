@@ -17,6 +17,7 @@ const Login = () => {
   const dispatch = useAppDispatch();
   const { isLoginModalOpen, closeLoginModal, completeLoginModal } = useLoginModal();
   const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const [phone, setPhone] = useState("");
@@ -38,13 +39,17 @@ const Login = () => {
   useEffect(() => {
     if (!isLoginModalOpen) return;
     previouslyFocusedRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const focusFrame = window.requestAnimationFrame(() => phoneInputRef.current?.focus());
+    const focusFrame = window.requestAnimationFrame(() => {
+      const input = window.matchMedia("(max-height: 480px)").matches ? closeButtonRef : phoneInputRef;
+      input.current?.focus({ preventScroll: true });
+    });
 
     return () => {
       window.cancelAnimationFrame(focusFrame);
-      document.body.style.overflow = "";
-      previouslyFocusedRef.current?.focus();
+      document.body.style.overflow = previousOverflow;
+      previouslyFocusedRef.current?.focus({ preventScroll: true });
     };
   }, [isLoginModalOpen]);
 
@@ -153,7 +158,7 @@ const Login = () => {
   return (
     <div className="login-modal-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget && !isLoading) closeLoginModal(); }}>
       <div ref={dialogRef} className="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title" aria-describedby="login-modal-description">
-        <button type="button" className="login-modal-close" onClick={closeLoginModal} disabled={isLoading} aria-label="Close login">×</button>
+        <button ref={closeButtonRef} type="button" className="login-modal-close" onClick={closeLoginModal} disabled={isLoading} aria-label="Close login">×</button>
         <div className="login-modal-brand"><span className="login-modal-mark" aria-hidden="true">Q</span><span>QuickCart</span></div>
         <p className="login-subtitle">Fast delivery. Fresh products.</p>
         <h1 id="login-modal-title">{otpSent ? "Verify your number" : "Welcome to QuickCart"}</h1>

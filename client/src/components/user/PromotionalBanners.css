@@ -15,7 +15,7 @@
 }
 .promotional-banner-card:focus-visible {
   outline: 3px solid var(--color-primary);
-  outline-offset: 3px;
+  outline-offset: -3px;
 }
 .promotional-banner-card img {
   width: 100%;
@@ -33,6 +33,7 @@
     overflow-x: auto;
     padding: 0 0 4px;
     scroll-snap-type: x mandatory;
+    overscroll-behavior-inline: contain;
     scrollbar-width: thin;
   }
 

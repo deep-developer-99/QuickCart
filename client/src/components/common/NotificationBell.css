@@ -54,8 +54,11 @@
   position: absolute;
   top: 56px;
   right: 0;
-  width: min(390px, calc(100vw - 32px));
-  overflow: hidden;
+  width: min(390px, calc(100vw - 36px));
+  max-height: calc(100dvh - 80px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   background: var(--color-card-background);
@@ -214,7 +217,7 @@
   line-height: 1.4;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 860px) {
   .notification-bell-container {
     top: 12px;
     right: 14px;

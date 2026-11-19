@@ -28,7 +28,7 @@
 
 .checkout-layout {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 25px;
 }
 
@@ -50,6 +50,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .checkout-section h2,
@@ -75,6 +77,7 @@
   flex-direction: column;
   gap: 4px;
   margin-top: 16px;
+  overflow-wrap: anywhere;
   padding: 13px 15px;
   border: 1px solid #bbf7d0;
   border-radius: 8px;
@@ -539,9 +542,9 @@
 .checkout-page--drawer .address-form > .current-location-button,
 .checkout-page--drawer .address-form > .location-captured { grid-column: 1; width: 100%; margin: 0; }
 .checkout-page--drawer .address-form > input:first-of-type { margin-top: 0; }
-.checkout-page--drawer .address-form-row { grid-template-columns: 1fr 1fr; }
+.checkout-page--drawer .address-form-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .checkout-page--drawer .address-form-row input:last-child { grid-column: 1 / -1; }
-.checkout-page--drawer .checkout-summary { position: sticky; bottom: 0; z-index: 4; margin: 0 -2px; background: #fff; box-shadow: 0 -5px 16px rgba(15, 23, 42, .08); }
+.checkout-page--drawer .checkout-summary { margin: 0 -2px; background: #fff; box-shadow: 0 -5px 16px rgba(15, 23, 42, .08); }
 .checkout-page--drawer .checkout-summary h2 { margin-bottom: 8px; }
 .checkout-page--drawer .checkout-item { padding: 6px 0; font-size: 12px; }
 .checkout-page--drawer .checkout-total { padding: 7px 0; font-size: 13px; }
@@ -549,3 +552,9 @@
 .checkout-page--drawer .checkout-flow-error { margin: 0 0 12px; padding: 10px; border-radius: 8px; background: #fff3f1; color: #a33a2f; font-size: 12px; }
 .checkout-address-edit { margin-left: auto; padding: 6px 8px; border: 0; background: transparent; color: var(--color-link); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 .checkout-page--drawer .compact-address-card { display: flex; align-items: center; gap: 10px; }
+
+.checkout-item,
+.checkout-total {
+  gap: 8px;
+  overflow-wrap: anywhere;
+}

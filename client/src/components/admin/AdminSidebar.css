@@ -1,13 +1,5 @@
 .admin-sidebar {
-  position: fixed;
-  inset: 0 auto 0 0;
-  z-index: 100;
   width: 255px;
-  height: 100dvh;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
   padding: 28px 15px 18px;
   background: var(--color-card-background);
   border-right: 1px solid var(--color-border);
@@ -178,34 +170,5 @@
 @media (max-width: 900px) {
   .admin-sidebar {
     width: 220px;
-  }
-}
-
-/* Mobile */
-@media (max-width: 700px) {
-  .admin-sidebar {
-    position: static;
-    width: 100%;
-    height: auto;
-    min-height: auto;
-    overflow: visible;
-    padding: 16px;
-    border-right: none;
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .admin-sidebar-nav {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-sidebar-menu {
-    overflow: visible;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .admin-sidebar-bottom {
-    margin-top: 18px;
   }
 }

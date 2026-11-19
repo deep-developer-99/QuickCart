@@ -290,8 +290,8 @@
 }
 
 @media (max-width: 900px) {
-  .home-banner {
-    aspect-ratio: 3.6 / 1;
+  .home-banner-image {
+    object-fit: contain;
   }
 
   .home-banner-content {
@@ -317,17 +317,13 @@
 }
 
 @media (max-width: 480px) {
-  .home-banner {
-    aspect-ratio: 2.1 / 1;
-  }
-
   .home-banner-content {
     left: 18px;
     right: 18px;
   }
 
   .home-banner h1 {
-    font-size: 26px;
+    font-size: clamp(21px, 5.5vw, 26px);
   }
 
   .home-banner p {

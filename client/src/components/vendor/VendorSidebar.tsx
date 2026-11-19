@@ -1,3 +1,4 @@
+import ManagementNavigation from "../management/ManagementNavigation";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { logout } from "../../services/authService";
@@ -22,14 +23,18 @@ const VendorSidebar = () => {
   };
 
   return (
-    <aside className="vendor-sidebar" aria-label="Vendor navigation">
-      <div className="vendor-sidebar-brand">
-        <span className="vendor-sidebar-brand-icon">⚡</span>
-        <div>
-          <strong>QuickCart</strong>
-          <span>Vendor Panel</span>
+    <ManagementNavigation
+      role="vendor"
+      brand={
+        <div className="vendor-sidebar-brand">
+          <span className="vendor-sidebar-brand-icon">⚡</span>
+          <div>
+            <strong>QuickCart</strong>
+            <span>Vendor Panel</span>
+          </div>
         </div>
-      </div>
+      }
+    >
 
       <nav className="vendor-sidebar-nav">
         <span className="vendor-sidebar-section-title">MENU</span>
@@ -103,7 +108,7 @@ const VendorSidebar = () => {
           <span>Logout</span>
         </button>
       </div>
-    </aside>
+    </ManagementNavigation>
   );
 };
 

@@ -258,11 +258,11 @@
 @media (max-width: 760px) {
   .address-map,
   .address-map-canvas {
-    min-height: 360px;
+    min-height: clamp(220px, 55dvh, 360px);
   }
 
   .address-map-location-chip {
-    max-width: 260px;
+    max-width: min(260px, calc(100% - 24px));
     padding: 9px 11px;
     font-size: 10px;
   }

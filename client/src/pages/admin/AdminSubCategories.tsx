@@ -1,3 +1,4 @@
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 
@@ -239,8 +240,10 @@ const AdminSubCategories = () => {
 
   const countLabel = useMemo(() => `${totalItems} subcategor${totalItems === 1 ? "y" : "ies"}`, [totalItems]);
 
+  const dialogFocus = useDialogFocus<HTMLElement>(showForm, () => { if (!saving) clearForm(); });
+
   return (
-    <main className="admin-subcategories-page">
+    <div className="admin-subcategories-page">
       <header className="admin-subcategories-header">
         <div>
           <span className="admin-subcategories-eyebrow">QUICKCART ADMIN</span>
@@ -302,7 +305,7 @@ const AdminSubCategories = () => {
 
       {showForm && (
         <div className="admin-subcategories-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) clearForm(); }}>
-          <section className="admin-subcategories-modal" role="dialog" aria-modal="true" aria-labelledby="admin-subcategories-form-title">
+          <section {...dialogFocus} className="admin-subcategories-modal" role="dialog" aria-modal="true" aria-labelledby="admin-subcategories-form-title">
             <header><div><h2 id="admin-subcategories-form-title">{editing ? "Edit Subcategory" : "Add Subcategory"}</h2><p>Subcategories are limited to one level below a main category.</p></div><button type="button" aria-label="Close" onClick={clearForm} disabled={saving}>×</button></header>
             <form onSubmit={handleSubmit}>
               <label>Subcategory Name<input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} required disabled={saving} /></label>
@@ -322,7 +325,7 @@ const AdminSubCategories = () => {
           </section>
         </div>
       )}
-    </main>
+    </div>
   );
 };
 

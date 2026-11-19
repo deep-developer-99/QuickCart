@@ -1,3 +1,4 @@
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import axios from "axios";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -233,6 +234,8 @@ const VendorProducts = () => {
     setIsFormOpen(false);
     setError("");
   };
+
+  const productFormFocus = useDialogFocus<HTMLDivElement>(isFormOpen, closeForm);
 
   const openAddForm = () => {
     resetForm();
@@ -634,6 +637,7 @@ const VendorProducts = () => {
           }}
         >
           <section
+            {...productFormFocus}
             className="product-form-modal"
             role="dialog"
             aria-modal="true"

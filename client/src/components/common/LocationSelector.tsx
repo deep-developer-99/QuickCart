@@ -1,3 +1,4 @@
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { useEffect, useRef, useState } from "react";
 
 import { getAddresses } from "../../services/addressService";
@@ -304,6 +305,8 @@ const LocationSelector = () => {
     setIsOpen(false);
   };
 
+  const dialogFocus = useDialogFocus<HTMLDivElement>(isOpen, () => setIsOpen(false));
+
   const locationText =
     currentLocation?.address?.displayName ||
     (selectedAddress
@@ -315,7 +318,7 @@ const LocationSelector = () => {
         ]
           .filter(Boolean)
           .join(", ")
-      : "Detect your location");
+      : "");
 
   return (
     <div className="location-selector" ref={containerRef}>
@@ -325,11 +328,22 @@ const LocationSelector = () => {
         onClick={handleOpen}
         aria-expanded={isOpen}
         aria-label="Select delivery location"
+        title={locationText || "Detect your location"}
       >
         <span className="location-selector-text">
-          <small>Delivery in 8 minutes</small>
+          <small>
+            <span className="location-label-full">Delivery in 8 minutes</span>
+            <span className="location-label-compact">Delivery</span>
+          </small>
 
-          <strong>{locationText}</strong>
+          <strong>
+            {locationText || (
+              <>
+                <span className="location-label-full">Detect your location</span>
+                <span className="location-label-compact">Set area</span>
+              </>
+            )}
+          </strong>
         </span>
 
         <span className="location-selector-arrow">▾</span>
@@ -346,7 +360,9 @@ const LocationSelector = () => {
           }}
         >
           <div
+            {...dialogFocus}
             className="location-selector-dropdown"
+            aria-label="Select delivery location"
             role="dialog"
             aria-modal="true"
           >

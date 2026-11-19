@@ -88,7 +88,7 @@ const AdminUsers = () => {
             <p>There are no registered users yet.</p>
           </div>
         ) : (
-          <div className="admin-table-wrapper">
+          <div className="admin-table-wrapper" role="region" aria-label="Users table" tabIndex={0}>
             <table className="admin-table">
               <thead>
                 <tr>

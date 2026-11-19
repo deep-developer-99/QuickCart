@@ -66,7 +66,7 @@ const AccountLayout = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    contentRef.current?.scrollIntoView({ block: "start" });
   }, [location.pathname]);
 
   const handleLogout = async () => {

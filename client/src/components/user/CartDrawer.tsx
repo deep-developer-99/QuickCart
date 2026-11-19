@@ -1,3 +1,4 @@
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 
@@ -127,15 +128,9 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
     document.body.style.overflow = "hidden";
     document.body.style.overscrollBehavior = "none";
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") handleClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-
     return () => {
       document.body.style.overflow = previousOverflow;
       document.body.style.overscrollBehavior = previousOverscroll;
-      window.removeEventListener("keydown", onKeyDown);
     };
   }, [handleClose, isOpen, isUser]);
 
@@ -260,13 +255,19 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
 
   useEffect(() => { if (addressModalOpen && !editingAddress) void locateCurrentPosition(); }, [addressModalOpen, editingAddress]);
 
+  const drawerFocus = useDialogFocus<HTMLElement>(isOpen && isUser, handleClose);
+  const addressFocus = useDialogFocus<HTMLElement>(
+    isOpen && isUser && addressModalOpen && stage === "address",
+    () => setAddressModalOpen(false),
+  );
+
   if (!isOpen || !isUser) return null;
 
   const heading = stage === "cart" ? "My Cart" : stage === "address" ? "Select delivery address" : stage === "checkout" ? "Payment" : "Order placed";
 
   return (
     <div className={`cart-drawer-overlay${isClosing ? " cart-drawer-overlay--closing" : ""}`} onMouseDown={handleBackdropMouseDown}>
-      <aside className={`cart-drawer cart-drawer--${stage}`} role="dialog" aria-modal="true" aria-label={heading}>
+      <aside {...drawerFocus} className={`cart-drawer cart-drawer--${stage}`} role="dialog" aria-modal="true" aria-label={heading}>
         <header className="cart-drawer-header">
           {stage === "cart" ? (
             <button type="button" className="cart-drawer-back" onClick={handleClose} aria-label="Back to shopping">←</button>
@@ -283,7 +284,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 12v7h14v-7" /></svg>
             <span>Share</span>
           </button>}
-          <button type="button" className="cart-drawer-close" onClick={handleClose} aria-label="Close cart">×</button>
+          <button type="button" className="cart-drawer-close" data-dialog-initial-focus onClick={handleClose} aria-label="Close cart">×</button>
         </header>
 
         {stage === "cart" && (
@@ -402,7 +403,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
         )}
 
         {addressModalOpen && <div className="cart-address-modal-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setAddressModalOpen(false); }}>
-          <section className="cart-address-modal" role="dialog" aria-modal="true" aria-label="Add new address">
+          <section {...addressFocus} className="cart-address-modal" role="dialog" aria-modal="true" aria-label="Add new address">
             <button type="button" className="cart-address-modal-close" onClick={() => setAddressModalOpen(false)} aria-label="Close">×</button>
             <div className="cart-address-map-column">
               <form className="cart-address-search" onSubmit={(event) => event.preventDefault()}>

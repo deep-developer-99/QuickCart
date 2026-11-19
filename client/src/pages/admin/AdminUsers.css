@@ -3,7 +3,7 @@
 .admin-products-page,
 .admin-orders-page {
   min-height: 75vh;
-  padding: 40px 20px;
+  padding: clamp(24px, 4vw, 40px) clamp(12px, 2vw, 20px);
   background: var(--color-page-background);
 }
 
@@ -26,7 +26,7 @@
 .admin-page-header h1 {
   margin: 0 0 8px;
   color: var(--color-heading-text);
-  font-size: 32px;
+  font-size: clamp(24px, 4vw, 32px);
 }
 
 .admin-page-header p {
@@ -53,6 +53,7 @@
 
 .admin-table-wrapper {
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
   background: white;
   border: 1px solid var(--color-border);
   border-radius: 10px;
@@ -61,7 +62,7 @@
 .admin-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 850px;
+  min-width: 48rem;
 }
 
 .admin-table th,

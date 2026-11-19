@@ -25,6 +25,7 @@ const NotificationBell = () => {
   const [toast, setToast] = useState<Notification | null>(null);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const unreadCount = useMemo(
     () => notifications.filter((notification) => !notification.isRead).length,
@@ -234,11 +235,22 @@ const NotificationBell = () => {
 
   return (
     <>
-      <div className="notification-bell-container" ref={containerRef}>
+      <div
+        className="notification-bell-container"
+        ref={containerRef}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && isOpen) {
+            setIsOpen(false);
+            buttonRef.current?.focus();
+          }
+        }}
+      >
         <button
           type="button"
+          ref={buttonRef}
           className="notification-bell-button"
           aria-label="Notifications"
+          aria-expanded={isOpen}
           onClick={() => setIsOpen((previous) => !previous)}
         >
           <span className="notification-bell-icon">🔔</span>

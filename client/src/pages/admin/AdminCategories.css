@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: clamp(12px, 3vw, 24px);
   background: rgba(15, 23, 42, 0.58);
   backdrop-filter: blur(2px);
   overflow-y: auto;
@@ -13,7 +13,8 @@
 
 .admin-category-modal-overlay .admin-category-form-card {
   width: min(620px, 100%);
-  max-height: min(90vh, 760px);
+  max-height: min(calc(100dvh - 48px), 760px);
+  overscroll-behavior: contain;
   margin: auto;
   overflow-y: auto;
   box-sizing: border-box;
@@ -34,7 +35,7 @@
   }
 
   .admin-category-modal-overlay .admin-category-form-card {
-    max-height: calc(100vh - 30px);
+    max-height: calc(100dvh - 30px);
   }
 }
 

@@ -7,9 +7,14 @@ export interface LoginModalOptions {
   onAuthenticated?: () => void | Promise<void>;
 }
 
+type LoginDialog = { kind: "required"; trigger?: HTMLElement } | { kind: "login"; options: LoginModalOptions };
+
 interface LoginModalContextValue {
+  isLoginRequiredOpen: boolean;
+  loginRequiredTrigger?: HTMLElement;
   isLoginModalOpen: boolean;
   loginModalSession: number;
+  openLoginRequired: (trigger?: HTMLElement) => void;
   openLoginModal: (options?: LoginModalOptions) => void;
   closeLoginModal: () => void;
   completeLoginModal: () => Promise<void>;
@@ -19,35 +24,43 @@ const LoginModalContext = createContext<LoginModalContextValue | null>(null);
 
 export const LoginModalProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
-  const [options, setOptions] = useState<LoginModalOptions | null>(null);
+  const [dialog, setDialog] = useState<LoginDialog | null>(null);
   const [loginModalSession, setLoginModalSession] = useState(0);
+
+  const openLoginRequired = useCallback((trigger?: HTMLElement) => {
+    setDialog((current) => current ?? { kind: "required", trigger });
+  }, []);
 
   const openLoginModal = useCallback((nextOptions: LoginModalOptions = {}) => {
     setLoginModalSession((session) => session + 1);
-    setOptions(nextOptions);
+    setDialog({ kind: "login", options: nextOptions });
   }, []);
 
   const closeLoginModal = useCallback(() => {
-    setOptions(null);
+    setDialog(null);
   }, []);
 
   const completeLoginModal = useCallback(async () => {
-    const completed = options;
+    if (dialog?.kind !== "login") return;
+    const completed = dialog.options;
     try {
-      await completed?.onAuthenticated?.();
+      await completed.onAuthenticated?.();
     } finally {
-      setOptions(null);
-      if (completed?.returnTo) navigate(completed.returnTo, { replace: true });
+      setDialog(null);
+      if (completed.returnTo) navigate(completed.returnTo, { replace: true });
     }
-  }, [navigate, options]);
+  }, [navigate, dialog]);
 
   const value = useMemo(() => ({
-    isLoginModalOpen: options !== null,
+    isLoginRequiredOpen: dialog?.kind === "required",
+    loginRequiredTrigger: dialog?.kind === "required" ? dialog.trigger : undefined,
+    isLoginModalOpen: dialog?.kind === "login",
     loginModalSession,
+    openLoginRequired,
     openLoginModal,
     closeLoginModal,
     completeLoginModal,
-  }), [options, loginModalSession, openLoginModal, closeLoginModal, completeLoginModal]);
+  }), [dialog, loginModalSession, openLoginRequired, openLoginModal, closeLoginModal, completeLoginModal]);
 
   return <LoginModalContext.Provider value={value}>{children}</LoginModalContext.Provider>;
 };

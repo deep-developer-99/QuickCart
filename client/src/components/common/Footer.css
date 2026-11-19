@@ -329,6 +329,9 @@ body:has(.footer-auth-modal) {
 
 .footer-auth-modal-card {
   width: min(440px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overflow-wrap: anywhere;
   box-sizing: border-box;
   padding: 30px;
   border: 1px solid rgba(31, 41, 55, 0.08);

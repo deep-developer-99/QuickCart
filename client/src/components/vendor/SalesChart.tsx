@@ -108,7 +108,7 @@ const SalesChart = ({ data, metric, isLoading = false }: SalesChartProps) => {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={data}
-              margin={{ top: 15, right: 20, left: 10, bottom: 10 }}
+              margin={{ top: 15, right: 12, left: 0, bottom: 10 }}
             >
               <CartesianGrid
                 strokeDasharray="4 4"
@@ -123,7 +123,7 @@ const SalesChart = ({ data, metric, isLoading = false }: SalesChartProps) => {
                 tickLine={false}
                 axisLine={false}
                 className="vendor-chart-x-axis"
-                minTickGap={20}
+                minTickGap={12}
               />
 
               <YAxis

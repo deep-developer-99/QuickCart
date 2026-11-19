@@ -1,3 +1,4 @@
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useSearchSuggestions } from "../../hooks/useSearchSuggestions";
@@ -102,8 +103,10 @@ const AdminSearchSuggestions = () => {
     setDraggedId(null); void saveOrder(ordered);
   };
 
+  const dialogFocus = useDialogFocus<HTMLElement>(showForm, () => { resetForm(); });
+
   return (
-    <main className="admin-search-suggestions">
+    <div className="admin-search-suggestions">
       <header className="ass-header"><div><span className="ass-eyebrow">QUICKCART ADMIN</span><h1>Search Suggestions</h1><p>Manage the rotating search suggestions displayed on your website.</p></div></header>
       <section className="ass-stats" aria-label="Suggestion totals">
         <article><span>Total suggestions</span><strong>{data.suggestions.length}</strong></article>
@@ -126,7 +129,7 @@ const AdminSearchSuggestions = () => {
           )}
         </section>
 
-        {showForm && <div className="ass-modal-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) resetForm(); }}><section className="ass-modal" role="dialog" aria-modal="true" aria-labelledby="ass-form-title"><div className="ass-modal-heading"><div><h2 id="ass-form-title">{editingId ? "Edit search suggestion" : "Add search suggestion"}</h2><p>Suggestions can contain up to 100 characters.</p></div><button type="button" className="ass-close" aria-label="Close" onClick={resetForm}>×</button></div><form className="ass-form" onSubmit={savePhrase}>
+        {showForm && <div className="ass-modal-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) resetForm(); }}><section {...dialogFocus} className="ass-modal" role="dialog" aria-modal="true" aria-labelledby="ass-form-title"><div className="ass-modal-heading"><div><h2 id="ass-form-title">{editingId ? "Edit search suggestion" : "Add search suggestion"}</h2><p>Suggestions can contain up to 100 characters.</p></div><button type="button" className="ass-close" aria-label="Close" onClick={resetForm}>×</button></div><form className="ass-form" onSubmit={savePhrase}>
             <label htmlFor="ass-phrase">Search phrase</label>
             <input id="ass-phrase" value={phrase} maxLength={100} placeholder="e.g. Search for fresh fruits" onChange={(event) => setPhrase(event.target.value)} required />
             <label className="ass-check"><input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} /> Active</label>
@@ -146,7 +149,7 @@ const AdminSearchSuggestions = () => {
           <section className="ass-card ass-preview"><h2>Live preview</h2><p>Preview the active phrases configured for your storefront.</p><div className="ass-preview-field"><span className="ass-search-icon" aria-hidden="true">⌕</span><RotatingSearchPlaceholder suggestions={activeSuggestions} index={index} enabled={settingsDraft.isEnabled} fallback="Search for atta, milk and more" /></div><small>{activeSuggestions.length ? `${activeSuggestions.length} active phrases · ${settingsDraft.rotationInterval} ms interval` : "Static placeholder shown when no active phrases exist."}</small></section>
         </div>
       </div>
-    </main>
+    </div>
   );
 };
 

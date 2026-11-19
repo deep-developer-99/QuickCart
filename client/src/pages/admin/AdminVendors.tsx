@@ -139,7 +139,7 @@ const AdminVendors = () => {
             <p>There are no registered vendors yet.</p>
           </div>
         ) : (
-          <div className="admin-table-wrapper">
+          <div className="admin-table-wrapper" role="region" aria-label="Vendors table" tabIndex={0}>
             <table className="admin-table">
               <thead>
                 <tr>

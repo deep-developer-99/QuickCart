@@ -24,6 +24,7 @@ const Navbar = () => {
   const dispatch = useAppDispatch();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const mobileProfileMenuRef = useRef<HTMLDivElement>(null);
   const {
@@ -50,6 +51,12 @@ const Navbar = () => {
   const canOpenCart = isUser && isCartReady && validCartItems.length > 0;
   const canRetryCart =
     isUser && !canOpenCart && !isCartLoading && Boolean(cartError);
+  const isCartDisabled = !canOpenCart && !canRetryCart;
+  const cartLabel = canOpenCart
+    ? `My Cart, ${totalItems} ${totalItems === 1 ? "item" : "items"}, total ${formattedCartTotal}`
+    : canRetryCart
+      ? "Retry loading My Cart"
+      : isUser ? "My Cart" : "My Cart disabled - Please login";
   const handleOpenCart = () => {
     if (canOpenCart) openCart();
     else if (canRetryCart) void refreshCart();
@@ -243,6 +250,11 @@ const Navbar = () => {
   return (
     <>
       <header
+        onKeyDown={(event) => {
+          if (event.key !== "Escape" || event.defaultPrevented || !isMenuOpen || isProfileOpen) return;
+          setIsMenuOpen(false);
+          menuButtonRef.current?.focus();
+        }}
         className={`navbar${pathname === "/search" ? " navbar--search-page" : ""}`}
       >
         <div className="navbar-container">
@@ -285,77 +297,47 @@ const Navbar = () => {
               </button>
             )}
 
-            {canOpenCart || canRetryCart ? (
-              <button
-                type="button"
-                className={`navbar-cart-action${canOpenCart ? " navbar-cart-action--has-items" : ""}${isCartActive ? " active" : ""}`}
-                onClick={handleOpenCart}
-                aria-label={
-                  canRetryCart
-                    ? "Retry loading My Cart"
-                    : `My Cart, ${totalItems} ${totalItems === 1 ? "item" : "items"}, total ${formattedCartTotal}`
-                }
+            <button
+              type="button"
+              className={`navbar-cart-action${canOpenCart ? " navbar-cart-action--has-items" : ""}${isCartDisabled ? " navbar-cart-disabled" : ""}${!isCartDisabled && isCartActive ? " active" : ""}`}
+              disabled={isCartDisabled}
+              onClick={handleOpenCart}
+              aria-label={cartLabel}
+              title={!isUser ? "Please login to use My Cart" : undefined}
+            >
+              <svg
+                className="navbar-cart-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
               >
-                <svg
-                  className="navbar-cart-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 1.9-1.4L22 8H6"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <circle cx="10" cy="20" r="1.4" fill="currentColor" />
-                  <circle cx="18" cy="20" r="1.4" fill="currentColor" />
-                </svg>
-                <span className="navbar-cart-copy">
-                  <strong>
-                    {canOpenCart
-                      ? `${totalItems} ${totalItems === 1 ? "Item" : "Items"}`
-                      : "My Cart"}
-                  </strong>
-                  {canOpenCart && <span>{formattedCartTotal}</span>}
+                <path
+                  d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 1.9-1.4L22 8H6"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="10" cy="20" r="1.4" fill="currentColor" />
+                <circle cx="18" cy="20" r="1.4" fill="currentColor" />
+              </svg>
+              <span className="navbar-cart-copy" aria-hidden="true">
+                <strong>
+                  {canOpenCart ? `${totalItems} ${totalItems === 1 ? "Item" : "Items"}` : "My Cart"}
+                </strong>
+                {canOpenCart && <span>{formattedCartTotal}</span>}
+              </span>
+              {canOpenCart && (
+                <span className="navbar-cart-badge" aria-hidden="true">
+                  {totalItems > 99 ? "99+" : totalItems}
                 </span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                disabled
-                className="navbar-cart-action navbar-cart-disabled"
-                aria-label={
-                  !isUser ? "My Cart disabled - Please login" : "My Cart"
-                }
-                title={!isUser ? "Please login to use My Cart" : undefined}
-              >
-                <svg
-                  className="navbar-cart-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 1.9-1.4L22 8H6"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <circle cx="10" cy="20" r="1.4" fill="currentColor" />
-                  <circle cx="18" cy="20" r="1.4" fill="currentColor" />
-                </svg>
-                <span className="navbar-cart-copy">
-                  <strong>My Cart</strong>
-                </span>
-              </button>
-            )}
+              )}
+            </button>
           </nav>
 
           <button
             type="button"
+            ref={menuButtonRef}
             className="navbar-menu-button"
             onClick={() => setIsMenuOpen((previous) => !previous)}
             aria-label="Toggle navigation menu"
@@ -378,73 +360,32 @@ const Navbar = () => {
             </NavLink>
 
             {isUser ? (
-              <>
-                {!canOpenCart && !canRetryCart ? (
-                  <button
-                    type="button"
-                    disabled
-                    className="mobile-menu-link mobile-cart-button navbar-cart-disabled"
-                    aria-label="My Cart"
-                  >
-                    🛒 My Cart
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className={`mobile-menu-link mobile-cart-button${canOpenCart ? " mobile-cart-button--has-items" : ""}`}
-                    onClick={() => {
-                      closeMenu();
-                      handleOpenCart();
-                    }}
-                    aria-label={`Cart with ${totalItems} ${
-                      totalItems === 1 ? "item" : "items"
-                    }, total ${formattedCartTotal}`}
-                  >
-                    🛒 {totalItems} {totalItems === 1 ? "Item" : "Items"} ·{" "}
-                    {formattedCartTotal}
-                  </button>
+              <div ref={mobileProfileMenuRef} className="mobile-account-section">
+                <button
+                  type="button"
+                  className="mobile-menu-link mobile-account-button"
+                  onClick={() => setIsProfileOpen((previous) => !previous)}
+                  aria-expanded={isProfileOpen}
+                >
+                  Account <span className="mobile-account-arrow">⌄</span>
+                </button>
+                {isProfileOpen && (
+                  <div className="mobile-profile-dropdown">
+                    {accountDropdown}
+                  </div>
                 )}
-                <div
-                  ref={mobileProfileMenuRef}
-                  className="mobile-account-section"
-                >
-                  <button
-                    type="button"
-                    className="mobile-menu-link mobile-account-button"
-                    onClick={() => setIsProfileOpen((previous) => !previous)}
-                    aria-expanded={isProfileOpen}
-                  >
-                    Account <span className="mobile-account-arrow">⌄</span>
-                  </button>
-                  {isProfileOpen && (
-                    <div className="mobile-profile-dropdown">
-                      {accountDropdown}
-                    </div>
-                  )}
-                </div>
-              </>
+              </div>
             ) : (
-              <>
-                <button
-                  type="button"
-                  disabled
-                  className="mobile-menu-link mobile-cart-button navbar-cart-disabled"
-                  aria-label="My Cart disabled - Please login"
-                  title="Please login to use My Cart"
-                >
-                  🛒 My Cart
-                </button>
-                <button
-                  type="button"
-                  className="mobile-menu-login"
-                  onClick={() => {
-                    closeMenu();
-                    openLoginModal();
-                  }}
-                >
-                  Login
-                </button>
-              </>
+              <button
+                type="button"
+                className="mobile-menu-login"
+                onClick={() => {
+                  closeMenu();
+                  openLoginModal();
+                }}
+              >
+                Login
+              </button>
             )}
           </nav>
         )}

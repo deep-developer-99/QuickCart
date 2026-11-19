@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from "react";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import axios from "axios";
 
@@ -360,6 +361,8 @@ const AdminBanners = () => {
     }
   };
 
+  const dialogFocus = useDialogFocus<HTMLDivElement>(showForm && !isLoading, () => { if (!isSubmitting) resetForm(); });
+
   if (isLoading) {
     return (
       <div className="admin-banners-page">
@@ -397,6 +400,7 @@ const AdminBanners = () => {
 
         {showForm && (
           <div
+            {...dialogFocus}
             className="admin-banner-modal-overlay"
             role="dialog"
             aria-modal="true"

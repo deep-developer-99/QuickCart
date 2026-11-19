@@ -4,6 +4,7 @@ import { useAppSelector } from "../hooks/reduxHooks";
 import NotificationBell from "../components/common/NotificationBell";
 import VendorSidebar from "../components/vendor/VendorSidebar";
 import AdminSidebar from "../components/admin/AdminSidebar";
+import "../layouts/ManagementLayout.css";
 
 interface ProtectedRouteProps {
   allowedRole: "user" | "vendor" | "admin";
@@ -42,24 +43,12 @@ const ProtectedRoute = ({ allowedRole }: ProtectedRouteProps) => {
     return <Navigate to={getRoleHome(user.role)} replace />;
   }
 
-  if (allowedRole === "vendor") {
+  if (allowedRole !== "user") {
     return (
-      <div className="vendor-protected-shell">
-        <VendorSidebar />
-        <main className="vendor-protected-content">
-          <NotificationBell />
-          <Outlet />
-        </main>
-      </div>
-    );
-  }
-
-  if (allowedRole === "admin") {
-    return (
-      <div className="admin-protected-shell">
-        <AdminSidebar />
-        <main className="admin-protected-content">
-          <NotificationBell />
+      <div className="management-shell">
+        {allowedRole === "admin" ? <AdminSidebar /> : <VendorSidebar />}
+        <NotificationBell />
+        <main className="management-content">
           <Outlet />
         </main>
       </div>

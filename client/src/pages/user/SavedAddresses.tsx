@@ -1,3 +1,4 @@
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -109,6 +110,8 @@ const SavedAddresses = () => {
     setIsDetectingLocation(false);
     setError("");
   };
+
+  const editorFocus = useDialogFocus<HTMLDivElement>(Boolean(editingAddress || isCreatingAddress), closeEditor);
 
   const handleChange = (
     field: keyof CreateAddressData,
@@ -399,7 +402,11 @@ const SavedAddresses = () => {
       {(editingAddress || isCreatingAddress) && (
         <div className="address-editor-backdrop" onMouseDown={closeEditor}>
           <div
+            {...editorFocus}
             className="address-editor-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={editingAddress ? "Edit address" : "Add address"}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="address-editor-map-panel">
@@ -451,6 +458,7 @@ const SavedAddresses = () => {
                 <button
                   type="button"
                   className="address-editor-close"
+                  data-dialog-initial-focus
                   onClick={closeEditor}
                   aria-label="Close edit address dialog"
                 >

@@ -1,11 +1,13 @@
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import axios from "axios";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 
 import { useAppSelector } from "../../hooks/reduxHooks";
 import { useCart } from "../../context/useCart";
-import { useLoginModal } from "../../context/LoginModalContext";
+import { useCartLogin } from "../../hooks/useCartLogin";
 import type { Product, ProductVariant } from "../../types/product";
 import { getCartProductId, getValidCartItems } from "../../utils/hasValidCartItems";
 import { getLowestPricedAvailableVariant, getVariantDiscountPercentage, getVariantSellingPrice, hasVariantDiscount } from "../../utils/productPricing";
@@ -21,11 +23,13 @@ const formatPrice = (price: number) => `₹${price.toLocaleString("en-IN", { max
 const ProductCard = ({ product, variant }: ProductCardProps) => {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const { cart, getQuantity, addProduct, updateProductQuantity, removeProduct, isCartReady, isLoading: isCartLoading, cartError, refreshCart } = useCart();
-  const { openLoginModal } = useLoginModal();
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>();
   const [isVariantDialogOpen, setIsVariantDialogOpen] = useState(false);
   const [variantFeedback, setVariantFeedback] = useState("");
+  const updatePending = useRef(false);
+  const variantTriggerRef = useRef<HTMLButtonElement>(null);
+  const confirmCartSession = useCartLogin(() => setIsVariantDialogOpen(false));
 
   const activeVariants = useMemo(() => (product.variants ?? []).filter((item) => item.isActive), [product.variants]);
   const inStockVariants = useMemo(() => activeVariants.filter((item) => Number.isFinite(Number(item.stock)) && item.stock > 0 && Number.isFinite(Number(item.price)) && item.price > 0), [activeVariants]);
@@ -64,16 +68,12 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
     const appRoot = document.getElementById("root");
     const previousInert = appRoot?.inert ?? false;
     const previousAriaHidden = appRoot?.getAttribute("aria-hidden");
-    const focusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusedElement = variantTriggerRef.current ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     document.body.style.overflow = "hidden";
     if (appRoot) {
       appRoot.inert = true;
       appRoot.setAttribute("aria-hidden", "true");
     }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsVariantDialogOpen(false);
-    };
-    window.addEventListener("keydown", closeOnEscape);
     return () => {
       document.body.style.overflow = previousOverflow;
       if (appRoot) {
@@ -81,56 +81,24 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
         if (previousAriaHidden == null) appRoot.removeAttribute("aria-hidden");
         else appRoot.setAttribute("aria-hidden", previousAriaHidden);
       }
-      window.removeEventListener("keydown", closeOnEscape);
       focusedElement?.focus();
+      variantTriggerRef.current = null;
     };
   }, [isVariantDialogOpen]);
 
-  const addVariant = async (chosenVariant: ProductVariant) => {
-    if (chosenVariant.stock <= 0 || getVariantSellingPrice(chosenVariant) <= 0 || isUpdating) return;
-    setSelectedVariantId(chosenVariant._id);
-    if (!isUser) {
-      openLoginModal({ onAuthenticated: async () => {
-        try {
-          await addProduct(product, 1, chosenVariant._id);
-          setIsVariantDialogOpen(false);
-        } catch (error) {
-          console.error("Failed to add product to cart:", error);
-        }
-      } });
-      return;
-    }
-
-    try {
-      setIsUpdating(true);
-      await addProduct(product, 1, chosenVariant._id);
-      setVariantFeedback("Added to cart");
-      setIsVariantDialogOpen(false);
-    } catch (error) {
-      console.error("Failed to add product to cart:", error);
-      setVariantFeedback(axios.isAxiosError(error) ? error.response?.data?.message || "Could not add this option." : "Could not add this option.");
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        openLoginModal({ onAuthenticated: async () => {
-          try { await addProduct(product, 1, chosenVariant._id); }
-          catch (retryError) { console.error("Failed to add product to cart:", retryError); }
-        } });
-      }
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handleAddToCart = async () => {
-    if (!selectedVariant) return;
-    await addVariant(selectedVariant);
-  };
+  const variantFocus = useDialogFocus<HTMLElement>(
+    isVariantDialogOpen,
+    () => setIsVariantDialogOpen(false),
+  );
 
   const changeVariantQuantity = async (item: ProductVariant, nextQuantity: number) => {
     const currentQuantity = variantQuantityMap.get(item._id) ?? 0;
-    if (isUpdating || nextQuantity < 0 || nextQuantity > item.stock || (nextQuantity > currentQuantity && (!item.isActive || getVariantSellingPrice(item) <= 0)) || nextQuantity === currentQuantity) return;
+    if (updatePending.current || nextQuantity < 0 || nextQuantity > item.stock || (nextQuantity > currentQuantity && (!item.isActive || getVariantSellingPrice(item) <= 0)) || nextQuantity === currentQuantity) return;
+    updatePending.current = true;
     try {
       setIsUpdating(true);
       setVariantFeedback("");
+      if (nextQuantity > currentQuantity && !(await confirmCartSession())) return;
       if (nextQuantity === 0) await removeProduct(product._id, item._id);
       else if (nextQuantity > currentQuantity) await addProduct(product, nextQuantity - currentQuantity, item._id);
       else await updateProductQuantity(product._id, nextQuantity, item._id);
@@ -138,6 +106,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
       console.error("Failed to update variant quantity:", error);
       setVariantFeedback(axios.isAxiosError(error) ? error.response?.data?.message || "Could not update this option." : "Could not update this option.");
     } finally {
+      updatePending.current = false;
       setIsUpdating(false);
     }
   };
@@ -158,17 +127,41 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
   };
 
   const handleRetryCart = async () => {
-    if (isUpdating) return;
+    if (updatePending.current) return;
+    updatePending.current = true;
     setIsUpdating(true);
     try { await refreshCart(); }
-    finally { setIsUpdating(false); }
+    finally {
+      updatePending.current = false;
+      setIsUpdating(false);
+    }
   };
 
-  const handleAddClick = () => {
-    if (!selectedVariant || isUpdating) return;
-    setVariantFeedback("");
-    if (optionsCount > 1) setIsVariantDialogOpen(true);
-    else void handleAddToCart();
+  const handleAddClick = async (event: MouseEvent<HTMLButtonElement>) => {
+    if (!selectedVariant || updatePending.current) return;
+    const trigger = event.currentTarget;
+
+    updatePending.current = true;
+    try {
+      setIsUpdating(true);
+      setVariantFeedback("");
+      if (!(await confirmCartSession(trigger))) return;
+      if (optionsCount > 1) {
+        variantTriggerRef.current = trigger;
+        setIsVariantDialogOpen(true);
+        return;
+      }
+      if (getVariantSellingPrice(selectedVariant) <= 0) return;
+      setSelectedVariantId(selectedVariant._id);
+      await addProduct(product, 1, selectedVariant._id);
+      setVariantFeedback("Added to cart");
+    } catch (error) {
+      console.error("Failed to add product to cart:", error);
+      setVariantFeedback(axios.isAxiosError(error) ? error.response?.data?.message || "Could not add this option." : "Could not add this option.");
+    } finally {
+      updatePending.current = false;
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -222,7 +215,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
 
       {isVariantDialogOpen && createPortal(
         <div className="product-variant-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsVariantDialogOpen(false); }}>
-          <section className="product-variant-dialog" role="dialog" aria-modal="true" aria-labelledby={`variant-title-${product._id}`}>
+          <section {...variantFocus} className="product-variant-dialog" role="dialog" aria-modal="true" aria-labelledby={`variant-title-${product._id}`}>
             <button className="product-variant-close" type="button" onClick={() => setIsVariantDialogOpen(false)} aria-label="Close">×</button>
             <h3 id={`variant-title-${product._id}`}>{product.name}</h3>
             <div className="product-variant-list">

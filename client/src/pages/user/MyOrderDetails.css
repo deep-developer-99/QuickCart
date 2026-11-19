@@ -1,4 +1,5 @@
 .order-details-section {
+  overflow-wrap: anywhere;
   padding-bottom: 70px;
 }
 
@@ -179,7 +180,7 @@
   color: #2a3549;
   font-size: 12px;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 .detail-item-price {
   display: flex;
@@ -253,7 +254,7 @@
   font-size: 10px;
   text-align: right;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .order-summary-panel {

@@ -1,3 +1,4 @@
+import ManagementNavigation from "../management/ManagementNavigation";
 import { NavLink, useNavigate } from "react-router-dom";
 import { logout } from "../../services/authService";
 import { logoutUser } from "../../store/slice/authSlice";
@@ -38,14 +39,18 @@ const AdminSidebar = () => {
   ];
 
   return (
-    <aside className="admin-sidebar">
-      <div className="admin-sidebar-brand">
-        <div className="admin-sidebar-logo">⚡</div>
-        <div>
-          <strong>QuickCart</strong>
-          <span>Admin Panel</span>
+    <ManagementNavigation
+      role="admin"
+      brand={
+        <div className="admin-sidebar-brand">
+          <div className="admin-sidebar-logo">⚡</div>
+          <div>
+            <strong>QuickCart</strong>
+            <span>Admin Panel</span>
+          </div>
         </div>
-      </div>
+      }
+    >
 
       <div className="admin-sidebar-menu">
         <div className="admin-sidebar-divider" />
@@ -87,7 +92,7 @@ const AdminSidebar = () => {
           Logout
         </button>
       </div>
-    </aside>
+    </ManagementNavigation>
   );
 };
 

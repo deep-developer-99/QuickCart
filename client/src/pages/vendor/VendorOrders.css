@@ -75,6 +75,7 @@
 }
 
 .vendor-order-card {
+  overflow-wrap: anywhere;
   background: var(--color-card-background);
   border: 1px solid #e4e7ec;
   border-radius: 14px;

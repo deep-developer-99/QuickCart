@@ -483,7 +483,7 @@
   .product-details-image-wrapper { width: min(100%, 420px); }
   .product-details-image { padding: 8px; }
   .product-details-content { padding: 20px 16px; }
-  .product-details-content h1 { font-size: 24px; }
+  .product-details-content h1 { font-size: clamp(21px, 5.5vw, 24px); }
   .current-price { font-size: 25px; }
   .product-variant-selector { margin-top: 20px; }
   .product-variant-options { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; padding: 2px 2px 6px; }
@@ -498,4 +498,14 @@
   .add-to-cart-button,
   .product-variant-option { transition: none; }
   .product-details-spinner { animation-duration: 2s; }
+}
+
+.product-details-page {
+  overflow-wrap: anywhere;
+}
+
+@media (max-height: 480px) {
+  .product-details-content {
+    position: static;
+  }
 }
