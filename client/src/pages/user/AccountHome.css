@@ -1,0 +1,74 @@
+.account-home {
+  min-height: calc(100vh - 72px);
+  background: #fff;
+  color: #263238;
+}
+
+.account-home-links button:focus-visible { outline: 3px solid #9bd2a2; outline-offset: 2px; }
+
+.account-home-main { width: min(620px, 100%); margin: 0 auto; padding: 28px 24px 48px; }
+
+.account-home-customer {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0 25px;
+  border-bottom: 1px solid #edf0ed;
+}
+
+.account-home-customer > img,
+.account-home-initial {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.account-home-initial { display: grid; place-items: center; background: #edf7ed; color: #267437; font-size: 25px; font-weight: 750; }
+.account-home-customer-copy { min-width: 0; }
+.account-home-customer h1 { margin: 0; overflow-wrap: anywhere; color: #202a23; font-size: clamp(20px, 4vw, 25px); font-weight: 750; letter-spacing: -.025em; }
+.account-home-customer p { margin: 5px 0 0; overflow-wrap: anywhere; color: #737d75; font-size: 14px; }
+
+.account-home-main h2 { margin: 26px 0 10px; color: #374139; font-size: 14px; font-weight: 750; }
+.account-home-links { border-top: 1px solid #edf0ed; }
+.account-home-links button {
+  width: 100%;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px;
+  border: 0;
+  border-bottom: 1px solid #edf0ed;
+  background: #fff;
+  color: #303a32;
+  text-align: left;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.account-home-links button:hover { background: #f8fbf8; }
+.account-home-option-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; background: #f0f7f0; color: #318044; font-size: 15px; }
+.account-home-chevron { color: #9ba49c; font-size: 12px; }
+.account-home-links .account-home-logout { margin-top: 8px; color: #ad454b; }
+.account-home-logout .account-home-option-icon { background: #fff2f1; color: #b34e51; }
+
+@media (max-width: 700px) {
+  .account-home { min-height: calc(100dvh - 112px); }
+  .account-home-main { padding: 18px 20px 38px; }
+  .account-home-customer { gap: 13px; padding: 10px 0 22px; }
+  .account-home-customer > img, .account-home-initial { width: 56px; height: 56px; flex-basis: 56px; }
+  .account-home-links button { min-height: 62px; }
+}
+
+@media (max-width: 360px) {
+  .account-home-main { padding-right: 16px; padding-left: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) { .account-home-links button { transition: none; } }

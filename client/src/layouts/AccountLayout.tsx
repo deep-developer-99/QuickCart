@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import axios from "axios";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   FaBoxOpen,
@@ -43,12 +44,24 @@ const AccountLayout = () => {
     if (!user?.id) return;
 
     let isCurrent = true;
+    let sessionExpired = false;
+    const handleRequestError = (error: unknown) => {
+      if (!isCurrent) return;
+      if (axios.isAxiosError(error) && error.response?.status === 401 && !sessionExpired) {
+        sessionExpired = true;
+        dispatch(logoutUser());
+        navigate("/login", { state: { from: location }, replace: true });
+        return;
+      }
+      return null;
+    };
 
     void getAddresses(1, 1)
       .then((response: PaginatedCountResponse) => {
         if (isCurrent) setAddressCount(getCount(response));
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        handleRequestError(error);
         if (isCurrent) setAddressCount(null);
       });
 
@@ -56,14 +69,15 @@ const AccountLayout = () => {
       .then((response: PaginatedCountResponse) => {
         if (isCurrent) setOrderCount(getCount(response));
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        handleRequestError(error);
         if (isCurrent) setOrderCount(null);
       });
 
     return () => {
       isCurrent = false;
     };
-  }, [user?.id]);
+  }, [dispatch, location, navigate, user?.id]);
 
   useEffect(() => {
     contentRef.current?.scrollIntoView({ block: "start" });
@@ -85,7 +99,7 @@ const AccountLayout = () => {
   const initial = displayName.charAt(0).toUpperCase() || "U";
 
   return (
-    <div className="account-page" ref={contentRef}>
+    <div className={`account-page${location.pathname === "/account" ? " account-page--home" : ""}`} ref={contentRef}>
       <header className="account-page-heading">
         <h1>Account Overview</h1>
         <p>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import UserProfileIcon from "../../assets/icons8-user-profile-100.png";
 
 import { logout } from "../../services/authService";
 import { logoutUser } from "../../store/slice/authSlice";
@@ -22,11 +23,8 @@ const Navbar = () => {
   const { pathname } = useLocation();
   const isCartActive = pathname === "/cart";
   const dispatch = useAppDispatch();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
-  const mobileProfileMenuRef = useRef<HTMLDivElement>(null);
   const {
     cart,
     isLoading: isCartLoading,
@@ -45,7 +43,7 @@ const Navbar = () => {
   const formattedCartTotal =
     cartTotal === null ? "—" : formatIndianRupees(cartTotal);
 
-  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
   const contactInfo = user?.phone?.trim() || user?.email?.trim() || "";
   const isUser = isAuthenticated && user?.role === "user";
   const canOpenCart = isUser && isCartReady && validCartItems.length > 0;
@@ -68,10 +66,7 @@ const Navbar = () => {
 
     const handleOutsideClick = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (
-        !profileMenuRef.current?.contains(target) &&
-        !mobileProfileMenuRef.current?.contains(target)
-      ) {
+      if (!profileMenuRef.current?.contains(target)) {
         setIsProfileOpen(false);
       }
     };
@@ -97,20 +92,25 @@ const Navbar = () => {
     } finally {
       dispatch(logoutUser());
       setIsProfileOpen(false);
-      setIsMenuOpen(false);
       navigate("/");
     }
   };
 
   const closeMenu = () => {
-    setIsMenuOpen(false);
     setIsProfileOpen(false);
   };
 
   const openAccount = (path: string) => {
     setIsProfileOpen(false);
-    setIsMenuOpen(false);
     navigate(path);
+  };
+
+  const handleMobileAvatar = () => {
+    if (isUser) {
+      navigate("/account", { state: { from: pathname } });
+      return;
+    }
+    openLoginModal({ returnTo: "/account" });
   };
 
   const desktopAccountDropdown = (
@@ -177,84 +177,9 @@ const Navbar = () => {
     </div>
   );
 
-  const accountDropdown = (
-    <div className="profile-dropdown" role="menu">
-      <div className="profile-dropdown-header">
-        <div className="profile-dropdown-avatar">
-          {user?.name?.charAt(0).toUpperCase() || "U"}
-        </div>
-        <div>
-          <strong>{user?.name || "QuickCart User"}</strong>
-          <span>{user?.phone || "Phone number not provided"}</span>
-        </div>
-      </div>
-
-      <div className="profile-dropdown-divider" />
-
-      <button
-        type="button"
-        role="menuitem"
-        className="profile-dropdown-item"
-        onClick={() => openAccount("/account/profile")}
-      >
-        <span aria-hidden="true">♙</span>
-        <span>
-          <strong>My Account</strong>
-          <small>Manage your profile</small>
-        </span>
-      </button>
-
-      <button
-        type="button"
-        role="menuitem"
-        className="profile-dropdown-item"
-        onClick={() => openAccount("/account/orders")}
-      >
-        <span aria-hidden="true">▤</span>
-        <span>
-          <strong>My Orders</strong>
-          <small>View your orders</small>
-        </span>
-      </button>
-
-      <button
-        type="button"
-        role="menuitem"
-        className="profile-dropdown-item"
-        onClick={() => openAccount("/account/addresses")}
-      >
-        <span aria-hidden="true">⌖</span>
-        <span>
-          <strong>Saved Addresses</strong>
-          <small>Manage delivery addresses</small>
-        </span>
-      </button>
-
-      <div className="profile-dropdown-divider" />
-
-      <button
-        type="button"
-        role="menuitem"
-        className="profile-dropdown-item profile-dropdown-logout"
-        onClick={handleLogout}
-      >
-        <span aria-hidden="true">↪</span>
-        <span>
-          <strong>Log Out</strong>
-          <small>Sign out of your account</small>
-        </span>
-      </button>
-    </div>
-  );
-
   return (
     <>
       <header
-        onKeyDown={(event) => {
-          if (event.key !== "Escape" || event.defaultPrevented || !isMenuOpen || isProfileOpen) return;
-          setIsMenuOpen(false);
-          menuButtonRef.current?.focus();
-        }}
         className={`navbar${pathname === "/search" ? " navbar--search-page" : ""}`}
       >
         <div className="navbar-container">
@@ -337,15 +262,12 @@ const Navbar = () => {
 
           <button
             type="button"
-            ref={menuButtonRef}
-            className="navbar-menu-button"
-            onClick={() => setIsMenuOpen((previous) => !previous)}
-            aria-label="Toggle navigation menu"
-            aria-expanded={isMenuOpen}
+            className="navbar-mobile-avatar"
+            onClick={handleMobileAvatar}
+            aria-label={isUser ? "Open your account" : "Log in to your account"}
+            disabled={isLoading}
           >
-            <span />
-            <span />
-            <span />
+            <img src={UserProfileIcon} alt="" />
           </button>
         </div>
 
@@ -353,42 +275,6 @@ const Navbar = () => {
           <SearchBar />
         </div>
 
-        {isMenuOpen && (
-          <nav className="mobile-menu">
-            <NavLink to="/" className="mobile-menu-link" onClick={closeMenu}>
-              Home
-            </NavLink>
-
-            {isUser ? (
-              <div ref={mobileProfileMenuRef} className="mobile-account-section">
-                <button
-                  type="button"
-                  className="mobile-menu-link mobile-account-button"
-                  onClick={() => setIsProfileOpen((previous) => !previous)}
-                  aria-expanded={isProfileOpen}
-                >
-                  Account <span className="mobile-account-arrow">⌄</span>
-                </button>
-                {isProfileOpen && (
-                  <div className="mobile-profile-dropdown">
-                    {accountDropdown}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="mobile-menu-login"
-                onClick={() => {
-                  closeMenu();
-                  openLoginModal();
-                }}
-              >
-                Login
-              </button>
-            )}
-          </nav>
-        )}
       </header>
       {isProfileOpen && (
         <button
