@@ -324,8 +324,8 @@ const Navbar = () => {
             ) : (
               <button
                 type="button"
-                disabled={!isUser}
-                className={`navbar-cart-action${!isUser ? " navbar-cart-disabled" : " navbar-cart-guest"}`}
+                disabled
+                className="navbar-cart-action navbar-cart-disabled"
                 aria-label={
                   !isUser ? "My Cart disabled - Please login" : "My Cart"
                 }
@@ -382,11 +382,8 @@ const Navbar = () => {
                 {!canOpenCart && !canRetryCart ? (
                   <button
                     type="button"
+                    disabled
                     className="mobile-menu-link mobile-cart-button navbar-cart-disabled"
-                    onClick={() => {
-                      closeMenu();
-                      handleOpenCart();
-                    }}
                     aria-label="My Cart"
                   >
                     🛒 My Cart
