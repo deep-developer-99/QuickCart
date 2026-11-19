@@ -31,10 +31,18 @@
     display: flex;
     gap: 14px;
     overflow-x: auto;
-    padding: 0 0 4px;
+    padding: 0;
+    scroll-behavior: smooth;
     scroll-snap-type: x mandatory;
     overscroll-behavior-inline: contain;
-    scrollbar-width: thin;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .promotional-banners::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   .promotional-banner-card {
