@@ -513,6 +513,22 @@
   }
 }
 
+@media (max-width: 480px) {
+  .category-products-grid {
+    grid-auto-rows: minmax(214px, auto);
+    gap: 6px;
+  }
+
+  .category-products-grid .product-card--category {
+    min-height: 214px;
+  }
+
+  .category-products-grid .product-card--category .product-card-image-wrapper {
+    flex-basis: 108px;
+    height: 108px;
+  }
+}
+
 @media (max-width: 370px) {
   .category-products-page {
     padding-right: 5px;

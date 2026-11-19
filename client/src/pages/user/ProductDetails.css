@@ -493,6 +493,21 @@
   .product-details-similar-card { width: 170px; min-width: 170px; }
 }
 
+@media (max-width: 480px) {
+  .product-details-similar-track {
+    gap: 8px;
+  }
+
+  .product-details-similar-card {
+    width: 148px;
+    min-width: 148px;
+  }
+
+  .product-details-similar-card .product-card {
+    min-height: 238px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .product-detail-description,
   .add-to-cart-button,

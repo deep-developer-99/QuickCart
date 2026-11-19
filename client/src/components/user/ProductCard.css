@@ -121,6 +121,104 @@
   .product-variant-quantity { width: 72px; }
 }
 
+@media (max-width: 480px) {
+  .product-card {
+    border-radius: 9px;
+  }
+
+  .product-card-image-wrapper,
+  .product-card--compact .product-card-image-wrapper,
+  .product-card--category .product-card-image-wrapper {
+    flex-basis: 108px;
+    height: 108px;
+    padding: 5px;
+  }
+
+  .product-card-content,
+  .product-card--category .product-card-content {
+    padding: 5px 7px 3px;
+  }
+
+  .product-card-name,
+  .product-card--category .product-card-name {
+    min-height: 2.4em;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .product-card-variant-default {
+    margin-top: 2px;
+    font-size: 10px;
+  }
+
+  .product-card-description,
+  .product-card--category .product-card-description {
+    display: none;
+  }
+
+  .product-card-footer,
+  .product-card--category .product-card-footer {
+    gap: 4px 5px;
+    padding: 5px 7px 7px;
+  }
+
+  .product-card-price,
+  .product-card--category .product-card-price {
+    font-size: 13px;
+  }
+
+  .product-card-old-price {
+    font-size: 9px;
+  }
+
+  .product-card-discount,
+  .product-card--category .product-card-discount {
+    font-size: 8px;
+  }
+
+  .product-add-button,
+  .product-card--category .product-add-button {
+    min-width: 56px;
+    height: 36px;
+    padding: 0 7px;
+    font-size: 11px;
+  }
+
+  .product-quantity-control,
+  .product-card--category .product-quantity-control {
+    width: 78px;
+    height: 36px;
+  }
+
+  .product-quantity-button,
+  .product-card--category .product-quantity-button {
+    width: 22px;
+    height: 34px;
+  }
+
+  .product-quantity-value {
+    min-width: 24px;
+  }
+
+  .product-card-options-count {
+    font-size: 9px;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 767px) {
+  .product-card-image-wrapper,
+  .product-card--compact .product-card-image-wrapper,
+  .product-card--category .product-card-image-wrapper {
+    flex-basis: 118px;
+    height: 118px;
+  }
+
+  .product-card-name,
+  .product-card--category .product-card-name {
+    font-size: 12px;
+  }
+}
+
 @container (max-width: 155px) {
   .product-card-footer {
     grid-template-columns: minmax(0, 1fr);
