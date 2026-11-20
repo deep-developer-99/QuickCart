@@ -94,13 +94,12 @@ const AccountLayout = () => {
     }
   };
 
-  const isOrdersPage = /^\/account\/orders(?:\/|$)/.test(location.pathname);
   const displayName = user?.name?.trim() || "User";
   const email = user?.phone?.trim() || user?.email?.trim() || "Contact not provided";
   const initial = displayName.charAt(0).toUpperCase() || "U";
 
   return (
-    <div className={isOrdersPage ? "account-page account-page--orders" : "account-page"} ref={contentRef}>
+    <div className="account-page" ref={contentRef}>
       <div className="account-shell">
         <aside className="account-sidebar" aria-label="Account navigation">
           <div className="account-user-card">
@@ -194,9 +193,9 @@ const AccountLayout = () => {
           </button>
         </aside>
 
-        <main className="account-content">
+        <div className="account-content">
           <Outlet />
-        </main>
+        </div>
       </div>
     </div>
   );

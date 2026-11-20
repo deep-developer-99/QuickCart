@@ -2,22 +2,18 @@
   min-width: 0;
 }
 
-.saved-addresses-container {
-  padding: 38px 38px 60px;
-}
-
 .blinkit-addresses-header {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 9px;
-  margin-bottom: 22px;
+  gap: 4px;
+  margin-bottom: 10px;
 }
 
 .blinkit-addresses-header h1 {
   margin: 0;
-  color: #252525;
-  font-size: 26px;
+  color: var(--color-heading-text);
+  font-size: 22px;
   line-height: 1.15;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -27,8 +23,10 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
+  padding-inline: 0;
   color: var(--color-primary);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   text-decoration: none;
   border: 0;
@@ -77,7 +75,7 @@
   grid-template-columns: 44px minmax(0, 1fr) 32px;
   align-items: center;
   column-gap: 12px;
-  min-height: 68px;
+  min-height: 62px;
   padding: 11px 5px 11px 2px;
   border: 0;
   background: #fff;
@@ -85,7 +83,7 @@
 }
 
 .blinkit-address-row + .blinkit-address-row {
-  margin-top: 5px;
+  border-top: 1px solid var(--color-border);
 }
 
 .blinkit-address-row:hover {
@@ -119,12 +117,14 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex-wrap: wrap;
 }
 
 .blinkit-address-title-line h2 {
   margin: 0 0 5px;
   color: #202020;
-  font-size: 15px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
   line-height: 1.2;
   font-weight: 700;
 }
@@ -624,10 +624,6 @@
 }
 
 @media (max-width: 560px) {
-  .saved-addresses-container {
-    padding: 28px 18px 50px;
-  }
-
   .blinkit-address-row {
     grid-template-columns: 40px minmax(0, 1fr) 30px;
     column-gap: 9px;

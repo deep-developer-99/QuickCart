@@ -1,5 +1,4 @@
 .order-details-section {
-  padding: clamp(13px, 2.2vw, 24px);
   color: var(--color-heading-text);
   font-size: 13px;
   line-height: 1.4;

@@ -1,25 +1,23 @@
 .account-privacy {
-  padding: clamp(24px, 4vw, 48px);
   color: var(--color-body-text);
-  background: var(--color-card-background);
   overflow-wrap: anywhere;
 }
-.account-privacy h1 { margin: 10px 0 18px; color: var(--color-heading-text); font-size: clamp(23px, 3vw, 29px); line-height: 1.3; }
-.account-privacy h2 { margin: 24px 0 8px; font-size: 17px; }
-.account-privacy p { color: var(--color-muted-text); font-size: 15px; line-height: 1.7; }
+.account-privacy h1 { margin: 0 0 12px; color: var(--color-heading-text); font-size: 22px; line-height: 1.3; }
+.account-privacy h2 { margin: 18px 0 8px; font-size: 16px; }
+.account-privacy p { color: var(--color-muted-text); font-size: 14px; line-height: 1.6; }
 .account-privacy a { color: var(--color-link); }
 .privacy-back { display: inline-block; margin-bottom: 16px; font-size: 14px; text-decoration: none; }
 .privacy-read-more { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; border: 0; padding: 0; background: transparent; color: var(--color-link); font: inherit; font-weight: 650; cursor: pointer; }
 .privacy-read-more svg { transition: transform .18s; }
 .privacy-read-more svg.is-expanded { transform: rotate(180deg); }
-.privacy-delete-card { display: flex; align-items: center; gap: 20px; padding: 24px 20px; border: 1px solid var(--color-border); border-radius: 8px; margin-top: 30px; text-decoration: none; }
+.privacy-delete-card { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--color-border); border-radius: 8px; margin-top: 16px; text-decoration: none; }
 .privacy-delete-card > svg { flex-shrink: 0; }
 .privacy-delete-card > span { flex: 1; }
 .privacy-delete-card strong { display: block; color: var(--color-heading-text); font-size: 16px; }
 .privacy-delete-card small { display: block; color: var(--color-muted-text); font-size: 14px; margin-top: 6px; }
 .privacy-delete-card:hover { background: var(--color-secondary-background); }
 .privacy-reasons { padding: 0; margin: 26px 0 0; list-style: none; }
-.privacy-reasons a { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 72px; padding: 16px 4px; box-sizing: border-box; border-bottom: 1px solid var(--color-border); text-decoration: none; color: var(--color-heading-text); font-size: 15px; line-height: 1.5; }
+.privacy-reasons a { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 54px; padding: 10px 4px; box-sizing: border-box; border-bottom: 1px solid var(--color-border); text-decoration: none; color: var(--color-heading-text); font-size: 15px; line-height: 1.5; }
 .privacy-reasons svg { flex-shrink: 0; font-size: 13px; color: var(--color-muted-text); }
 .privacy-reasons a:hover { background: var(--color-secondary-background); }
 .privacy-feedback-label { display: block; font-size: 14px; font-weight: 650; margin: 28px 0 10px; }
@@ -39,11 +37,13 @@
 .privacy-confirmation button:disabled { opacity: .55; cursor: default; }
 .privacy-confirmation .privacy-error { color: var(--color-error); }
 .account-privacy :is(a, button, textarea):focus-visible, .privacy-confirmation button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 3px; }
-.privacy-complete { max-width: 650px; margin: 70px auto; }
+.privacy-complete { max-width: 650px; margin: 70px auto; padding: clamp(24px, 4vw, 48px); background: var(--color-card-background); }
+.privacy-complete h1 { margin: 10px 0 18px; font-size: clamp(23px, 3vw, 29px); }
+.privacy-complete p { font-size: 15px; line-height: 1.7; }
 .privacy-complete .privacy-back { display: block; margin-top: 24px; }
 @media (max-width: 600px) {
-  .account-privacy { padding: 24px 18px; }
+  .privacy-complete { padding: 24px 18px; }
   .privacy-confirmation { padding: 28px 20px; }
-  .privacy-delete-card { padding: 20px 16px; gap: 14px; }
+  .privacy-confirm-actions > button { min-width: 0; padding-inline: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .privacy-read-more svg { transition: none; } }

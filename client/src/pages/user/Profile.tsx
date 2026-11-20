@@ -165,7 +165,7 @@ const Profile = () => {
       : null;
 
   return (
-    <section className="account-section profile-section">
+    <section className="profile-section">
       <header className="profile-overview-heading">
         <div>
           <h1>Personal Information</h1>
