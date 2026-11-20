@@ -1,6 +1,15 @@
 import mongoose from "mongoose";
 import SearchSuggestion from "../models/SearchSuggestion";
-import SearchSuggestionSettings from "../models/SearchSuggestionSettings";
+import SearchSuggestionSettings, {
+  DEFAULT_DELETING_SPEED, DEFAULT_TYPING_SPEED, type SearchSuggestionTiming,
+} from "../models/SearchSuggestionSettings";
+
+export const serializeSearchSuggestionSettings = (settings: SearchSuggestionTiming | null) => ({
+  isEnabled: settings?.isEnabled ?? true,
+  rotationInterval: settings?.rotationInterval ?? 2500,
+  typingSpeedMs: settings?.typingSpeedMs ?? DEFAULT_TYPING_SPEED,
+  deletingSpeedMs: settings?.deletingSpeedMs ?? DEFAULT_DELETING_SPEED,
+});
 
 export const getSettings = () => SearchSuggestionSettings.findOneAndUpdate(
   { key: "global" }, { $setOnInsert: { key: "global", isEnabled: true, rotationInterval: 2500 } },
@@ -11,14 +20,14 @@ export const getPublicSearchSuggestions = async () => {
   const [settings, suggestions] = await Promise.all([
     getSettings(), SearchSuggestion.find({ isActive: true }).select("phrase order").sort({ order: 1, _id: 1 }).lean(),
   ]);
-  return { isEnabled: settings?.isEnabled ?? true, rotationInterval: settings?.rotationInterval ?? 2500, suggestions };
+  return { ...serializeSearchSuggestionSettings(settings), suggestions };
 };
 
 export const getAdminSearchSuggestions = async () => {
   const [settings, suggestions] = await Promise.all([
     getSettings(), SearchSuggestion.find().sort({ order: 1, _id: 1 }).select("phrase order isActive createdAt updatedAt").lean(),
   ]);
-  return { isEnabled: settings?.isEnabled ?? true, rotationInterval: settings?.rotationInterval ?? 2500, suggestions };
+  return { ...serializeSearchSuggestionSettings(settings), suggestions };
 };
 
 export const createSearchSuggestion = async (phrase: string, isActive: boolean) => {
@@ -54,7 +63,7 @@ export const reorderSearchSuggestions = async (ids: string[]) => {
   return getAdminSearchSuggestions();
 };
 
-export const updateSearchSuggestionSettings = async (input: { isEnabled: boolean; rotationInterval: number }) =>
+export const updateSearchSuggestionSettings = async (input: SearchSuggestionTiming) =>
   SearchSuggestionSettings.findOneAndUpdate(
     { key: "global" }, { $set: input, $setOnInsert: { key: "global" } },
     { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },

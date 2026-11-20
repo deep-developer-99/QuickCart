@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { addRecentSearch } from "../../hooks/useRecentSearches";
 import { useSearchSuggestions } from "../../hooks/useSearchSuggestions";
 import RotatingSearchPlaceholder from "./RotatingSearchPlaceholder";
+import { SEARCH_PLACEHOLDER_FALLBACK } from "./searchPlaceholder";
 import "./SearchBar.css";
 
 const SearchBar = () => {
@@ -14,9 +15,8 @@ const SearchBar = () => {
   const value = isSearchPage
     ? new URLSearchParams(location.search).get("q") || ""
     : "";
-  const { config, index, hasRotated, setPaused } = useSearchSuggestions();
+  const { config } = useSearchSuggestions();
   const [isFocused, setIsFocused] = useState(false);
-  const placeholder = "Search for atta, milk and more";
 
   const openSearch = () => {
     if (!isSearchPage) {
@@ -48,13 +48,11 @@ const SearchBar = () => {
 
   const handleFocus = () => {
     setIsFocused(true);
-    setPaused(true);
     openSearch();
   };
 
   const handleBlur = () => {
     setIsFocused(false);
-    setPaused(false);
   };
 
   return (
@@ -88,11 +86,7 @@ const SearchBar = () => {
       </button>
       {!value && !isFocused && (
         <RotatingSearchPlaceholder
-          suggestions={config?.suggestions || []}
-          index={index}
-          animate={hasRotated}
-          enabled={Boolean(config?.isEnabled)}
-          fallback={placeholder}
+          {...config}
         />
       )}
       <input
@@ -101,7 +95,7 @@ const SearchBar = () => {
         onChange={(event) => handleChange(event.target.value)}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        placeholder={value ? "" : placeholder}
+        placeholder={!value && isFocused ? SEARCH_PLACEHOLDER_FALLBACK : ""}
         aria-label="Search products"
       />
       {value && (

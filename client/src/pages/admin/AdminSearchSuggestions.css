@@ -16,3 +16,5 @@
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
+.ass-speed { display: grid; gap: 8px; }

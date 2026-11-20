@@ -1,7 +1,14 @@
 import api from "./api";
+import { DEFAULT_TYPING_SPEED, DEFAULT_DELETING_SPEED, DEFAULT_DISPLAY_DURATION } from "../components/common/searchPlaceholder";
 
 export interface SearchSuggestion { _id: string; phrase: string; order: number; isActive?: boolean; }
-export interface SearchSuggestionConfig { isEnabled: boolean; rotationInterval: number; suggestions: SearchSuggestion[]; }
+export interface SearchSuggestionSettings {
+  isEnabled: boolean;
+  rotationInterval: number;
+  typingSpeedMs?: number;
+  deletingSpeedMs?: number;
+}
+export interface SearchSuggestionConfig extends SearchSuggestionSettings { suggestions: SearchSuggestion[]; }
 export interface SearchSuggestionResponse { success: boolean; message?: string; data: SearchSuggestionConfig; }
 
 export const getPublicSearchSuggestions = async () => (await api.get<SearchSuggestionResponse>("/search-suggestions")).data;
@@ -10,18 +17,15 @@ export const createSearchSuggestion = async (input: { phrase: string; isActive: 
 export const updateSearchSuggestion = async (id: string, input: { phrase?: string; isActive?: boolean }) => (await api.put(`/admin/search-suggestions/${id}`, input)).data;
 export const deleteSearchSuggestion = async (id: string) => (await api.delete(`/admin/search-suggestions/${id}`)).data;
 export const reorderSearchSuggestions = async (ids: string[]) => (await api.patch<SearchSuggestionResponse>("/admin/search-suggestions/reorder", { ids })).data;
-export const updateSearchSuggestionSettings = async (input: { isEnabled: boolean; rotationInterval: number }) => (await api.patch("/admin/search-suggestions/settings", input)).data;
+export const updateSearchSuggestionSettings = async (input: SearchSuggestionSettings) => (await api.patch("/admin/search-suggestions/settings", input)).data;
 
-type StoreSnapshot = { config: SearchSuggestionConfig | null; index: number; hasRotated: boolean; isLoading: boolean };
+type StoreSnapshot = { config: SearchSuggestionConfig | null; isLoading: boolean };
 const listeners = new Set<() => void>();
-const pausedConsumers = new Set<symbol>();
-let snapshot: StoreSnapshot = { config: null, index: 0, hasRotated: false, isLoading: false };
+let snapshot: StoreSnapshot = { config: null, isLoading: false };
 let pendingRequest: Promise<void> | null = null;
-let rotationTimer: number | undefined;
 let retryTimer: number | undefined;
 let lastFetchedAt = 0;
 let refreshQueued = false;
-const FALLBACK_INTERVAL = 2500;
 const CACHE_TTL_MS = 30_000;
 const RETRY_DELAY_MS = 15_000;
 const notify = () => listeners.forEach((listener) => listener());
@@ -49,32 +53,19 @@ const parsePublicConfig = (response: SearchSuggestionResponse): SearchSuggestion
 
   const rotationInterval = Number.isInteger(raw.rotationInterval) && raw.rotationInterval >= 1000 && raw.rotationInterval <= 10000
     ? raw.rotationInterval
-    : FALLBACK_INTERVAL;
+    : DEFAULT_DISPLAY_DURATION;
 
-  return { isEnabled: raw.isEnabled, rotationInterval, suggestions };
+  return {
+    isEnabled: raw.isEnabled,
+    rotationInterval,
+    typingSpeedMs: parseSpeed(raw.typingSpeedMs, DEFAULT_TYPING_SPEED),
+    deletingSpeedMs: parseSpeed(raw.deletingSpeedMs, DEFAULT_DELETING_SPEED),
+    suggestions,
+  };
 };
 
-const configureTimer = () => {
-  if (rotationTimer !== undefined) window.clearInterval(rotationTimer);
-  rotationTimer = undefined;
-  const config = snapshot.config;
-  if (listeners.size && document.visibilityState !== "hidden" && !pausedConsumers.size && config?.isEnabled && config.suggestions.length > 1) {
-    rotationTimer = window.setInterval(() => {
-      if (document.visibilityState === "hidden") return;
-      const count = snapshot.config?.suggestions.length || 1;
-      snapshot = { ...snapshot, index: (snapshot.index + 1) % count, hasRotated: true };
-      notify();
-    }, config.rotationInterval || FALLBACK_INTERVAL);
-  }
-};
-
-export const setSearchSuggestionsPaused = (consumer: symbol, paused: boolean) => {
-  const changed = paused ? !pausedConsumers.has(consumer) : pausedConsumers.has(consumer);
-  if (!changed) return;
-  if (paused) pausedConsumers.add(consumer);
-  else pausedConsumers.delete(consumer);
-  configureTimer();
-};
+const parseSpeed = (value: number | undefined, fallback: number) =>
+  value !== undefined && Number.isInteger(value) && value >= 20 && value <= 150 ? value : fallback;
 
 const scheduleRetry = () => {
   if (!listeners.size || retryTimer !== undefined) return;
@@ -96,18 +87,17 @@ export const loadPublicSearchSuggestions = (force = false): Promise<void> => {
     window.clearTimeout(retryTimer);
     retryTimer = undefined;
   }
-  snapshot = { config: null, index: 0, hasRotated: false, isLoading: true };
+  snapshot = { ...snapshot, isLoading: true };
   notify();
   let failed = false;
   pendingRequest = getPublicSearchSuggestions().then(parsePublicConfig).then((config) => {
-    snapshot = { config, index: 0, hasRotated: false, isLoading: false };
+    snapshot = { config, isLoading: false };
     lastFetchedAt = Date.now();
   }).catch(() => {
     failed = true;
-    snapshot = { config: null, index: 0, hasRotated: false, isLoading: false };
+    snapshot = { config: null, isLoading: false };
   }).finally(() => {
     pendingRequest = null;
-    configureTimer();
     notify();
     if (refreshQueued) {
       refreshQueued = false;
@@ -132,18 +122,12 @@ export const subscribeToSearchSuggestions = (listener: () => void) => {
     document.addEventListener("visibilitychange", handlePageVisible);
     void loadPublicSearchSuggestions();
   }
-  configureTimer();
   return () => {
     listeners.delete(listener);
-    if (!listeners.size && rotationTimer !== undefined) {
-      window.clearInterval(rotationTimer);
-      rotationTimer = undefined;
-    }
     if (!listeners.size) {
       if (retryTimer !== undefined) window.clearTimeout(retryTimer);
       retryTimer = undefined;
       refreshQueued = false;
-      pausedConsumers.clear();
       window.removeEventListener("online", handleNetworkAvailable);
       document.removeEventListener("visibilitychange", handlePageVisible);
     }
@@ -156,11 +140,7 @@ const handleNetworkAvailable = () => {
 };
 
 const handlePageVisible = () => {
-  if (document.visibilityState !== "visible") {
-    configureTimer();
-    return;
-  }
-  configureTimer();
+  if (document.visibilityState !== "visible") return;
   if (!snapshot.config || Date.now() - lastFetchedAt >= CACHE_TTL_MS) void loadPublicSearchSuggestions();
 };
 

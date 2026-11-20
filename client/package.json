@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --test src/utils/__tests__/categorySelection.test.mjs",
+    "test": "node --test src/utils/__tests__/categorySelection.test.mjs src/components/common/__tests__/searchPlaceholder.test.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

@@ -1,7 +1,9 @@
 import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { useSearchSuggestions } from "../../hooks/useSearchSuggestions";
+import {
+  DEFAULT_DELETING_SPEED, DEFAULT_DISPLAY_DURATION, DEFAULT_TYPING_SPEED, normalizeSearchPhrase,
+} from "../../components/common/searchPlaceholder";
 import RotatingSearchPlaceholder from "../../components/common/RotatingSearchPlaceholder";
 import {
   createSearchSuggestion, deleteSearchSuggestion, getAdminSearchSuggestions,
@@ -12,12 +14,19 @@ import {
 import "./AdminSearchSuggestions.css";
 
 const INTERVALS = [1500, 2000, 2500, 3000, 4000, 5000];
+const TYPING_SPEEDS = [90, DEFAULT_TYPING_SPEED, 35];
+const BACKSPACE_SPEEDS = [65, DEFAULT_DELETING_SPEED, 25];
+const SPEED_LABELS = ["Slow", "Normal", "Fast"];
+const DEFAULT_SETTINGS = {
+  isEnabled: true, rotationInterval: DEFAULT_DISPLAY_DURATION,
+  typingSpeedMs: DEFAULT_TYPING_SPEED, deletingSpeedMs: DEFAULT_DELETING_SPEED,
+};
 const errorText = (error: unknown) => axios.isAxiosError(error)
   ? error.response?.data?.message || "The request could not be completed."
   : error instanceof Error ? error.message : "The request could not be completed.";
 
 const AdminSearchSuggestions = () => {
-  const [data, setData] = useState<SearchSuggestionConfig>({ isEnabled: true, rotationInterval: 2500, suggestions: [] });
+  const [data, setData] = useState<SearchSuggestionConfig>({ ...DEFAULT_SETTINGS, suggestions: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [phrase, setPhrase] = useState("");
@@ -27,21 +36,30 @@ const AdminSearchSuggestions = () => {
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
   const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [settingsDraft, setSettingsDraft] = useState({ isEnabled: true, rotationInterval: 2500 });
-  const { index } = useSearchSuggestions();
+  const [settingsDraft, setSettingsDraft] = useState(DEFAULT_SETTINGS);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await getAdminSearchSuggestions();
+  const refresh = useCallback((loadSettings = false) => getAdminSearchSuggestions()
+    .then((response) => {
       setData(response.data);
-      setSettingsDraft({ isEnabled: response.data.isEnabled, rotationInterval: response.data.rotationInterval });
+      if (loadSettings) {
+        const { isEnabled, rotationInterval, typingSpeedMs, deletingSpeedMs } = response.data;
+        setSettingsDraft({
+          isEnabled, rotationInterval,
+          typingSpeedMs: typingSpeedMs ?? DEFAULT_TYPING_SPEED,
+          deletingSpeedMs: deletingSpeedMs ?? DEFAULT_DELETING_SPEED,
+        });
+      }
       setError("");
-    } catch (requestError) { setError(errorText(requestError)); }
-    finally { setLoading(false); }
-  }, []);
+    })
+    .catch((requestError) => setError(errorText(requestError)))
+    .finally(() => setLoading(false)), []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => { void refresh(true); }, [refresh]);
+
+  const reload = (loadSettings = false) => {
+    setLoading(true);
+    return refresh(loadSettings);
+  };
 
   const activeSuggestions = useMemo(() => data.suggestions.filter((suggestion) => suggestion.isActive !== false), [data.suggestions]);
   const persistPublic = () => invalidatePublicSearchSuggestions();
@@ -49,16 +67,16 @@ const AdminSearchSuggestions = () => {
 
   const savePhrase = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const trimmed = phrase.trim();
+    const trimmed = normalizeSearchPhrase(phrase);
     if (!trimmed) { setError("Enter a search phrase."); return; }
-    if (data.suggestions.some((item) => item._id !== editingId && item.phrase.trim().toLocaleLowerCase() === trimmed.toLocaleLowerCase())) {
+    if (data.suggestions.some((item) => item._id !== editingId && normalizeSearchPhrase(item.phrase).normalize("NFC").toLowerCase() === trimmed.normalize("NFC").toLowerCase())) {
       setError("That phrase already exists."); return;
     }
     setSaving(true); setError(""); setFeedback("");
     try {
       if (editingId) await updateSearchSuggestion(editingId, { phrase: trimmed, isActive: active });
       else await createSearchSuggestion({ phrase: trimmed, isActive: active });
-      resetForm(); await refresh(); persistPublic(); setFeedback(editingId ? "Suggestion updated." : "Suggestion added.");
+      resetForm(); await reload(); persistPublic(); setFeedback(editingId ? "Suggestion updated." : "Suggestion added.");
     } catch (requestError) { setError(errorText(requestError)); }
     finally { setSaving(false); }
   };
@@ -69,26 +87,26 @@ const AdminSearchSuggestions = () => {
 
   const toggleActive = async (suggestion: SearchSuggestion) => {
     setError(""); setFeedback("");
-    try { await updateSearchSuggestion(suggestion._id, { isActive: suggestion.isActive === false }); await refresh(); persistPublic(); setFeedback("Suggestion status updated."); }
+    try { await updateSearchSuggestion(suggestion._id, { isActive: suggestion.isActive === false }); await reload(); persistPublic(); setFeedback("Suggestion status updated."); }
     catch (requestError) { setError(errorText(requestError)); }
   };
 
   const remove = async (suggestion: SearchSuggestion) => {
     if (!window.confirm(`Delete “${suggestion.phrase}”?`)) return;
     setError(""); setFeedback("");
-    try { await deleteSearchSuggestion(suggestion._id); if (editingId === suggestion._id) resetForm(); await refresh(); persistPublic(); setFeedback("Suggestion deleted."); }
+    try { await deleteSearchSuggestion(suggestion._id); if (editingId === suggestion._id) resetForm(); await reload(); persistPublic(); setFeedback("Suggestion deleted."); }
     catch (requestError) { setError(errorText(requestError)); }
   };
 
   const saveOrder = async (ordered: SearchSuggestion[]) => {
     setData((current) => ({ ...current, suggestions: ordered }));
     try { const response = await reorderSearchSuggestions(ordered.map((item) => item._id)); setData(response.data); persistPublic(); setFeedback("Suggestion order saved."); setError(""); }
-    catch (requestError) { setError(errorText(requestError)); await refresh(); }
+    catch (requestError) { setError(errorText(requestError)); await reload(); }
   };
 
   const saveSettings = async () => {
     setSaving(true); setError(""); setFeedback("");
-    try { await updateSearchSuggestionSettings(settingsDraft); await refresh(); persistPublic(); setFeedback("Rotation settings saved."); }
+    try { await updateSearchSuggestionSettings(settingsDraft); await reload(true); persistPublic(); setFeedback("Rotation settings saved."); }
     catch (requestError) { setError(errorText(requestError)); }
     finally { setSaving(false); }
   };
@@ -129,24 +147,45 @@ const AdminSearchSuggestions = () => {
           )}
         </section>
 
-        {showForm && <div className="ass-modal-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) resetForm(); }}><section {...dialogFocus} className="ass-modal" role="dialog" aria-modal="true" aria-labelledby="ass-form-title"><div className="ass-modal-heading"><div><h2 id="ass-form-title">{editingId ? "Edit search suggestion" : "Add search suggestion"}</h2><p>Suggestions can contain up to 100 characters.</p></div><button type="button" className="ass-close" aria-label="Close" onClick={resetForm}>×</button></div><form className="ass-form" onSubmit={savePhrase}>
+        {showForm && <div className="ass-modal-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) resetForm(); }}><section {...dialogFocus} className="ass-modal" role="dialog" aria-modal="true" aria-labelledby="ass-form-title"><div className="ass-modal-heading"><div><h2 id="ass-form-title">{editingId ? "Edit search suggestion" : "Add search suggestion"}</h2><p>Enter only the search term, such as fresh fruits. Use up to 100 characters.</p></div><button type="button" className="ass-close" aria-label="Close" onClick={resetForm}>×</button></div><form className="ass-form" onSubmit={savePhrase}>
             <label htmlFor="ass-phrase">Search phrase</label>
-            <input id="ass-phrase" value={phrase} maxLength={100} placeholder="e.g. Search for fresh fruits" onChange={(event) => setPhrase(event.target.value)} required />
+            <input id="ass-phrase" value={phrase} maxLength={100} placeholder="e.g. fresh fruits" onChange={(event) => setPhrase(event.target.value)} required />
             <label className="ass-check"><input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} /> Active</label>
             <div className="ass-form-actions"><button type="submit" disabled={saving}>{saving ? "Saving…" : editingId ? "Save changes" : "Add suggestion"}</button><button type="button" className="ass-cancel" onClick={resetForm}>Cancel</button></div>
           </form></section></div>}
 
         <div className="ass-side-column">
           <section className="ass-card ass-settings">
-            <h2>Rotation settings</h2><p>Control whether suggestions rotate and how often they change.</p>
-            <label className="ass-check"><input type="checkbox" checked={settingsDraft.isEnabled} onChange={(event) => setSettingsDraft((current) => ({ ...current, isEnabled: event.target.checked }))} /> Enable dynamic suggestions</label>
-            <label className="ass-interval" htmlFor="ass-interval">Rotation interval</label>
+            <h2>Rotation settings</h2><p>Set how long each complete phrase stays visible before it is erased.</p>
+            <label className="ass-check"><input type="checkbox" checked={settingsDraft.isEnabled} onChange={(event) => setSettingsDraft((current) => ({ ...current, isEnabled: event.target.checked }))} /> Enable animated suggestions</label>
+            <label className="ass-interval" htmlFor="ass-interval">Display duration</label>
             <select id="ass-interval" value={settingsDraft.rotationInterval} onChange={(event) => setSettingsDraft((current) => ({ ...current, rotationInterval: Number(event.target.value) }))}>
-              {INTERVALS.map((interval) => <option key={interval} value={interval}>{(interval / 1000).toFixed(interval % 1000 ? 1 : 0)} seconds ({interval} ms)</option>)}
+              {!INTERVALS.includes(settingsDraft.rotationInterval) && (
+                <option value={settingsDraft.rotationInterval}>{settingsDraft.rotationInterval / 1000} seconds</option>
+              )}
+              {INTERVALS.map((interval) => <option key={interval} value={interval}>{interval / 1000} seconds</option>)}
             </select>
+            {([
+              ["typingSpeedMs", "Typing speed", TYPING_SPEEDS],
+              ["deletingSpeedMs", "Backspace speed", BACKSPACE_SPEEDS],
+            ] as const).map(([field, label, speeds]) => (
+              <label className="ass-speed" key={field}>
+                <span className="ass-interval">{label}</span>
+                <select value={settingsDraft[field]} onChange={(event) => setSettingsDraft((current) => ({ ...current, [field]: Number(event.target.value) }))}>
+                  {!speeds.includes(settingsDraft[field]) && <option value={settingsDraft[field]}>Custom</option>}
+                  {speeds.map((speed, index) => <option key={speed} value={speed}>{SPEED_LABELS[index]}</option>)}
+                </select>
+              </label>
+            ))}
             <button type="button" onClick={() => void saveSettings()} disabled={saving}>{saving ? "Saving…" : "Save settings"}</button>
           </section>
-          <section className="ass-card ass-preview"><h2>Live preview</h2><p>Preview the active phrases configured for your storefront.</p><div className="ass-preview-field"><span className="ass-search-icon" aria-hidden="true">⌕</span><RotatingSearchPlaceholder suggestions={activeSuggestions} index={index} enabled={settingsDraft.isEnabled} fallback="Search for atta, milk and more" /></div><small>{activeSuggestions.length ? `${activeSuggestions.length} active phrases · ${settingsDraft.rotationInterval} ms interval` : "Static placeholder shown when no active phrases exist."}</small></section>
+          <section className="ass-card ass-preview">
+            <h2>Live preview</h2><p>Preview active phrases with your current settings before saving.</p>
+            <div className="ass-preview-field">
+              <span className="ass-search-icon" aria-hidden="true">⌕</span>
+              <RotatingSearchPlaceholder {...settingsDraft} suggestions={activeSuggestions} paused={showForm} />
+            </div>
+          </section>
         </div>
       </div>
     </div>

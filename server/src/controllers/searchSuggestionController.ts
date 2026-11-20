@@ -1,8 +1,9 @@
 import type { Request, Response } from "express";
+import { MAX_ANIMATION_SPEED, MIN_ANIMATION_SPEED, type SearchSuggestionTiming } from "../models/SearchSuggestionSettings";
 import {
   createSearchSuggestion, deleteSearchSuggestion, getAdminSearchSuggestions,
   getPublicSearchSuggestions, reorderSearchSuggestions, updateSearchSuggestion,
-  updateSearchSuggestionSettings,
+  serializeSearchSuggestionSettings, updateSearchSuggestionSettings,
 } from "../services/searchSuggestionService";
 
 const sendError = (res: Response, error: unknown, fallback: string) => {
@@ -63,10 +64,19 @@ export const reorderSearchSuggestionsController = async (req: Request, res: Resp
 
 export const updateSearchSuggestionSettingsController = async (req: Request, res: Response) => {
   try {
-    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body) || Object.keys(req.body).some((key) => !["isEnabled", "rotationInterval"].includes(key))) throw new Error("Unsupported settings fields");
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body) || Object.keys(req.body).some((key) => !["isEnabled", "rotationInterval", "typingSpeedMs", "deletingSpeedMs"].includes(key))) throw new Error("Unsupported settings fields");
     const { isEnabled, rotationInterval } = req.body ?? {};
     if (typeof isEnabled !== "boolean" || !Number.isInteger(rotationInterval) || rotationInterval < 1000 || rotationInterval > 10000) throw new Error("isEnabled must be a boolean and rotationInterval must be 1000–10000ms");
-    const settings = await updateSearchSuggestionSettings({ isEnabled, rotationInterval });
-    res.json({ success: true, message: "Rotation settings saved", data: { isEnabled: settings?.isEnabled, rotationInterval: settings?.rotationInterval } });
+    const input: SearchSuggestionTiming = { isEnabled, rotationInterval };
+    for (const key of ["typingSpeedMs", "deletingSpeedMs"] as const) {
+      if (!(key in req.body)) continue;
+      const speed = req.body[key];
+      if (!Number.isInteger(speed) || speed < MIN_ANIMATION_SPEED || speed > MAX_ANIMATION_SPEED) {
+        throw new Error(`${key} must be an integer between ${MIN_ANIMATION_SPEED} and ${MAX_ANIMATION_SPEED} ms`);
+      }
+      input[key] = speed;
+    }
+    const settings = await updateSearchSuggestionSettings(input);
+    res.json({ success: true, message: "Rotation settings saved", data: serializeSearchSuggestionSettings(settings) });
   } catch (error) { sendError(res, error, "Failed to save rotation settings"); }
 };
