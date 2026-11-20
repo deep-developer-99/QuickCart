@@ -16,6 +16,8 @@ The schema's unique indexes are `active_customer_email`, `active_customer_phone`
 
 Do not roll back to the old login logic after any account has been deactivated. That code can select historical records. A rollback requires maintenance and a forward fix, or a carefully reviewed restore of the entire consistent backup. Recreating global unique indexes can fail after historical identities are reused.
 
+Run `npm run check:customer-deletion` from `server` to inspect the configured database before attempting deletion. The command only lists identity-index metadata and returns a nonzero exit code if it cannot verify readiness. A `MIGRATION_REQUIRED` response occurs before deactivation. Search server logs for `account_deletion.failed` and the response's `X-Request-Id` to see which index prerequisites failed. The readiness check does not alter indexes or read customer records.
+
 ## API and security
 
 - `POST /api/auth/delete-account/confirmation` requires an active customer JWT. It returns a confirmation token bound to that customer and that session, valid for five minutes. The sign-in must be within 15 minutes. Google sessions use Firebase's authentication time.

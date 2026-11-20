@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "test": "tsx --test src/services/__tests__/categoryHierarchy.test.ts src/services/__tests__/categoryCatalog.test.ts src/services/__tests__/productCategoryValidation.test.ts src/services/__tests__/productBrowse.test.ts src/services/__tests__/homepageSection.test.ts src/services/__tests__/notificationHistory.test.ts src/services/__tests__/checkoutService.test.ts src/services/__tests__/cartService.test.mjs src/services/__tests__/addressCoordinates.test.ts src/middleware/__tests__/apiRequestLogging.test.ts src/middleware/__tests__/adminHomepageAuthorization.test.ts src/services/__tests__/searchSuggestionSettings.test.ts",
+    "test": "tsx --test src/services/__tests__/categoryHierarchy.test.ts src/services/__tests__/categoryCatalog.test.ts src/services/__tests__/productCategoryValidation.test.ts src/services/__tests__/productBrowse.test.ts src/services/__tests__/homepageSection.test.ts src/services/__tests__/notificationHistory.test.ts src/services/__tests__/checkoutService.test.ts src/services/__tests__/cartService.test.mjs src/services/__tests__/addressCoordinates.test.ts src/middleware/__tests__/apiRequestLogging.test.ts src/middleware/__tests__/adminHomepageAuthorization.test.ts src/services/__tests__/searchSuggestionSettings.test.ts src/services/__tests__/accountDeletionService.test.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "check:customer-deletion": "tsx src/scripts/checkCustomerDeletionReadiness.ts",
     "migrate:customer-lifecycle": "tsx src/scripts/migrateCustomerLifecycle.ts",
     "test:account-lifecycle": "tsx --test src/services/__tests__/accountLifecycle.test.ts",
     "migrate:category-hierarchy": "tsx src/scripts/migrateCategoryHierarchy.ts",

@@ -41,6 +41,10 @@ test("customer migration, deletion, authentication, and fresh account isolation"
   await User.collection.createIndex({ phone: 1 }, { unique: true, sparse: true });
   await User.collection.createIndex({ googleId: 1 }, { unique: true, sparse: true });
   await User.collection.createIndex({ name: 1 }, { name: "unrelated_name_index" });
+  await assert.rejects(deactivateCustomer(oldId.toString(), { reason: deletionReasons[0] }), {
+    statusCode: 503, code: "MIGRATION_REQUIRED",
+  });
+  assert.equal((await User.collection.findOne({ _id: oldId }))?.isActive, undefined);
   const backups = await mkdtemp(path.join(os.tmpdir(), "quickcart-account-backup-"));
   await migrateCustomerLifecycle();
   assert.equal((await User.collection.findOne({ _id: oldId }))?.isActive, undefined);
@@ -108,6 +112,9 @@ test("customer migration, deletion, authentication, and fresh account isolation"
     assert.equal(old?.deletionReason, deletionReasons[2]);
     assert.ok(old?.deletedAt);
     assert.deepEqual(old?.fcmTokens, []);
+    const feedback = await mongoose.connection.collection("accountdeletionfeedbacks").findOne({ user: oldId });
+    assert.equal(feedback?.feedback, "Thanks");
+    assert.ok(feedback?.expiresAt > old!.deletedAt!);
     assert.equal((await User.findById(oldId).lean())?.deletionReason, undefined);
     assert.equal((await call("/auth/delete-account", "POST", { reason: deletionReasons[0], confirmationToken })).status, 401);
     await deactivateCustomer(oldId.toString(), { reason: deletionReasons[0] });

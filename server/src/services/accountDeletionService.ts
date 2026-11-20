@@ -4,6 +4,8 @@ import AccountDeletionFeedback from "../models/AccountDeletionFeedback";
 import { activeCustomerFilter, customerIdentityFields, customerIdentityIndexes, deletionReasons } from "../utils/customerLifecycle";
 
 export class AccountDeletionError extends Error {
+  indexIssues?: Awaited<ReturnType<typeof inspectCustomerIdentityIndexes>>;
+
   constructor(message: string, public statusCode = 400, public code = "INVALID_DELETION") {
     super(message);
   }
@@ -27,22 +29,37 @@ export const validateDeletion = (body: unknown) => {
   return { reason: input.reason, feedback };
 };
 
-export const assertCustomerIndexesReady = async () => {
+export const inspectCustomerIdentityIndexes = async () => {
   const indexes = await User.collection.indexes();
-  for (const expected of customerIdentityIndexes) {
-    const actual = indexes.find((index) => index.name === expected.name);
+  const invalidActiveIndexes = customerIdentityIndexes.filter((expected) => {
     const field = Object.keys(expected.key)[0];
-    if (!actual?.unique || Object.keys(actual.key).length !== 1 || actual.key[field] !== 1 ||
-        actual.partialFilterExpression?.isActive !== true ||
-        actual.partialFilterExpression?.[field]?.$type !== "string") {
-      throw new AccountDeletionError("Account deletion is temporarily unavailable. Please try again later.", 503, "MIGRATION_REQUIRED");
-    }
-  }
-  if (indexes.some((index) => index.unique && !index.partialFilterExpression &&
-      Object.keys(index.key).length === 1 && customerIdentityFields.some((field) => index.key[field] === 1))) {
-    throw new AccountDeletionError("Account deletion is temporarily unavailable. Please try again later.", 503, "MIGRATION_REQUIRED");
+    return !indexes.some((index) => {
+      const filter = index.partialFilterExpression;
+      return index.name === expected.name && index.unique === true &&
+        Object.keys(index.key).length === 1 && index.key[field] === 1 &&
+        filter && Object.keys(filter).length === 2 && filter.isActive === true &&
+        filter[field]?.$type === "string" && Object.keys(filter[field]).length === 1;
+    });
+  }).map((index) => index.name);
+  const legacyIdentityFields = customerIdentityFields.filter((field) =>
+    indexes.some((index) => index.unique && !index.partialFilterExpression &&
+      Object.keys(index.key).length === 1 && (index.key[field] === 1 || index.key[field] === -1)),
+  );
+  return { invalidActiveIndexes, legacyIdentityFields };
+};
+
+export const assertCustomerIndexesReady = async () => {
+  const issues = await inspectCustomerIdentityIndexes();
+  if (issues.invalidActiveIndexes.length || issues.legacyIdentityFields.length) {
+    const error = new AccountDeletionError(
+      "Account deletion is temporarily unavailable. Please try again later.", 503, "MIGRATION_REQUIRED",
+    );
+    throw Object.assign(error, { indexIssues: issues });
   }
 };
+
+const isCustomerInactive = (userId: string) =>
+  User.exists({ _id: userId, isActive: false }).read("primary").readConcern("majority");
 
 export const deactivateCustomer = async (userId: string, body: unknown) => {
   const { reason, feedback } = validateDeletion(body);
@@ -53,20 +70,28 @@ export const deactivateCustomer = async (userId: string, body: unknown) => {
   });
   if (unsettled) throw new AccountDeletionError("Please finish your pending payment or contact support before closing your account.", 409, "PAYMENT_PENDING");
   const deletedAt = new Date();
-  const result = await User.updateOne(
-    { _id: userId, ...activeCustomerFilter,
-      $and: [
-        { $or: [{ activeCheckoutRequests: { $exists: false } }, { activeCheckoutRequests: 0 }] },
-        { $or: [{ pendingRazorpayOrders: { $exists: false } }, { pendingRazorpayOrders: { $size: 0 } }] },
-      ],
-    },
-    { $set: { isActive: false, deletedAt, deletionReason: reason, fcmTokens: [] } },
-    { runValidators: true },
-  );
-  if (!result.matchedCount) {
-    const previous = await User.exists({ _id: userId, isActive: false });
-    if (!previous) throw new AccountDeletionError("Please finish your open checkout or contact support before closing your account.", 409, "PAYMENT_PENDING");
-    return;
+  let matched: number;
+  try {
+    const result = await User.updateOne(
+      { _id: userId, ...activeCustomerFilter,
+        $and: [
+          { $or: [{ activeCheckoutRequests: { $exists: false } }, { activeCheckoutRequests: 0 }] },
+          { $or: [{ pendingRazorpayOrders: { $exists: false } }, { pendingRazorpayOrders: { $size: 0 } }] },
+        ],
+      },
+      { $set: { isActive: false, deletedAt, deletionReason: reason, fcmTokens: [] } },
+      { runValidators: true, writeConcern: { w: "majority" } },
+    );
+    matched = result.matchedCount;
+  } catch (error) {
+    // A lost acknowledgement can follow a committed write. Only report success
+    // if the primary can confirm the inactive state with a majority read.
+    if (await isCustomerInactive(userId).catch(() => null)) return;
+    throw error;
+  }
+  if (!matched) {
+    if (await isCustomerInactive(userId)) return;
+    throw new AccountDeletionError("Please finish your open checkout or contact support before closing your account.", 409, "PAYMENT_PENDING");
   }
 
   // Deactivation is final even if optional feedback cannot be stored.

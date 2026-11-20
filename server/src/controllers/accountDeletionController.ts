@@ -6,6 +6,16 @@ import type { AuthenticatedRequest } from "../middleware/authMiddleware";
 import User from "../models/User";
 import { AccountDeletionError, deactivateCustomer } from "../services/accountDeletionService";
 
+const logDeletionFailure = (res: Response, phase: "deactivation" | "throttling", error: unknown) => {
+  const code = error instanceof Error ? (error as Error & { code?: unknown }).code : undefined;
+  console.error(JSON.stringify({
+    level: "error", event: "account_deletion.failed", phase, requestId: res.locals.requestId,
+    errorName: error instanceof Error ? error.name : undefined,
+    code: typeof code === "number" || typeof code === "string" ? code : undefined,
+    indexIssues: error instanceof AccountDeletionError ? error.indexIssues : undefined,
+  }));
+};
+
 const recentAuthenticationSeconds = 15 * 60;
 const sessionDigest = (req: AuthenticatedRequest) =>
   createHash("sha256").update(req.cookies?.token || req.headers.authorization || "").digest("hex");
@@ -60,6 +70,7 @@ export const deleteAccountController = async (req: AuthenticatedRequest, res: Re
     res.set("Cache-Control", "no-store").json({ success: true, message: "Your account has been deactivated." });
   } catch (error) {
     const known = error instanceof AccountDeletionError;
+    if (!known || error.statusCode >= 500) logDeletionFailure(res, "deactivation", error);
     res.status(known ? error.statusCode : 500).json({
       success: false,
       code: known ? error.code : "DELETION_FAILED",
@@ -102,7 +113,8 @@ export const limitAccountDeletion = async (req: AuthenticatedRequest, res: Respo
       return;
     }
     next();
-  } catch {
+  } catch (error) {
+    logDeletionFailure(res, "throttling", error);
     res.status(503).json({ success: false, message: "Account settings are temporarily unavailable." });
   }
 };
