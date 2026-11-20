@@ -46,7 +46,7 @@ const CartDrawerProvider = ({ children }: { children: ReactNode }) => {
   return (
     <CartDrawerContext.Provider value={{ openCart, closeCart }}>
       {children}
-      <CartDrawer isOpen={isOpen} isClosing={isClosing} onClose={handleClose} onNavigate={handleNavigate} />
+      <CartDrawer key={user?.id ?? "guest"} isOpen={isOpen && isAuthenticated} isClosing={isClosing} onClose={handleClose} onNavigate={handleNavigate} />
     </CartDrawerContext.Provider>
   );
 };

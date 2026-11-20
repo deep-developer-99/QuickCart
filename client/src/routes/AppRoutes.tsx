@@ -1,3 +1,7 @@
+import AccountPrivacy from "../pages/user/AccountPrivacy";
+import DeleteAccount from "../pages/user/DeleteAccount";
+import DeleteAccountFeedback from "../pages/user/DeleteAccountFeedback";
+import AccountDeactivated from "../pages/user/AccountDeactivated";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import CategoryProducts from "../pages/user/CategoryProducts";
@@ -57,6 +61,7 @@ const AppRoutes = () => {
       <LoginModalProvider>
       <ScrollToTop />
       <Routes>
+        <Route path="/account-deactivated" element={<AccountDeactivated />} />
         <Route path="/contact" element={<ContactUs />} />
 
         <Route element={<UserLayout />}>
@@ -81,6 +86,9 @@ const AppRoutes = () => {
 
             <Route path="/account" element={<AccountLayout />}>
               <Route index element={<AccountHome />} />
+              <Route path="privacy" element={<AccountPrivacy />} />
+              <Route path="delete-account" element={<DeleteAccount />} />
+              <Route path="delete-account-feedback" element={<DeleteAccountFeedback />} />
               <Route path="profile" element={<Profile />} />
               <Route path="addresses" element={<SavedAddresses />} />
               <Route path="orders" element={<MyOrders />} />

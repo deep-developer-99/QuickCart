@@ -79,9 +79,10 @@ export const activateVendor = async (vendorId: string) => {
 };
 
 // Get All Users
-export const getAllUsers = async (page?: unknown, limit?: unknown) => {
+export const getAllUsers = async (page?: unknown, limit?: unknown, status?: unknown) => {
   const pagination = getPagination(page, limit);
-  const [users, totalItems] = await Promise.all([User.find().select("-__v -fcmTokens").sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), User.countDocuments()]);
+  const filter = status === "deactivated" ? { isActive: false } : status === "active" ? { isActive: { $ne: false } } : {};
+  const [users, totalItems] = await Promise.all([User.find(filter).select("-__v -fcmTokens").sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.limit), User.countDocuments(filter)]);
 
   return { data: users, pagination: createPaginationMeta(pagination.page, pagination.limit, totalItems) };
 };
@@ -151,12 +152,13 @@ export const getAdminDashboard = async (days = 30) => {
   const validDays = [7, 30, 90].includes(days) ? days : 30;
   const startDate = getStartOfIndiaDay(validDays - 1);
 
-  const [totalUsers, totalVendors, totalProducts, totalOrders] =
+  const [totalUsers, totalVendors, totalProducts, totalOrders, activeUsers] =
     await Promise.all([
       User.countDocuments(),
       Vendor.countDocuments(),
       Product.countDocuments(),
       Order.countDocuments(),
+      User.countDocuments({ isActive: { $ne: false } }),
     ]);
 
   const salesResult = await Order.aggregate([
@@ -264,6 +266,8 @@ export const getAdminDashboard = async (days = 30) => {
 
   return {
     totalUsers,
+    activeUsers,
+    deactivatedUsers: totalUsers - activeUsers,
     totalVendors,
     totalProducts,
     totalOrders,

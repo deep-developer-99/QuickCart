@@ -1,3 +1,5 @@
+import { resolveGoogleCustomer, resolvePhoneCustomer } from "./customerIdentityService";
+import { activeCustomerFilter } from "../utils/customerLifecycle";
 import bcrypt from "bcryptjs";
 import { sendPhoneOtp, verifyPhoneOtp } from "./twilioService";
 import { firebaseAdminAuth } from "../config/firebaseAdmin";
@@ -214,51 +216,15 @@ export const loginGoogleUser = async (
     throw new Error("Required Google user information is missing");
   }
 
-  const normalizedEmail = email.toLowerCase().trim();
-
-  // First search by Firebase Google UID
-  let user = await User.findOne({
-    googleId,
-  });
-
-  // If not found, search by email.
-  // This prevents duplicate accounts when
-  // the user already registered using phone.
-  if (!user) {
-    user = await User.findOne({
-      email: normalizedEmail,
-    });
-
-    if (user) {
-      user.googleId = googleId;
-
-      if (picture && !user.profileImage) {
-        user.profileImage = picture;
-      }
-
-      if (name && !user.name) {
-        user.name = name;
-      }
-
-      await user.save();
-    }
+  if (!decodedToken.email_verified || decodedToken.firebase?.sign_in_provider !== "google.com") {
+    throw new Error("Please sign in with a verified Google account.");
   }
-
-  // Create new user
-  if (!user) {
-    user = await User.create({
-      name: name?.trim() || "QuickCart User",
-      email: normalizedEmail,
-      googleId,
-      profileImage: picture,
-      role: "user",
-    });
-  }
-
+  const user = await resolveGoogleCustomer({ googleId, email, name, picture });
   // Generate QuickCart JWT
   const token = generateToken({
     id: user._id.toString(),
     role: "user",
+    authTime: decodedToken.auth_time,
   });
 
   return {
@@ -282,6 +248,7 @@ export const sendPhoneOtpService = async (
 
   const existingUser = await User.findOne({
     phone: formattedPhone,
+    ...activeCustomerFilter,
   });
 
   return {
@@ -303,21 +270,7 @@ export const verifyPhoneOtpService = async (
     throw new Error("Invalid or Expired OTP");
   }
 
-  // Check existing user
-  let user = await User.findOne({ phone: formattedPhone });
-
-  // New user
-  if (!user) {
-    if (!name?.trim()) {
-      throw new Error("Name is required for first-time login");
-    }
-
-    user = await User.create({
-      name: name.trim(),
-      phone: formattedPhone,
-      role: "user",
-    });
-  }
+  const user = await resolvePhoneCustomer(formattedPhone, name);
 
   const token = generateToken({
     id: user._id.toString(),

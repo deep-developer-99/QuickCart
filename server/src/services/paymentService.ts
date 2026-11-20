@@ -15,7 +15,7 @@ const getRazorpay = () => {
   });
 };
 
-export const createRazorpayOrder = async (amount: number, receipt: string) => {
+export const createRazorpayOrder = async (amount: number, receipt: string, userId: string) => {
   if (amount <= 0) {
     throw new Error("Invalid payment amount");
   }
@@ -26,6 +26,7 @@ export const createRazorpayOrder = async (amount: number, receipt: string) => {
     amount: Math.round(amount * 100),
     currency: "INR",
     receipt,
+    notes: { quickcartUserId: userId },
   });
 };
 

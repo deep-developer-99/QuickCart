@@ -1,3 +1,4 @@
+import { customerCheckoutGuard } from "../middleware/customerCheckoutGuard";
 import { Router } from "express";
 
 import {
@@ -27,11 +28,13 @@ const router = Router();
 router.post(
   "/cashfree/session",
   authMiddleware("user"),
+  customerCheckoutGuard,
   createCashfreeSessionController,
 );
 router.post(
   "/cashfree/verify",
   authMiddleware("user"),
+  customerCheckoutGuard,
   verifyCashfreePaymentController,
 );
 router.get(
@@ -41,8 +44,8 @@ router.get(
 );
 
 // User payment/order routes
-router.post("/", authMiddleware("user"), createOrderController);
-router.post("/buy-now", authMiddleware("user"), createBuyNowOrderController);
+router.post("/", authMiddleware("user"), customerCheckoutGuard, createOrderController);
+router.post("/buy-now", authMiddleware("user"), customerCheckoutGuard, createBuyNowOrderController);
 // POST accepts local cart identifiers/quantities; GET remains for legacy clients.
 router.post("/checkout-summary", authMiddleware("user"), getCheckoutSummaryController);
 router.get("/checkout-summary", authMiddleware("user"), getCheckoutSummaryController);
@@ -50,12 +53,14 @@ router.get("/checkout-summary", authMiddleware("user"), getCheckoutSummaryContro
 router.post(
   "/razorpay/create-order",
   authMiddleware("user"),
+  customerCheckoutGuard,
   createRazorpayOrderController,
 );
 
 router.post(
   "/razorpay/verify",
   authMiddleware("user"),
+  customerCheckoutGuard,
   verifyRazorpayPaymentController,
 );
 

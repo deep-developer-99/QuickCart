@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 
 interface JwtPayload {
   id: string;
+  authTime?: number;
   role: "user" | "vendor" | "admin";
 }
 

@@ -49,7 +49,7 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
   } = data;
 
   if (paymentAttemptId) {
-    const existingOrder = await Order.findOne({ paymentAttemptId });
+    const existingOrder = await Order.findOne({ paymentAttemptId, user: userId });
     if (existingOrder) return existingOrder;
   }
 
@@ -59,7 +59,7 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
     session.startTransaction();
 
     if (paymentAttemptId) {
-      const existingOrder = await Order.findOne({ paymentAttemptId }).session(
+      const existingOrder = await Order.findOne({ paymentAttemptId, user: userId }).session(
         session,
       );
       if (existingOrder) {
@@ -209,7 +209,7 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
   } catch (error: any) {
     await session.abortTransaction();
     if (paymentAttemptId && error?.code === 11000) {
-      const existingOrder = await Order.findOne({ paymentAttemptId });
+      const existingOrder = await Order.findOne({ paymentAttemptId, user: userId });
       if (existingOrder) return existingOrder;
     }
     throw error;
@@ -235,7 +235,7 @@ export const createBuyNowOrder = async (
   } = data;
 
   if (paymentAttemptId) {
-    const existingOrder = await Order.findOne({ paymentAttemptId });
+    const existingOrder = await Order.findOne({ paymentAttemptId, user: userId });
     if (existingOrder) return existingOrder;
   }
 
@@ -249,7 +249,7 @@ export const createBuyNowOrder = async (
     session.startTransaction();
 
     if (paymentAttemptId) {
-      const existingOrder = await Order.findOne({ paymentAttemptId }).session(
+      const existingOrder = await Order.findOne({ paymentAttemptId, user: userId }).session(
         session,
       );
       if (existingOrder) {
@@ -371,7 +371,7 @@ export const createBuyNowOrder = async (
   } catch (error: any) {
     await session.abortTransaction();
     if (paymentAttemptId && error?.code === 11000) {
-      const existingOrder = await Order.findOne({ paymentAttemptId });
+      const existingOrder = await Order.findOne({ paymentAttemptId, user: userId });
       if (existingOrder) return existingOrder;
     }
     throw error;

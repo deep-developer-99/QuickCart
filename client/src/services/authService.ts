@@ -107,6 +107,7 @@ export const logout = async () => {
 };
 
 export interface UpdateProfileData {
+  phoneCode?: string;
   name: string;
   phone?: string;
   profileImage?: File;
@@ -115,6 +116,7 @@ export interface UpdateProfileData {
 export const updateProfile = async (data: UpdateProfileData) => {
   const formData = new FormData();
   formData.append("name", data.name);
+  if (data.phoneCode) formData.append("phoneCode", data.phoneCode);
 
   if (data.phone) {
     formData.append("phone", data.phone);

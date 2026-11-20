@@ -1,3 +1,5 @@
+import { verifyPhoneOtp } from "../services/twilioService";
+import { activeCustomerFilter, isDuplicateIdentity } from "../utils/customerLifecycle";
 import { Request, Response } from "express";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
 import { uploadImageToCloudinary } from "../services/cloudinaryService";
@@ -298,7 +300,7 @@ export const getMeController = async (
     let user;
 
     if (req.user.role === "user") {
-      user = await User.findById(req.user.id).select("-__v -fcmTokens");
+      user = await User.findOne({ _id: req.user.id, ...activeCustomerFilter }).select("-__v -fcmTokens");
     } else if (req.user.role === "vendor") {
       user = await Vendor.findById(req.user.id).select("-password -__v");
     } else {
@@ -400,7 +402,7 @@ export const updateProfileController = async (
       return;
     }
 
-    const { name, phone } = req.body;
+    const { name, phone, phoneCode } = req.body;
 
     if (typeof name !== "string" || !name.trim()) {
       res.status(400).json({
@@ -411,7 +413,8 @@ export const updateProfileController = async (
     }
 
     const trimmedName = name.trim();
-    const trimmedPhone = typeof phone === "string" ? phone.trim() : "";
+    const rawPhone = typeof phone === "string" ? phone.trim() : "";
+    const trimmedPhone = /^\d{10}$/.test(rawPhone) ? `+91${rawPhone}` : rawPhone;
 
     if (trimmedName.length < 2) {
       res.status(400).json({
@@ -432,6 +435,7 @@ export const updateProfileController = async (
     if (trimmedPhone) {
       const existingUser = await User.findOne({
         phone: trimmedPhone,
+        ...activeCustomerFilter,
         _id: { $ne: req.user.id },
       });
 
@@ -444,7 +448,7 @@ export const updateProfileController = async (
       }
     }
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findOne({ _id: req.user.id, ...activeCustomerFilter });
 
     if (!user) {
       res.status(404).json({
@@ -454,6 +458,16 @@ export const updateProfileController = async (
       return;
     }
 
+    if (trimmedPhone && trimmedPhone !== user.phone) {
+      if (typeof phoneCode !== "string" || !/^\d{4,8}$/.test(phoneCode) || !await verifyPhoneOtp(trimmedPhone, phoneCode)) {
+        res.status(400).json({ success: false, message: "Verify your new phone number with the code sent to it." });
+        return;
+      }
+    }
+    if (!trimmedPhone && !user.googleId) {
+      res.status(400).json({ success: false, message: "Keep a verified phone number so you can sign in." });
+      return;
+    }
     user.name = trimmedName;
 
     if (trimmedPhone) {
@@ -493,7 +507,7 @@ export const updateProfileController = async (
     res.status(500).json({
       success: false,
       message:
-        error instanceof Error ? error.message : "Failed to update profile",
+        isDuplicateIdentity(error) ? "This phone number is already registered." : "Failed to update profile",
     });
   }
 };

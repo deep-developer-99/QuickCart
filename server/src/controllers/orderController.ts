@@ -1,3 +1,4 @@
+import User from "../models/User";
 import { Response } from "express";
 
 import Address from "../models/Address";
@@ -248,8 +249,10 @@ export const createRazorpayOrderController = async (
     const razorpayOrder = await createRazorpayOrder(
       checkout.totalAmount,
       `qc_${Date.now()}_${req.user.id.slice(-8)}`,
+      req.user.id,
     );
 
+    await User.updateOne({ _id: req.user.id }, { $addToSet: { pendingRazorpayOrders: razorpayOrder.id } });
     res.status(200).json({
       success: true,
       data: {
@@ -320,6 +323,10 @@ export const verifyRazorpayPaymentController = async (
     // order amount before creating the QuickCart order.
     const checkout = await calculateCheckout(req.user.id, donationSelected, items);
     const razorpayOrder = await fetchRazorpayOrder(razorpayOrderId);
+    if (razorpayOrder.notes?.quickcartUserId !== req.user.id) {
+      res.status(403).json({ success: false, message: "This payment does not belong to your current account. Contact support if payment was deducted." });
+      return;
+    }
     const expectedAmount = Math.round(checkout.totalAmount * 100);
 
     if (razorpayOrder.amount !== expectedAmount) {
@@ -339,6 +346,7 @@ export const verifyRazorpayPaymentController = async (
       cartItems: items,
     });
 
+    await User.updateOne({ _id: req.user.id }, { $pull: { pendingRazorpayOrders: razorpayOrderId } });
     res.status(201).json({
       success: true,
       message: "Payment verified and order placed successfully",

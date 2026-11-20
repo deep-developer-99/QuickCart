@@ -10,6 +10,8 @@ type Role = "user" | "vendor" | "admin";
 interface JwtPayload {
   id: string;
   role: Role;
+  authenticatedAt?: number;
+  authTime?: number;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -51,10 +53,10 @@ const authMiddleware = (...allowedRoles: Role[]) => {
       if (decoded.role === "user") {
         const user = await User.findById(decoded.id).select("-password");
 
-        if (!user) {
+        if (!user || user.isActive === false) {
           res.status(401).json({
             success: false,
-            message: "User account not found",
+            message: "User account is unavailable", code: "ACCOUNT_INACTIVE",
           });
           return;
         }
@@ -71,6 +73,7 @@ const authMiddleware = (...allowedRoles: Role[]) => {
         req.user = {
           id: user._id.toString(),
           role: "user",
+          authenticatedAt: decoded.authTime ?? (decoded as JwtPayload & { iat?: number }).iat,
         };
       }
 

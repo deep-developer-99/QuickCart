@@ -15,12 +15,15 @@ interface AdminUser {
   googleId?: string;
   role: "user";
   createdAt: string;
+  isActive?: boolean;
+  deletedAt?: string;
 }
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -30,7 +33,7 @@ const AdminUsers = () => {
       setIsLoading(true);
       setError("");
 
-      const response = await getAdminUsers(requestedPage, 10);
+      const response = await getAdminUsers(requestedPage, 10, status);
 
       if (response?.success) {
         setUsers(response.data || []);
@@ -55,7 +58,7 @@ const AdminUsers = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [page]);
+  }, [page, status]);
 
   if (isLoading) {
     return (
@@ -79,6 +82,13 @@ const AdminUsers = () => {
           </div>
         </div>
 
+        <label className="admin-users-status-filter">Account status
+          <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}>
+            <option value="all">All historical accounts</option>
+            <option value="active">Active</option>
+            <option value="deactivated">Deactivated</option>
+          </select>
+        </label>
         {error && <div className="admin-page-error">{error}</div>}
 
         {users.length === 0 ? (
@@ -96,6 +106,8 @@ const AdminUsers = () => {
                   <th>Email</th>
                   <th>Phone</th>
                   <th>Login Method</th>
+                  <th>Status</th>
+                  <th>Deactivated</th>
                   <th>Joined</th>
                 </tr>
               </thead>
@@ -134,6 +146,10 @@ const AdminUsers = () => {
                       </span>
                     </td>
 
+                    <td>
+                      <span className={`customer-status ${user.isActive === false ? "customer-status--inactive" : ""}`}>{user.isActive === false ? "Deactivated" : "Active"}</span>
+                    </td>
+                    <td>{user.deletedAt ? new Date(user.deletedAt).toLocaleDateString("en-IN") : "—"}</td>
                     <td>
                       {new Date(user.createdAt).toLocaleDateString("en-IN")}
                     </td>

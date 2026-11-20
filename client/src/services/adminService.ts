@@ -1,7 +1,7 @@
 import api from "./api";
 
-export const getAdminUsers = async (page = 1, limit = 10) => {
-  const resposne = await api.get("/admin/users", { params: { page, limit } });
+export const getAdminUsers = async (page = 1, limit = 10, status = "all") => {
+  const resposne = await api.get("/admin/users", { params: { page, limit, status } });
 
   return resposne.data;
 };

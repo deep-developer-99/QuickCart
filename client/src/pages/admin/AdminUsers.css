@@ -171,3 +171,7 @@
     flex-direction: column;
   }
 }
+.admin-users-page .admin-users-status-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px; }
+.admin-users-page .admin-users-status-filter select { padding: 10px; border: 1px solid var(--color-input-border); border-radius: 7px; background: var(--color-input-background); color: var(--color-input-text); }
+.admin-users-page .customer-status { display: inline-block; padding: 5px 10px; border-radius: 6px; background: var(--color-secondary-button-background); color: var(--color-secondary-button-text); }
+.admin-users-page .customer-status--inactive { background: var(--color-secondary-background); color: var(--color-muted-text); }

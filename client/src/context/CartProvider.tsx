@@ -1,3 +1,4 @@
+import { isCustomerDeactivated } from "../utils/customerSession";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useAppSelector } from "../hooks/reduxHooks";
@@ -53,6 +54,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const persistStoredCart = useCallback((ownerId: string, next: Cart) => {
+    if (currentUserIdRef.current !== ownerId || isCustomerDeactivated(ownerId)) return;
     replaceStoredCart(next);
     try {
       window.localStorage.setItem(storageKey(ownerId), JSON.stringify({ version: CART_VERSION, userId: ownerId, items: next.items }));
@@ -115,7 +117,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!isCartReady || !userId || cartOwnerId !== userId || !cart) return;
     // An older render can have a queued persistence effect when a cart mutation
     // commits synchronously. Do not let that stale snapshot overwrite storage.
-    if (storedCartRef.current !== cart) return;
+    if (storedCartRef.current !== cart || isCustomerDeactivated(userId)) return;
     try {
       window.localStorage.setItem(storageKey(userId), JSON.stringify({ version: CART_VERSION, userId, items: cart.items }));
     } catch (error) {

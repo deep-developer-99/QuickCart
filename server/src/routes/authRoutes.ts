@@ -1,3 +1,4 @@
+import { protectAccountDeletion, getDeletionConfirmation, deleteAccountController, limitAccountDeletion } from "../controllers/accountDeletionController";
 import { Router } from "express";
 
 import {
@@ -17,6 +18,9 @@ import authMiddleware from "../middleware/authMiddleware";
 import upload from "../middleware/uploadMiddleware";
 
 const router = Router();
+
+router.post("/delete-account/confirmation", authMiddleware("user"), protectAccountDeletion, limitAccountDeletion, getDeletionConfirmation);
+router.post("/delete-account", authMiddleware("user"), protectAccountDeletion, limitAccountDeletion, deleteAccountController);
 
 router.post("/vendor/register", registerVendorController);
 router.post("/vendor/login", loginVendorController);

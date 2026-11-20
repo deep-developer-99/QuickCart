@@ -10,7 +10,7 @@ import {
 } from "react-icons/fa";
 
 import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
-import { updateProfile } from "../../services/authService";
+import { updateProfile, sendPhoneOtp } from "../../services/authService";
 import { setCredentials } from "../../store/slice/authSlice";
 
 import "./Profile.css";
@@ -22,6 +22,8 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || "");
   const [phone, setPhone] = useState(user?.phone || "");
+  const [phoneCode, setPhoneCode] = useState("");
+  const [sendingCode, setSendingCode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [failedProfileImage, setFailedProfileImage] = useState<string | null>(null);
@@ -36,6 +38,7 @@ const Profile = () => {
   const handleEdit = () => {
     setName(user.name);
     setPhone(user.phone || "");
+    setPhoneCode("");
     setError("");
     setSuccess("");
     setIsEditing(true);
@@ -44,6 +47,7 @@ const Profile = () => {
   const handleCancel = () => {
     setName(user.name);
     setPhone(user.phone || "");
+    setPhoneCode("");
     setError("");
     setSuccess("");
     setIsEditing(false);
@@ -76,6 +80,7 @@ const Profile = () => {
       const response = await updateProfile({
         name: trimmedName,
         phone: trimmedPhone || undefined,
+        phoneCode,
       });
 
       if (!response?.success || !response?.data) {
@@ -262,7 +267,7 @@ const Profile = () => {
             <input
               type="tel"
               value={phone}
-              onChange={(event) => setPhone(event.target.value)}
+              onChange={(event) => { setPhone(event.target.value); setPhoneCode(""); }}
               maxLength={16}
               placeholder="Enter your phone number"
               autoComplete="tel"
@@ -272,6 +277,19 @@ const Profile = () => {
           )}
         </div>
 
+        {isEditing && phone.trim() && (/^d{10}$/.test(phone.trim()) ? `+91${phone.trim()}` : phone.trim()) !== user.phone && (
+          <div className="profile-detail-field">
+            <label htmlFor="profile-phone-code">Verification code for new phone</label>
+            <input id="profile-phone-code" inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={phoneCode}
+              onChange={(event) => setPhoneCode(event.target.value.replace(/D/g, ""))} />
+            <button type="button" disabled={sendingCode || isSaving} onClick={async () => {
+              setSendingCode(true); setError("");
+              try { await sendPhoneOtp({ phone: phone.trim() }); setSuccess("Verification code sent to your new phone."); }
+              catch { setError("Could not send a verification code. Check the number and try again."); }
+              finally { setSendingCode(false); }
+            }}>{sendingCode ? "Sending…" : "Send verification code"}</button>
+          </div>
+        )}
         <div className="profile-detail-field profile-account-type-field">
           <span className="profile-field-label">ACCOUNT TYPE</span>
           <strong className="account-type-value">

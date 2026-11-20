@@ -146,7 +146,7 @@ export const getAllUsersController = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const users = await getAllUsers(req.query.page, req.query.limit);
+    const users = await getAllUsers(req.query.page, req.query.limit, req.query.status);
 
     res.status(200).json({
       success: true,

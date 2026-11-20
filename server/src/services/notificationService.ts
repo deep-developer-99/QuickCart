@@ -1,3 +1,4 @@
+import { activeCustomerFilter } from "../utils/customerLifecycle";
 import { Types } from "mongoose";
 import Notification, {
   NotificationRole,
@@ -38,7 +39,7 @@ const deliverNotification = async (data: CreateNotificationData, notificationId:
       ? await Admin.findById(recipientId).select("fcmTokens").lean()
       : data.recipientRole === "vendor"
         ? await Vendor.findById(recipientId).select("fcmTokens").lean()
-        : await User.findById(recipientId).select("fcmTokens").lean();
+        : await User.findOne({ _id: recipientId, ...activeCustomerFilter }).select("fcmTokens").lean();
 
   if (!recipient?.fcmTokens?.length) return { attempted: 0, accepted: 0, failed: 0, skipped: 1 };
 
@@ -140,8 +141,8 @@ export const registerFcmToken = async (
   }
 
   if (role === "user") {
-    return User.findByIdAndUpdate(
-      recipientId,
+    return User.findOneAndUpdate(
+      { _id: recipientId, ...activeCustomerFilter },
       { $addToSet: { fcmTokens: token } },
       { new: true },
     )
@@ -174,8 +175,8 @@ export const removeFcmToken = async (
   }
 
   if (role === "user") {
-    return User.findByIdAndUpdate(
-      recipientId,
+    return User.findOneAndUpdate(
+      { _id: recipientId, ...activeCustomerFilter },
       { $pull: { fcmTokens: token } },
       { new: true },
     )
@@ -276,7 +277,7 @@ interface PublishedOfferNotification {
 }
 
 const deliverUserNotification = async (record: IUserNotification, data?: Record<string, string>) => {
-  const recipient = await User.findById(record.recipient).select("fcmTokens").lean();
+  const recipient = await User.findOne({ _id: record.recipient, ...activeCustomerFilter }).select("fcmTokens").lean();
   const tokens = recipient?.fcmTokens ?? [];
   if (!tokens.length) {
     await UserNotification.updateOne({ _id: record._id }, { $set: { dispatchStatus: "no_devices", skippedCount: 1 } });
@@ -334,7 +335,9 @@ const createUserCampaign = async (args: {
     if (!ids.length) return;
     const previouslyStored = await UserNotification.find({ campaignId: args.campaignId, recipient: { $in: ids } }).distinct("recipient");
     const existing = new Set(previouslyStored.map((id) => id.toString()));
-    const pendingIds = ids.filter((id) => !existing.has(id));
+    const activeIds = await User.find({ _id: { $in: ids }, ...activeCustomerFilter }).distinct("_id");
+    const eligible = new Set(activeIds.map((id) => id.toString()));
+    const pendingIds = ids.filter((id) => !existing.has(id) && eligible.has(id));
     if (!pendingIds.length) return;
     // Persist the entire recipient batch before any Firebase attempt.
     const records = await UserNotification.insertMany(pendingIds.map((recipient) => ({
@@ -386,7 +389,7 @@ export const notifyEligibleCustomersAboutOffer = async (
     ? await Order.distinct("user", { "items.vendor": senderId })
     : undefined;
   return createUserCampaign({
-    recipients: audience?.map((id) => id.toString()), recipientCursor: audience ? undefined : User.find({}).select("_id").lean().cursor(),
+    recipients: audience?.map((id) => id.toString()), recipientCursor: audience ? undefined : User.find(activeCustomerFilter).select("_id").lean().cursor(),
     senderId, senderRole, campaignId, type: "NEW_OFFER", category: "offer", title: offerDoc.title,
     message: offerDoc.message, relatedId: offerDoc._id.toString(),
     action: { type: "offer", id: offerDoc._id.toString(), redirectType: offerDoc.redirectType, redirectValue: offerDoc.redirectValue },
@@ -426,7 +429,7 @@ export const markAllNotificationsAsRead = async (recipient: string, recipientRol
 export const getEligibleCustomers = async (actorRole: "admin" | "vendor", vendorId: string | undefined, page?: unknown, limit?: unknown, search?: unknown) => {
   const pagination = getPagination(page, limit, 20);
   const term = typeof search === "string" ? search.trim().slice(0, 100) : "";
-  const filter: Record<string, any> = {};
+  const filter: Record<string, any> = { ...activeCustomerFilter };
   if (term) filter.$or = [
     { name: { $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } },
     { email: { $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } },
@@ -461,7 +464,7 @@ export const sendManualNotification = async (args: {
     if (requested.length > 500) throw new Error("A targeted campaign can include at most 500 customers");
     if (requested.some((id) => !/^[a-f\d]{24}$/i.test(id))) throw new Error("Every customer ID must be a valid MongoDB ObjectId");
     recipients = [...new Set(requested.map((id) => new Types.ObjectId(id).toString()))];
-    const foundCustomers = await User.find({ _id: { $in: recipients } }).distinct("_id");
+    const foundCustomers = await User.find({ _id: { $in: recipients }, ...activeCustomerFilter }).distinct("_id");
     if (foundCustomers.length !== recipients.length) throw new Error("One or more selected customers do not exist or are not eligible");
     if (args.senderRole === "vendor") {
       const orderedCustomers = await Order.distinct("user", { user: { $in: recipients }, "items.vendor": args.senderId });
@@ -472,7 +475,7 @@ export const sendManualNotification = async (args: {
     recipients = (await Order.distinct("user", { "items.vendor": args.senderId })).map((id) => id.toString());
     requestRecipients = "all";
   } else {
-    recipientCursor = User.find({}).select("_id").lean().cursor();
+    recipientCursor = User.find(activeCustomerFilter).select("_id").lean().cursor();
     requestRecipients = "all";
   }
   const campaignId = args.idempotencyKey ? `manual:${args.senderRole}:${args.senderId}:${args.idempotencyKey}` : randomUUID();

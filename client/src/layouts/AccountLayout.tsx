@@ -6,7 +6,7 @@ import {
   FaChevronRight,
   FaMapMarkerAlt,
   FaSignOutAlt,
-  FaUser,
+  FaUser, FaShieldAlt,
 } from "react-icons/fa";
 
 import { logout } from "../services/authService";
@@ -95,7 +95,7 @@ const AccountLayout = () => {
   };
 
   const displayName = user?.name?.trim() || "User";
-  const email = user?.email?.trim() || "Email not provided";
+  const email = user?.phone?.trim() || user?.email?.trim() || "Contact not provided";
   const initial = displayName.charAt(0).toUpperCase() || "U";
 
   return (
@@ -182,6 +182,12 @@ const AccountLayout = () => {
                 )}
                 <FaChevronRight aria-hidden="true" />
               </span>
+            </NavLink>
+            <NavLink to="/account/privacy" className={({ isActive }) =>
+              `account-nav-item${isActive || location.pathname.startsWith("/account/delete-account") ? " active" : ""}`}>
+              <span className="account-nav-icon"><FaShieldAlt aria-hidden="true" /></span>
+              <span>Account Privacy</span>
+              <span className="account-nav-meta"><FaChevronRight aria-hidden="true" /></span>
             </NavLink>
           </nav>
 

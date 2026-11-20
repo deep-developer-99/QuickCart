@@ -159,13 +159,7 @@ const Navbar = () => {
       >
         FAQ's
       </span>
-      <span
-        className="profile-dropdown-desktop-item profile-dropdown-desktop-item--unavailable"
-        role="menuitem"
-        aria-disabled="true"
-      >
-        Account Privacy
-      </span>
+      <button type="button" role="menuitem" className="profile-dropdown-desktop-item" onClick={() => openAccount("/account/privacy")}>Account Privacy</button>
       <button
         type="button"
         role="menuitem"

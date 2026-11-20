@@ -22,6 +22,8 @@ interface TrendData {
 
 interface AdminDashboardData {
   totalUsers: number;
+  activeUsers?: number;
+  deactivatedUsers?: number;
   totalVendors: number;
   totalProducts: number;
   totalOrders: number;
@@ -122,7 +124,7 @@ const AdminDashboard = () => {
             <div>
               <p>Total Users</p>
               <h2>{dashboard?.totalUsers ?? 0}</h2>
-              <span>Registered users</span>
+              <span>{dashboard?.activeUsers ?? 0} active · {dashboard?.deactivatedUsers ?? 0} deactivated</span>
             </div>
           </div>
 

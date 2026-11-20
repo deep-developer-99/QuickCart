@@ -5,7 +5,7 @@ import {
   FaChevronRight,
   FaMapMarkerAlt,
   FaSignOutAlt,
-  FaUser,
+  FaUser, FaShieldAlt,
 } from "react-icons/fa";
 
 import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
@@ -24,6 +24,7 @@ const AccountHome = () => {
   const initial = name?.charAt(0).toUpperCase() || "U";
 
   const options = [
+    { label: "Account Privacy", path: "/account/privacy", Icon: FaShieldAlt },
     { label: "My Account", path: "/account/profile", Icon: FaUser },
     { label: "My Orders", path: "/account/orders", Icon: FaBoxOpen },
     { label: "Saved Addresses", path: "/account/addresses", Icon: FaMapMarkerAlt },
