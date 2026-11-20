@@ -1,4 +1,4 @@
-import type { SearchSuggestion } from "../../services/searchSuggestionService";
+import type { SearchSuggestionPhrase } from "../../services/searchSuggestionService";
 
 export const SEARCH_PLACEHOLDER_FALLBACK = "Search products";
 export const DEFAULT_TYPING_SPEED = 60;
@@ -14,7 +14,7 @@ export const normalizeSearchPhrase = (phrase: string) => {
   return term;
 };
 
-export const getSearchPhrases = (suggestions: readonly SearchSuggestion[]) => {
+export const getSearchPhrases = (suggestions: readonly SearchSuggestionPhrase[]) => {
   const seen = new Set<string>();
   const phrases: string[] = [];
   for (const suggestion of suggestions) {

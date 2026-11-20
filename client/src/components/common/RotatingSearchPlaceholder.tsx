@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import type { SearchSuggestion } from "../../services/searchSuggestionService";
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import type { SearchSuggestionPhrase } from "../../services/searchSuggestionService";
 import {
   advanceTypewriter, DEFAULT_DELETING_SPEED, DEFAULT_DISPLAY_DURATION, DEFAULT_TYPING_SPEED,
   getSearchPhrases, SEARCH_PLACEHOLDER_FALLBACK, splitSearchPhrase, type TypewriterFrame,
@@ -7,9 +8,11 @@ import {
 import "./SearchBar.css";
 
 interface RotatingSearchPlaceholderProps {
-  suggestions?: readonly SearchSuggestion[];
+  suggestions?: readonly SearchSuggestionPhrase[];
   isEnabled?: boolean;
   paused?: boolean;
+  /** Explicit opt-in for the Admin preview. */
+  previewMotion?: boolean;
   rotationInterval?: number;
   typingSpeedMs?: number;
   deletingSpeedMs?: number;
@@ -20,14 +23,6 @@ const subscribeToVisibility = (listener: () => void) => {
   return () => document.removeEventListener("visibilitychange", listener);
 };
 const isPageVisible = () => document.visibilityState !== "hidden";
-
-const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
-const subscribeToReducedMotion = (listener: () => void) => {
-  const query = window.matchMedia(reducedMotionQuery);
-  query.addEventListener("change", listener);
-  return () => query.removeEventListener("change", listener);
-};
-const prefersReducedMotion = () => window.matchMedia(reducedMotionQuery).matches;
 
 interface TypewriterProps {
   phrases: string[];
@@ -76,15 +71,15 @@ const Typewriter = ({ phrases, paused, rotationInterval, typingSpeedMs, deleting
 };
 
 const RotatingSearchPlaceholder = ({
-  suggestions, isEnabled, paused = false, rotationInterval = DEFAULT_DISPLAY_DURATION,
+  suggestions, isEnabled, paused = false, previewMotion = false, rotationInterval = DEFAULT_DISPLAY_DURATION,
   typingSpeedMs = DEFAULT_TYPING_SPEED, deletingSpeedMs = DEFAULT_DELETING_SPEED,
 }: RotatingSearchPlaceholderProps) => {
-  const reducedMotion = useSyncExternalStore(subscribeToReducedMotion, prefersReducedMotion);
+  const reducedMotion = usePrefersReducedMotion();
   // Only restart when the visible phrase list or its order changes.
   const phraseKey = useMemo(() => JSON.stringify(getSearchPhrases(suggestions ?? [])), [suggestions]);
   const phrases = useMemo(() => JSON.parse(phraseKey) as string[], [phraseKey]);
 
-  if (isEnabled && !reducedMotion && phrases.length > 1) {
+  if (isEnabled && (!reducedMotion || previewMotion) && phrases.length > 1) {
     return (
       <Typewriter key={phraseKey} phrases={phrases} paused={paused} rotationInterval={rotationInterval}
         typingSpeedMs={typingSpeedMs} deletingSpeedMs={deletingSpeedMs} />

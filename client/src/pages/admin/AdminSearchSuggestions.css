@@ -18,3 +18,10 @@
 }
 
 .ass-speed { display: grid; gap: 8px; }
+
+.ass-preview-motion p {
+  margin: 0 0 8px;
+  color: var(--color-muted-text);
+  font-size: 13px;
+  line-height: 1.5;
+}

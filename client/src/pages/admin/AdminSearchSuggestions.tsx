@@ -1,8 +1,9 @@
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import {
-  DEFAULT_DELETING_SPEED, DEFAULT_DISPLAY_DURATION, DEFAULT_TYPING_SPEED, normalizeSearchPhrase,
+  DEFAULT_DELETING_SPEED, DEFAULT_DISPLAY_DURATION, DEFAULT_TYPING_SPEED, getSearchPhrases, normalizeSearchPhrase,
 } from "../../components/common/searchPlaceholder";
 import RotatingSearchPlaceholder from "../../components/common/RotatingSearchPlaceholder";
 import {
@@ -37,6 +38,8 @@ const AdminSearchSuggestions = () => {
   const [error, setError] = useState("");
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [settingsDraft, setSettingsDraft] = useState(DEFAULT_SETTINGS);
+  const reducedMotion = usePrefersReducedMotion();
+  const [previewMotion, setPreviewMotion] = useState(false);
 
   const refresh = useCallback((loadSettings = false) => getAdminSearchSuggestions()
     .then((response) => {
@@ -62,6 +65,7 @@ const AdminSearchSuggestions = () => {
   };
 
   const activeSuggestions = useMemo(() => data.suggestions.filter((suggestion) => suggestion.isActive !== false), [data.suggestions]);
+  const canAnimatePreview = settingsDraft.isEnabled && getSearchPhrases(activeSuggestions).length > 1;
   const persistPublic = () => invalidatePublicSearchSuggestions();
   const resetForm = () => { setPhrase(""); setActive(true); setEditingId(null); setShowForm(false); };
 
@@ -183,8 +187,20 @@ const AdminSearchSuggestions = () => {
             <h2>Live preview</h2><p>Preview active phrases with your current settings before saving.</p>
             <div className="ass-preview-field">
               <span className="ass-search-icon" aria-hidden="true">⌕</span>
-              <RotatingSearchPlaceholder {...settingsDraft} suggestions={activeSuggestions} paused={showForm} />
+              <RotatingSearchPlaceholder {...settingsDraft} suggestions={activeSuggestions} paused={showForm} previewMotion={reducedMotion && previewMotion} />
             </div>
+            {reducedMotion && (
+              <div className="ass-preview-motion">
+                <p role="status">Your browser requests reduced motion. {previewMotion && canAnimatePreview
+                  ? "Full motion is playing in this preview only."
+                  : "The preview uses a static phrase by default."}</p>
+                {canAnimatePreview && (
+                  <button type="button" className="ass-secondary" onClick={() => setPreviewMotion((playing) => !playing)}>
+                    {previewMotion ? "Stop full-motion preview" : "Play full-motion preview"}
+                  </button>
+                )}
+              </div>
+            )}
           </section>
         </div>
       </div>

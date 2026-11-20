@@ -1,17 +1,21 @@
 import api from "./api";
 import { DEFAULT_TYPING_SPEED, DEFAULT_DELETING_SPEED, DEFAULT_DISPLAY_DURATION } from "../components/common/searchPlaceholder";
 
-export interface SearchSuggestion { _id: string; phrase: string; order: number; isActive?: boolean; }
+export interface SearchSuggestionPhrase { phrase: string; order: number; isActive?: boolean; }
+export interface SearchSuggestion extends SearchSuggestionPhrase { _id: string; }
 export interface SearchSuggestionSettings {
   isEnabled: boolean;
   rotationInterval: number;
   typingSpeedMs?: number;
   deletingSpeedMs?: number;
 }
-export interface SearchSuggestionConfig extends SearchSuggestionSettings { suggestions: SearchSuggestion[]; }
-export interface SearchSuggestionResponse { success: boolean; message?: string; data: SearchSuggestionConfig; }
+export interface SearchSuggestionConfig<T = SearchSuggestion> extends SearchSuggestionSettings { suggestions: T[]; }
+export interface SearchSuggestionResponse<T = SearchSuggestion> { success: boolean; message?: string; data: SearchSuggestionConfig<T>; }
+type PublicSearchSuggestion = SearchSuggestionPhrase & { _id?: string };
+type PublicConfig = SearchSuggestionConfig<PublicSearchSuggestion>;
+type PublicResponse = SearchSuggestionResponse<PublicSearchSuggestion>;
 
-export const getPublicSearchSuggestions = async () => (await api.get<SearchSuggestionResponse>("/search-suggestions")).data;
+export const getPublicSearchSuggestions = async () => (await api.get<PublicResponse>("/search-suggestions")).data;
 export const getAdminSearchSuggestions = async () => (await api.get<SearchSuggestionResponse>("/admin/search-suggestions")).data;
 export const createSearchSuggestion = async (input: { phrase: string; isActive: boolean }) => (await api.post("/admin/search-suggestions", input)).data;
 export const updateSearchSuggestion = async (id: string, input: { phrase?: string; isActive?: boolean }) => (await api.put(`/admin/search-suggestions/${id}`, input)).data;
@@ -19,7 +23,7 @@ export const deleteSearchSuggestion = async (id: string) => (await api.delete(`/
 export const reorderSearchSuggestions = async (ids: string[]) => (await api.patch<SearchSuggestionResponse>("/admin/search-suggestions/reorder", { ids })).data;
 export const updateSearchSuggestionSettings = async (input: SearchSuggestionSettings) => (await api.patch("/admin/search-suggestions/settings", input)).data;
 
-type StoreSnapshot = { config: SearchSuggestionConfig | null; isLoading: boolean };
+type StoreSnapshot = { config: PublicConfig | null; isLoading: boolean };
 const listeners = new Set<() => void>();
 let snapshot: StoreSnapshot = { config: null, isLoading: false };
 let pendingRequest: Promise<void> | null = null;
@@ -30,22 +34,22 @@ const CACHE_TTL_MS = 30_000;
 const RETRY_DELAY_MS = 15_000;
 const notify = () => listeners.forEach((listener) => listener());
 
-const parsePublicConfig = (response: SearchSuggestionResponse): SearchSuggestionConfig => {
+const parsePublicConfig = (response: PublicResponse): PublicConfig => {
   if (!response || response.success !== true || !response.data || typeof response.data !== "object") {
     throw new Error("Invalid public search suggestions response");
   }
 
-  const raw = response.data as SearchSuggestionConfig;
+  const raw = response.data;
   if (typeof raw.isEnabled !== "boolean" || !Array.isArray(raw.suggestions)) {
     throw new Error("Invalid public search suggestions data");
   }
 
   const suggestions = raw.suggestions.flatMap((candidate, index) => {
-    if (!candidate || typeof candidate.phrase !== "string" || typeof candidate._id !== "string" || candidate.isActive === false) return [];
+    if (!candidate || typeof candidate.phrase !== "string" || candidate.isActive === false) return [];
     const phrase = candidate.phrase.trim();
     if (!phrase) return [];
     return [{
-      _id: candidate._id,
+      ...(typeof candidate._id === "string" ? { _id: candidate._id } : {}),
       phrase,
       order: Number.isFinite(candidate.order) ? candidate.order : index,
     }];
