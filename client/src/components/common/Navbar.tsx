@@ -107,10 +107,10 @@ const Navbar = () => {
 
   const handleMobileAvatar = () => {
     if (isUser) {
-      navigate("/account", { state: { from: pathname } });
+      navigate("/account/privacy", { state: { from: pathname } });
       return;
     }
-    openLoginModal({ returnTo: "/account" });
+    openLoginModal({ returnTo: "/account/privacy" });
   };
 
   const desktopAccountDropdown = (

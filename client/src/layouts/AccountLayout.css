@@ -176,10 +176,6 @@
 }
 
 @media (max-width: 700px) {
-  .account-page--home .account-sidebar {
-    display: none;
-  }
-
   .account-page {
     padding: 0 0 45px;
   }
@@ -231,27 +227,6 @@
   min-height: calc(100vh - 72px);
   padding: 34px 24px 64px;
   background: #f3f6fa;
-}
-
-.account-page-heading {
-  width: min(1210px, 100%);
-  margin: 0 auto 22px;
-}
-
-.account-page-heading h1 {
-  margin: 0;
-  color: #17253b;
-  font-size: clamp(26px, 3vw, 34px);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.15;
-}
-
-.account-page-heading p {
-  margin: 8px 0 0;
-  color: #718096;
-  font-size: 14px;
-  line-height: 1.5;
 }
 
 .account-shell {
@@ -468,14 +443,6 @@
 @media (max-width: 700px) {
   .account-page {
     padding: 24px 14px 40px;
-  }
-
-  .account-page-heading {
-    margin-bottom: 16px;
-  }
-
-  .account-page-heading p {
-    font-size: 13px;
   }
 
   .account-shell {

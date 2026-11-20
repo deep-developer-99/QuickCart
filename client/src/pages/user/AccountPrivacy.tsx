@@ -8,7 +8,6 @@ export default function AccountPrivacy() {
   const [expanded, setExpanded] = useState(false);
   return (
     <section className="account-privacy">
-      <Link className="privacy-back" to="/account">‹ Account overview</Link>
       <h1>Account privacy and policy</h1>
       <p>QuickCart uses your account information to help you sign in, shop, and receive your orders. Learn about the information used by our services and the choices available to you.</p>
       <button className="privacy-read-more" type="button" aria-expanded={expanded} aria-controls="privacy-details" onClick={() => setExpanded(!expanded)}>

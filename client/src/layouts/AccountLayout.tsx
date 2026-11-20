@@ -99,15 +99,7 @@ const AccountLayout = () => {
   const initial = displayName.charAt(0).toUpperCase() || "U";
 
   return (
-    <div className={`account-page${location.pathname === "/account" ? " account-page--home" : ""}`} ref={contentRef}>
-      <header className="account-page-heading">
-        <h1>Account Overview</h1>
-        <p>
-          View and manage your personal QuickCart information and active
-          preferences.
-        </p>
-      </header>
-
+    <div className="account-page" ref={contentRef}>
       <div className="account-shell">
         <aside className="account-sidebar" aria-label="Account navigation">
           <div className="account-user-card">

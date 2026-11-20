@@ -26,7 +26,6 @@ import MyOrderDetails from "../pages/user/MyOrderDetails";
 import OrderConfirmation from "../pages/user/OrderConfirmation";
 import Profile from "../pages/user/Profile";
 import SavedAddresses from "../pages/user/SavedAddresses";
-import AccountHome from "../pages/user/AccountHome";
 
 import VendorLogin from "../pages/vendor/VendorLogin";
 import VendorRegister from "../pages/vendor/VendorRegister";
@@ -85,7 +84,7 @@ const AppRoutes = () => {
             <Route path="/order-confirmation" element={<OrderConfirmation />} />
 
             <Route path="/account" element={<AccountLayout />}>
-              <Route index element={<AccountHome />} />
+              <Route index element={<Navigate to="/account/privacy" replace />} />
               <Route path="privacy" element={<AccountPrivacy />} />
               <Route path="delete-account" element={<DeleteAccount />} />
               <Route path="delete-account-feedback" element={<DeleteAccountFeedback />} />
