@@ -34,6 +34,8 @@ export interface OrderItem {
   image: string;
   price: number;
   discountedPrice?: number;
+  discountPrice?: number;
+  finalPrice?: number;
   quantity: number;
 }
 
@@ -41,10 +43,12 @@ export interface Order {
   _id: string;
   user: string;
   items: OrderItem[];
-  address: Address | string;
-  paymentMethod: PaymentMethod;
+  address: Address | string | null;
+  paymentMethod: PaymentMethod | "PAYTM" | "CASHFREE";
+  paymentStatus?: "PENDING" | "PAID" | "FAILED";
   paymentId?: string;
   razorpayOrderId?: string;
+  shippingAmount?: number;
   donationAmount?: number;
   totalAmount: number;
   status: OrderStatus;

@@ -534,3 +534,33 @@
     scroll-margin-top: 0;
   }
 }
+
+.account-page--orders {
+  min-height: 0;
+  padding: clamp(14px, 2.2vw, 28px) clamp(12px, 2.2vw, 24px);
+  background: var(--color-secondary-background, #f6f7f6);
+}
+
+.account-page--orders .account-shell {
+  width: min(1120px, 100%);
+  min-height: 0;
+  grid-template-columns: clamp(205px, 24vw, 260px) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(12px, 1.5vw, 18px);
+}
+
+.account-page--orders .account-sidebar,
+.account-page--orders .account-content {
+  min-height: 0;
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+.account-page--orders .account-content:has(.orders-section) {
+  background: transparent;
+  border-color: transparent;
+}
+
+@media (max-width: 700px) {
+  .account-page--orders .account-shell { grid-template-columns: minmax(0, 1fr); }
+}

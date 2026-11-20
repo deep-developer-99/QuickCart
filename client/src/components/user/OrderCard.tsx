@@ -1,115 +1,34 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { FiChevronRight } from "react-icons/fi";
+import type { Order } from "../../types/order";
+import { formatOrderAmount, formatOrderDate } from "../../utils/orderPresentation";
+import { OrderStatusIcon, OrderThumbnail } from "./OrderPresentation";
 
-import type { Order, OrderStatus } from "../../types/order";
+const THUMBNAIL_LIMIT = 3;
 
-import "./OrderCard.css";
-
-interface OrderCardProps {
-  order: Order;
-}
-
-const getStatusClass = (status: OrderStatus): string => {
-  switch (status) {
-    case "Placed":
-      return "status-placed";
-
-    case "Accepted":
-      return "status-accepted";
-
-    case "Out for Delivery":
-      return "status-delivery";
-
-    case "Delivered":
-      return "status-delivered";
-
-    default:
-      return "";
-  }
-};
-
-const OrderCard = ({ order }: OrderCardProps) => {
-  const [showAllItems, setShowAllItems] = useState(false);
-
-  const visibleItems = showAllItems ? order.items : order.items.slice(0, 3);
-
+const OrderCard = ({ order }: { order: Order }) => {
+  const remaining = order.items.length - THUMBNAIL_LIMIT;
   return (
-    <div className="order-card">
-      <div className="order-card-header">
-        <div>
-          <p>Order ID</p>
-
-          <h3>#{order._id.slice(-8).toUpperCase()}</h3>
+    <Link to={`/account/orders/${order._id}`} className="customer-order-card">
+      <div className="customer-order-card-header">
+        <OrderStatusIcon status={order.status} />
+        <div className="customer-order-card-summary">
+          <h2>{order.status}</h2>
+          <p><strong>{formatOrderAmount(order.totalAmount)}</strong><span aria-hidden="true"> · </span>
+            <time dateTime={order.createdAt}>{formatOrderDate(order.createdAt)}</time>
+          </p>
         </div>
-
-        <span className={`order-status ${getStatusClass(order.status)}`}>
-          {order.status}
-        </span>
+        <FiChevronRight className="customer-order-card-arrow" aria-hidden="true" />
       </div>
-
-      <div className="order-card-items">
-        {visibleItems.map((item, index) => {
-          const sellingPrice = item.discountedPrice ?? item.price;
-
-          const hasDiscount =
-            item.discountedPrice !== undefined &&
-            item.discountedPrice < item.price;
-
-          return (
-            <div className="order-card-item" key={`${item.name}-${index}`}>
-              <img src={item.image} alt={item.name} />
-
-              <div>
-                <h4>{item.name}</h4>
-
-                <div className="order-item-price">
-                  <span className="discounted-price">₹{sellingPrice}</span>
-
-                  {hasDiscount && (
-                    <span className="original-price">₹{item.price}</span>
-                  )}
-
-                  <span className="item-quantity">× {item.quantity}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-
-        {order.items.length > 3 && (
-          <button
-            type="button"
-            className="more-items"
-            onClick={() => setShowAllItems((previous) => !previous)}
-          >
-            {showAllItems
-              ? "Show less"
-              : `+ ${order.items.length - 3} more item(s)`}
-          </button>
-        )}
-      </div>
-
-      <div className="order-card-footer">
-        <div>
-          <span>Total</span>
-
-          <strong>₹{order.totalAmount}</strong>
+      {order.items.length > 0 && (
+        <div className="customer-order-card-items">
+          {order.items.slice(0, THUMBNAIL_LIMIT).map((item, index) => (
+            <OrderThumbnail key={`${item.image}-${index}`} src={item.image} />
+          ))}
+          {remaining > 0 && <span className="customer-order-card-more">+{remaining} more</span>}
         </div>
-
-        <div>
-          <span>Payment</span>
-
-          <strong>{order.paymentMethod}</strong>
-        </div>
-
-        <Link
-          to={`/account/orders/${order._id}`}
-          className="order-details-button"
-        >
-          View Details
-        </Link>
-      </div>
-    </div>
+      )}
+    </Link>
   );
 };
 

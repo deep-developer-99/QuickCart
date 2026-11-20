@@ -1,67 +1,38 @@
-.orders-section .account-section-header {
-  margin-bottom: 22px;
-}
+.orders-section { padding: clamp(12px, 2vw, 22px); }
+.orders-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.orders-heading h1 { margin: 0; color: var(--color-heading-text); font-size: 19px; line-height: 1.35; }
+.orders-heading > span { color: var(--color-muted-text); font-size: 12px; }
+.orders-list { display: grid; gap: 12px; }
+.orders-section .pagination { margin-top: 14px; font-size: 12px; }
+.orders-section .pagination-count { font-size: 12px; }
 
-.orders-count-badge {
-  flex: 0 0 auto;
-  padding: 9px 12px;
-  border: 1px solid #d8e6d9;
-  border-radius: 8px;
-  background: #f4faf4;
-  color: var(--color-primary);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.orders-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.orders-state-card {
-  padding: 70px 24px;
-  border: 1px dashed #ccd9cd;
+.orders-state-card,
+.orders-skeleton {
+  padding: 14px;
+  border: 1px solid var(--color-border, #e5e9e6);
   border-radius: 12px;
-  background: #fbfdfb;
-  text-align: center;
+  background: var(--color-card-background, #fff);
 }
-
-.orders-state-icon {
-  width: 52px;
-  height: 52px;
-  margin: 0 auto 14px;
-  display: flex;
+.orders-state-card { padding-block: 24px; text-align: center; }
+.orders-state-card > svg { font-size: 24px; color: var(--color-primary); }
+.orders-state-card h2 { margin: 6px 0; font-size: 15px; color: var(--color-heading-text); }
+.orders-state-card p { margin: 0 0 12px; color: var(--color-muted-text); font-size: 13px; }
+.orders-skeleton span { display: block; height: 24px; width: min(130px, 75%); border-radius: 7px; background: #edf0ee; }
+.orders-skeleton span + span { height: 54px; width: min(190px, 90%); margin-top: 8px; }
+.orders-action {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 15px;
-  background: #eff8ef;
-  color: #4b984d;
-  font-size: 22px;
-  font-weight: 800;
-}
-
-.orders-state-card h2 {
-  margin: 0 0 7px;
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border, #e5e9e6);
+  border-radius: 8px;
+  background: var(--color-card-background, #fff);
   color: var(--color-heading-text);
-  font-size: 19px;
+  text-decoration: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
 }
-
-.orders-state-card p {
-  margin: 0;
-  color: #7c8797;
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-.error-state .orders-state-icon {
-  background: #fff2f2;
-  color: var(--color-error);
-}
-
-@media (max-width: 620px) {
-  .orders-count-badge {
-    align-self: stretch;
-    text-align: center;
-  }
-}
+.orders-action:hover { color: var(--color-primary); border-color: var(--color-primary); }

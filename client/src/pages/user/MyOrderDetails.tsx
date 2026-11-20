@@ -1,242 +1,146 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-
+import { FiArrowLeft, FiCheck, FiChevronRight, FiCopy, FiMessageCircle } from "react-icons/fi";
+import { Link, useParams } from "react-router-dom";
+import { OrderStatusIcon, OrderThumbnail } from "../../components/user/OrderPresentation";
 import { getOrderById } from "../../services/orderService";
-import type { Order, OrderStatus } from "../../types/order";
+import type { Order } from "../../types/order";
+import { formatOrderAmount, formatOrderDate, getOrderBill, getOrderLineAmount } from "../../utils/orderPresentation";
 import "./MyOrderDetails.css";
 
-const statuses: OrderStatus[] = [
-  "Placed",
-  "Accepted",
-  "Out for Delivery",
-  "Delivered",
-];
+const paymentNames = { COD: "Cash on delivery", RAZORPAY: "Razorpay", CASHFREE: "Cashfree", PAYTM: "Paytm" };
+const paymentStatuses = { PENDING: "Pending", PAID: "Paid", FAILED: "Failed" };
 
-const MyOrderDetails = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const fetchOrder = async () => {
-      if (!id) {
-        setError("Order ID is missing.");
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setError("");
-        const response = await getOrderById(id);
-        if (response?.success && response.data) setOrder(response.data);
-        else setError("Order not found.");
-      } catch (requestError) {
-        console.error("Failed to fetch order:", requestError);
-        setError("Failed to load order details.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void fetchOrder();
-  }, [id]);
-
-  if (isLoading) {
-    return (
-      <section className="account-section order-details-section">
-        <div className="order-details-state">Loading order details...</div>
-      </section>
-    );
-  }
-
-  if (error || !order) {
-    return (
-      <section className="account-section order-details-section">
-        <div className="order-details-state error">
-          <h2>Order Not Found</h2>
-          <p>{error || "Unable to find this order."}</p>
-          <button type="button" onClick={() => navigate("/account/orders")}>
-            Back to My Orders
-          </button>
-        </div>
-      </section>
-    );
-  }
-
-  const currentIndex = statuses.indexOf(order.status);
+const OrderDetailContent = ({ order }: { order: Order }) => {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const copyId = async () => {
+    try {
+      await navigator.clipboard.writeText(order._id);
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("failed");
+    }
+  };
+  const bill = getOrderBill(order);
+  const count = order.items.reduce((total, item) => total + item.quantity, 0);
+  const address = typeof order.address === "object" ? order.address : null;
 
   return (
-    <section className="account-section order-details-section">
-      <Link to="/account/orders" className="order-details-back">
-        ← Back to My Orders
-      </Link>
-
-      <div className="account-section-header order-details-heading">
+    <>
+      <header className="order-detail-heading">
+        <OrderStatusIcon status={order.status} />
         <div>
-          <p className="account-eyebrow">ORDER DETAILS</p>
-          <h1>#{order._id.slice(-8).toUpperCase()}</h1>
-          <p className="account-section-subtitle">
-            Ordered on{" "}
-            {new Date(order.createdAt).toLocaleDateString("en-IN", {
-              day: "2-digit",
-              month: "long",
-              year: "numeric",
-            })}
-          </p>
+          <h1>{order.status}</h1>
+          <p>Ordered on <time dateTime={order.createdAt}>{formatOrderDate(order.createdAt)}</time></p>
         </div>
-        <span
-          className={`order-details-status ${getStatusClass(order.status)}`}
-        >
-          {order.status}
-        </span>
-      </div>
+      </header>
 
-      <section className="order-details-panel">
-        <div className="order-details-panel-heading">
-          <h2>Order Status</h2>
-          <span>Track your order</span>
-        </div>
-        <div className="order-progress">
-          {statuses.map((status, index) => (
-            <div
-              className={`order-progress-step${index <= currentIndex ? " completed" : ""}`}
-              key={status}
-            >
-              <div className="order-progress-dot">
-                {index <= currentIndex ? "✓" : index + 1}
-              </div>
-              <span>{status}</span>
-              {index < statuses.length - 1 && (
-                <div
-                  className={`order-progress-line${index < currentIndex ? " completed" : ""}`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="order-details-panel">
-        <div className="order-details-panel-heading">
-          <h2>Order Items</h2>
-          <span>
-            {order.items.length} item{order.items.length === 1 ? "" : "s"}
-          </span>
-        </div>
-        <div className="order-detail-items">
-          {order.items.map((item, index) => {
-            const sellingPrice = item.discountedPrice ?? item.price;
-            const hasDiscount =
-              item.discountedPrice !== undefined &&
-              item.discountedPrice < item.price;
-            return (
-              <div
-                className="order-detail-item"
-                key={`${item.product}-${index}`}
-              >
-                <div className="detail-item-image">
-                  {item.image ? (
-                    <img src={item.image} alt={item.name} />
-                  ) : (
-                    <span>No Image</span>
-                  )}
-                </div>
-                <div className="detail-item-info">
-                  <h3>{item.name}</h3>
-                  {item.variantQuantity != null && item.variantUnit && <p>{item.variantQuantity} {item.variantUnit}</p>}
-                  <div className="detail-item-price">
-                    <strong>₹{sellingPrice}</strong>
-                    {hasDiscount && <span>₹{item.price}</span>}
-                    <em>× {item.quantity}</em>
-                  </div>
-                </div>
-                <strong className="detail-item-total">
-                  ₹{sellingPrice * item.quantity}
-                </strong>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <div className="order-details-two-column">
-        <section className="order-details-panel">
-          <div className="order-details-panel-heading">
-            <h2>Delivery Address</h2>
-          </div>
-          {typeof order.address === "object" ? (
-            <div className="order-info-content">
-              <strong>{order.address.fullName}</strong>
-              <p>{order.address.addressLine}</p>
-              <p>
-                {order.address.city}, {order.address.state}
-              </p>
-              <p>PIN: {order.address.pincode}</p>
-              <p>Phone: {order.address.phone}</p>
-            </div>
-          ) : (
-            <p className="order-info-muted">Address information unavailable.</p>
-          )}
-        </section>
-
-        <section className="order-details-panel">
-          <div className="order-details-panel-heading">
-            <h2>Payment Information</h2>
-          </div>
-          <div className="payment-content">
-            <div>
-              <span>Payment Method</span>
-              <strong>{order.paymentMethod}</strong>
-            </div>
-            {order.paymentId && (
+      <section className="order-detail-section" aria-labelledby="order-items-heading">
+        <h2 id="order-items-heading">{count} {count === 1 ? "item" : "items"} in this order</h2>
+        <ul className="order-detail-items">
+          {order.items.map((item, index) => (
+            <li key={`${item.name}-${index}`}>
+              <OrderThumbnail key={item.image} src={item.image} />
               <div>
-                <span>Payment ID</span>
-                <strong>{order.paymentId}</strong>
+                <h3>{item.name}</h3>
+                <p>{item.variantQuantity != null && item.variantUnit
+                  ? `${item.variantQuantity} ${item.variantUnit} × ${item.quantity}`
+                  : `Quantity ${item.quantity}`}</p>
               </div>
-            )}
-          </div>
-        </section>
-      </div>
-
-      <section className="order-details-panel order-summary-panel">
-        <div className="order-details-panel-heading">
-          <h2>Order Summary</h2>
-        </div>
-        <div className="summary-row">
-          <span>Items</span>
-          <strong>
-            {order.items.reduce((total, item) => total + item.quantity, 0)}
-          </strong>
-        </div>
-        <div className="summary-row">
-          <span>Payment</span>
-          <strong>{order.paymentMethod}</strong>
-        </div>
-        <div className="summary-total">
-          <span>Total Amount</span>
-          <strong>₹{order.totalAmount}</strong>
-        </div>
+              <strong>{formatOrderAmount(getOrderLineAmount(item))}</strong>
+            </li>
+          ))}
+        </ul>
       </section>
-    </section>
+
+      <section className="order-detail-section" aria-labelledby="order-bill-heading">
+        <h2 id="order-bill-heading">Bill details</h2>
+        <dl className="order-bill">
+          {bill.itemTotal !== undefined && <div><dt>Item total</dt><dd>{formatOrderAmount(bill.itemTotal)}</dd></div>}
+          {bill.delivery !== undefined && <div><dt>Delivery charges</dt><dd>{formatOrderAmount(bill.delivery)}</dd></div>}
+          {bill.donation !== undefined && <div><dt>Donation</dt><dd>{formatOrderAmount(bill.donation)}</dd></div>}
+          <div className="order-bill-total"><dt>Bill total</dt><dd>{formatOrderAmount(bill.total)}</dd></div>
+        </dl>
+      </section>
+
+      <section className="order-detail-section" aria-labelledby="order-info-heading">
+        <h2 id="order-info-heading">Order details</h2>
+        <dl className="order-facts">
+          <div>
+            <dt>Order ID</dt>
+            <dd className="order-id-value">
+              <span>{order._id}</span>
+              <button className="order-icon-control" type="button" aria-label="Copy order ID" onClick={() => void copyId()}>
+                {copyStatus === "copied" ? <FiCheck aria-hidden="true" /> : <FiCopy aria-hidden="true" />}
+              </button>
+            </dd>
+            {copyStatus !== "idle" && <dd role="status" className="order-copy-status">{copyStatus === "copied"
+              ? "Order ID copied." : "Couldn’t copy automatically. Select the order ID to copy it."}</dd>}
+          </div>
+          <div><dt>Payment</dt><dd>{paymentNames[order.paymentMethod] ?? order.paymentMethod}
+            {order.paymentStatus && paymentStatuses[order.paymentStatus] && ` · ${paymentStatuses[order.paymentStatus]}`}
+          </dd></div>
+          <div><dt>Deliver to</dt><dd>{address ? (
+            <>
+              <strong>{address.fullName}</strong>
+              <span>{address.addressLine}</span>
+              <span>{[address.city, address.state, address.pincode].filter(Boolean).join(", ")}</span>
+              {address.phone && <span>{address.phone}</span>}
+            </>
+          ) : "Address information unavailable."}</dd></div>
+          <div><dt>Order placed</dt><dd><time dateTime={order.createdAt}>{formatOrderDate(order.createdAt)}</time></dd></div>
+        </dl>
+      </section>
+
+      <section className="order-detail-section" aria-labelledby="order-support-heading">
+        <h2 id="order-support-heading">Need help with your order?</h2>
+        <Link to="/contact" className="order-support-link">
+          <FiMessageCircle aria-hidden="true" />
+          <span><strong>Contact Support</strong><small>Get help with issues related to your order</small></span>
+          <FiChevronRight aria-hidden="true" />
+        </Link>
+      </section>
+    </>
   );
 };
 
-const getStatusClass = (status: OrderStatus) => {
-  switch (status) {
-    case "Placed":
-      return "status-placed";
-    case "Accepted":
-      return "status-accepted";
-    case "Out for Delivery":
-      return "status-delivery";
-    case "Delivered":
-      return "status-delivered";
-    default:
-      return "";
-  }
+type OrderResult = { request: string; order: Order | null };
+
+const MyOrderDetails = () => {
+  const { id } = useParams<{ id: string }>();
+  const [retry, setRetry] = useState(0);
+  const [result, setResult] = useState<OrderResult>();
+  const request = `${id}:${retry}`;
+  const current = result?.request === request ? result : undefined;
+
+  useEffect(() => {
+    if (!id) return;
+    let active = true;
+    void getOrderById(id).then((response) => {
+      if (active) setResult({ request, order: response?.success ? response.data ?? null : null });
+    }).catch(() => {
+      if (active) setResult({ request, order: null });
+    });
+    return () => { active = false; };
+  }, [id, request]);
+
+  return (
+    <section className="order-details-section" aria-label="Order details">
+      <Link to="/account/orders" className="order-icon-control order-details-back" aria-label="Back to My Orders">
+        <FiArrowLeft aria-hidden="true" />
+      </Link>
+      {id && !current ? (
+        <p className="order-details-state" role="status">Loading order details…</p>
+      ) : current?.order ? (
+        <OrderDetailContent key={current.order._id} order={current.order} />
+      ) : (
+        <div className="order-details-state">
+          <h1>Order details unavailable</h1>
+          <p>We couldn’t load this order.</p>
+          {id && <button className="orders-action" type="button" onClick={() => setRetry((value) => value + 1)}>Retry</button>}
+        </div>
+      )}
+    </section>
+  );
 };
 
 export default MyOrderDetails;

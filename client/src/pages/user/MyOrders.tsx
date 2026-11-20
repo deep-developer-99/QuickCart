@@ -1,90 +1,79 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { FiAlertCircle, FiPackage } from "react-icons/fi";
 import { getMyOrders } from "../../services/orderService";
 import type { Order } from "../../types/order";
 import OrderCard from "../../components/user/OrderCard";
 import Pagination from "../../components/common/Pagination";
 import "./MyOrders.css";
 
+type OrderPage = {
+  request: string;
+  orders: Order[];
+  totalPages: number;
+  totalItems: number;
+  error?: boolean;
+};
+
 const MyOrders = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
+  const [retry, setRetry] = useState(0);
+  const [result, setResult] = useState<OrderPage>();
+  const request = `${page}:${retry}`;
+  const current = result?.request === request ? result : undefined;
 
   useEffect(() => {
-    const loadOrders = async () => {
-      try {
-        setIsLoading(true);
-        setError("");
-        const response = await getMyOrders(page, 10);
-        setOrders(response.data || []);
-        const availablePages = response.pagination?.totalPages || 1;
-        setTotalPages(availablePages);
-        setTotalItems(response.pagination?.totalItems || 0);
-        if (page > availablePages) {
-          setPage(availablePages);
-        }
-      } catch (requestError) {
-        console.error("Failed to load orders:", requestError);
-        setError("Failed to load your orders. Please try again.");
-      } finally {
-        setIsLoading(false);
+    let active = true;
+    void getMyOrders(page, 10).then((response) => {
+      if (!active) return;
+      if (!response.success) throw new Error("Could not load orders");
+      const totalPages = Math.max(1, response.pagination?.totalPages ?? 1);
+      if (page > totalPages) {
+        setPage(totalPages);
+        return;
       }
-    };
-
-    void loadOrders();
-  }, [page]);
+      setResult({
+        request, orders: response.data ?? [], totalPages,
+        totalItems: response.pagination?.totalItems ?? response.data?.length ?? 0,
+      });
+    }).catch(() => {
+      if (active) setResult({ request, orders: [], totalPages: 1, totalItems: 0, error: true });
+    });
+    return () => { active = false; };
+  }, [page, request]);
 
   return (
-    <section className="account-section orders-section">
-      <div className="account-section-header">
-        <div>
-          <p className="account-eyebrow">QUICKCART</p>
-          <h1>My Orders</h1>
-          <p className="account-section-subtitle">
-            Track your recent purchases and view complete order details.
-          </p>
-        </div>
-        {!isLoading && !error && (
-          <div className="orders-count-badge">
-            {totalItems} {totalItems === 1 ? "Order" : "Orders"}
-          </div>
+    <section className="orders-section" aria-labelledby="orders-heading">
+      <header className="orders-heading">
+        <h1 id="orders-heading">My Orders</h1>
+        {current && !current.error && current.totalItems > 0 && (
+          <span>{current.totalItems} {current.totalItems === 1 ? "order" : "orders"}</span>
         )}
-      </div>
-
-      {isLoading ? (
-        <div className="orders-state-card">
-          <div className="orders-state-icon">⏳</div>
-          <h2>Loading your orders</h2>
-          <p>Please wait while we fetch your order history.</p>
+      </header>
+      {!current ? (
+        <div className="orders-list" role="status" aria-label="Loading orders">
+          {[0, 1, 2].map((key) => <div key={key} className="orders-skeleton" aria-hidden="true"><span /><span /></div>)}
         </div>
-      ) : error ? (
-        <div className="orders-state-card error-state">
-          <div className="orders-state-icon">!</div>
+      ) : current.error ? (
+        <div className="orders-state-card">
+          <FiAlertCircle aria-hidden="true" />
           <h2>Couldn't load orders</h2>
-          <p>{error}</p>
+          <p>Try again to refresh your order history.</p>
+          <button className="orders-action" type="button" onClick={() => setRetry((value) => value + 1)}>Retry</button>
         </div>
-      ) : orders.length === 0 ? (
+      ) : current.orders.length === 0 ? (
         <div className="orders-state-card">
-          <div className="orders-state-icon">▤</div>
+          <FiPackage aria-hidden="true" />
           <h2>No Orders Yet</h2>
           <p>Your placed orders will appear here.</p>
+          <Link className="orders-action" to="/">Shop Now</Link>
         </div>
       ) : (
         <>
           <div className="orders-list">
-            {orders.map((order) => (
-              <OrderCard key={order._id} order={order} />
-            ))}
+            {current.orders.map((order) => <OrderCard key={order._id} order={order} />)}
           </div>
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            onPageChange={setPage}
-          />
+          <Pagination currentPage={page} totalPages={current.totalPages} totalItems={current.totalItems} onPageChange={setPage} />
         </>
       )}
     </section>
