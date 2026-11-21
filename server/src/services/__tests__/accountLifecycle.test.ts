@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readdir, readFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import mongoose from "mongoose";
@@ -10,7 +10,7 @@ import User from "../../models/User";
 import { migrateCustomerLifecycle } from "../../scripts/migrateCustomerLifecycle";
 import { resolveGoogleCustomer, resolvePhoneCustomer } from "../customerIdentityService";
 import { deactivateCustomer, validateDeletion } from "../accountDeletionService";
-import { deletionReasons } from "../../utils/customerLifecycle";
+import { customerIdentityIndexes, deletionReasons } from "../../utils/customerLifecycle";
 
 test("deletion input rejects impersonation, invalid reasons, and excessive feedback", () => {
   for (const input of [null, [], { reason: "invalid" }, { reason: deletionReasons[0], userId: "someone-else" }, { reason: deletionReasons[0], feedback: "a".repeat(1001) }]) {
@@ -19,12 +19,56 @@ test("deletion input rejects impersonation, invalid reasons, and excessive feedb
   assert.deepEqual(validateDeletion({ reason: deletionReasons[0], feedback: "  hello\u0000\nworld  " }), { reason: deletionReasons[0], feedback: "hello\nworld" });
 });
 
-test("customer migration, deletion, authentication, and fresh account isolation", { skip: !process.env.ACCOUNT_TEST_MONGO_URI, timeout: 60000 }, async () => {
+test("preflight reports canonical active duplicates and preserves historical identities", async (context) => {
+  const find = context.mock.fn(async function* () {
+    yield { email: " Customer@Example.test ", phone: "9876543210" };
+    yield { email: "customer@example.test", phone: "+919876543210", isActive: true };
+    yield { email: "customer@example.test", phone: "+919876543210", isActive: false };
+  });
+  const updateMany = context.mock.fn();
+  const createIndex = context.mock.fn();
+  const dropIndex = context.mock.fn();
+  context.mock.method(mongoose.connection, "collection", () => ({
+    indexes: async () => [],
+    find, updateMany, createIndex, dropIndex,
+  }));
+  await assert.rejects(migrateCustomerLifecycle(), (error: Error) =>
+    /non-canonical active email/.test(error.message) &&
+    /non-canonical active phone/.test(error.message) &&
+    /Duplicate active email/.test(error.message) &&
+    /Duplicate active phone/.test(error.message) &&
+    !error.message.includes("customer@example.test"));
+  assert.equal(updateMany.mock.callCount(), 0);
+  assert.equal(createIndex.mock.callCount(), 0);
+  assert.equal(dropIndex.mock.callCount(), 0);
+});
+
+test("an unverified replacement leaves global unique indexes in place", async (context) => {
+  const obsolete = { name: "email_1", key: { email: 1 }, unique: true };
+  const indexes = context.mock.fn(async () => [obsolete, ...customerIdentityIndexes.slice(1)]);
+  const updateMany = context.mock.fn(async (_filter: unknown, _update: unknown, _options: unknown) => ({}));
+  const createIndex = context.mock.fn(async () => "created");
+  const dropIndex = context.mock.fn();
+  context.mock.method(mongoose.connection, "collection", () => ({
+    indexes, find: async function* () {}, findOne: async () => null,
+    updateMany, createIndex, dropIndex,
+  }));
+  const directory = await mkdtemp(path.join(os.tmpdir(), "quickcart-migration-unit-"));
+  context.after(() => rm(directory, { recursive: true, force: true }));
+  await assert.rejects(migrateCustomerLifecycle(directory, true), /Migration verification failed/);
+  assert.deepEqual(updateMany.mock.calls[0]?.arguments.slice(0, 2), [
+    { isActive: { $exists: false } }, { $set: { isActive: true } },
+  ]);
+  assert.equal(dropIndex.mock.callCount(), 0);
+});
+
+test("customer migration, deletion, authentication, and fresh account isolation", { skip: !process.env.ACCOUNT_TEST_MONGO_URI, timeout: 60000 }, async (context) => {
   const uri = process.env.ACCOUNT_TEST_MONGO_URI!;
   const parsed = new URL(uri);
   assert.ok(["127.0.0.1", "localhost"].includes(parsed.hostname), "Use an isolated local MongoDB server.");
   assert.match(parsed.pathname, /^\/quickcart_lifecycle_test_[a-zA-Z0-9_-]+$/);
   await mongoose.connect(uri, { autoIndex: false, serverSelectionTimeoutMS: 5000 });
+  context.after(() => mongoose.disconnect());
   assert.equal(await User.collection.countDocuments(), 0, "Use a fresh scratch database.");
   process.env.JWT_SECRET = "account-lifecycle-local-tests-only";
   process.env.CLIENT_URL = "http://localhost:5173";
@@ -37,18 +81,16 @@ test("customer migration, deletion, authentication, and fresh account isolation"
     { _id: oldId, name: "Legacy customer", email, phone, googleId: "old-google", role: "user", fcmTokens: ["old-device"] },
     { _id: secondId, name: "Historical account", email: "history@example.test", isActive: false, role: "user" },
   ]);
-  await User.collection.createIndex({ email: 1 }, { unique: true, sparse: true });
-  await User.collection.createIndex({ phone: 1 }, { unique: true, sparse: true });
-  await User.collection.createIndex({ googleId: 1 }, { unique: true, sparse: true });
   await User.collection.createIndex({ name: 1 }, { name: "unrelated_name_index" });
   await assert.rejects(deactivateCustomer(oldId.toString(), { reason: deletionReasons[0] }), {
     statusCode: 503, code: "MIGRATION_REQUIRED",
   });
   assert.equal((await User.collection.findOne({ _id: oldId }))?.isActive, undefined);
   const backups = await mkdtemp(path.join(os.tmpdir(), "quickcart-account-backup-"));
+  context.after(() => rm(backups, { recursive: true, force: true }));
   await migrateCustomerLifecycle();
   assert.equal((await User.collection.findOne({ _id: oldId }))?.isActive, undefined);
-  await migrateCustomerLifecycle(backups, true);
+  await migrateCustomerLifecycle(backups);
   await migrateCustomerLifecycle(backups);
   assert.equal((await User.findById(oldId))?.isActive, true);
   assert.equal((await User.findById(secondId))?.isActive, false);
@@ -151,6 +193,5 @@ test("customer migration, deletion, authentication, and fresh account isolation"
     assert.ok(!eligible.data.some((customer: { _id: mongoose.Types.ObjectId }) => customer._id.equals(oldId)));
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
-    await mongoose.disconnect();
   }
 });

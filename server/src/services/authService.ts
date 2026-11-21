@@ -1,5 +1,5 @@
 import { resolveGoogleCustomer, resolvePhoneCustomer } from "./customerIdentityService";
-import { activeCustomerFilter } from "../utils/customerLifecycle";
+import { activeCustomerFilter, normalizeCustomerPhone } from "../utils/customerLifecycle";
 import bcrypt from "bcryptjs";
 import { sendPhoneOtp, verifyPhoneOtp } from "./twilioService";
 import { firebaseAdminAuth } from "../config/firebaseAdmin";
@@ -34,17 +34,6 @@ interface VendorRegisterData {
   latitude: number;
   longitude: number;
 }
-
-// Helper
-const formatPhoneNumber = (phone: string): string => {
-  const cleanedPhone = phone.trim();
-
-  if (/^\d{10}$/.test(cleanedPhone)) {
-    return `+91${cleanedPhone}`;
-  }
-
-  return cleanedPhone;
-};
 
 // VENDOR REGISTRATION
 
@@ -242,7 +231,7 @@ export const loginGoogleUser = async (
 export const sendPhoneOtpService = async (
   phone: string,
 ): Promise<{ isNewUser: boolean }> => {
-  const formattedPhone = formatPhoneNumber(phone);
+  const formattedPhone = normalizeCustomerPhone(phone);
 
   await sendPhoneOtp(formattedPhone);
 
@@ -262,7 +251,7 @@ export const verifyPhoneOtpService = async (
   code: string,
   name?: string,
 ): Promise<LoginResponse> => {
-  const formattedPhone = formatPhoneNumber(phone);
+  const formattedPhone = normalizeCustomerPhone(phone);
 
   const isVerified = await verifyPhoneOtp(formattedPhone, code);
 

@@ -1,10 +1,10 @@
 import CashfreePaymentAttempt from "../models/CashfreePaymentAttempt";
 import User from "../models/User";
 import AccountDeletionFeedback from "../models/AccountDeletionFeedback";
-import { activeCustomerFilter, customerIdentityFields, customerIdentityIndexes, deletionReasons } from "../utils/customerLifecycle";
+import { activeCustomerFilter, deletionReasons, inspectCustomerIndexDefinitions, missingCustomerStatusFilter } from "../utils/customerLifecycle";
 
 export class AccountDeletionError extends Error {
-  indexIssues?: Awaited<ReturnType<typeof inspectCustomerIdentityIndexes>>;
+  indexIssues?: Awaited<ReturnType<typeof inspectCustomerIdentityIndexes>> & { hasMissingIsActive?: true };
 
   constructor(message: string, public statusCode = 400, public code = "INVALID_DELETION") {
     super(message);
@@ -29,32 +29,23 @@ export const validateDeletion = (body: unknown) => {
   return { reason: input.reason, feedback };
 };
 
-export const inspectCustomerIdentityIndexes = async () => {
-  const indexes = await User.collection.indexes();
-  const invalidActiveIndexes = customerIdentityIndexes.filter((expected) => {
-    const field = Object.keys(expected.key)[0];
-    return !indexes.some((index) => {
-      const filter = index.partialFilterExpression;
-      return index.name === expected.name && index.unique === true &&
-        Object.keys(index.key).length === 1 && index.key[field] === 1 &&
-        filter && Object.keys(filter).length === 2 && filter.isActive === true &&
-        filter[field]?.$type === "string" && Object.keys(filter[field]).length === 1;
-    });
-  }).map((index) => index.name);
-  const legacyIdentityFields = customerIdentityFields.filter((field) =>
-    indexes.some((index) => index.unique && !index.partialFilterExpression &&
-      Object.keys(index.key).length === 1 && (index.key[field] === 1 || index.key[field] === -1)),
-  );
-  return { invalidActiveIndexes, legacyIdentityFields };
-};
+export const inspectCustomerIdentityIndexes = async () =>
+  inspectCustomerIndexDefinitions(await User.collection.indexes());
+
+export const hasUnmigratedCustomers = async () =>
+  Boolean(await User.collection.findOne(missingCustomerStatusFilter, {
+    projection: { _id: 1 }, readPreference: "primary",
+  }));
 
 export const assertCustomerIndexesReady = async () => {
   const issues = await inspectCustomerIdentityIndexes();
-  if (issues.invalidActiveIndexes.length || issues.legacyIdentityFields.length) {
+  const indexesBlocked = issues.invalidActiveIndexes.length > 0 || issues.legacyIdentityFields.length > 0;
+  const hasMissingIsActive = !indexesBlocked && await hasUnmigratedCustomers();
+  if (indexesBlocked || hasMissingIsActive) {
     const error = new AccountDeletionError(
       "Account deletion is temporarily unavailable. Please try again later.", 503, "MIGRATION_REQUIRED",
     );
-    throw Object.assign(error, { indexIssues: issues });
+    throw Object.assign(error, { indexIssues: hasMissingIsActive ? { ...issues, hasMissingIsActive: true } : issues });
   }
 };
 

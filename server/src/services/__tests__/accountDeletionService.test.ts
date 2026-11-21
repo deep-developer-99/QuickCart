@@ -18,6 +18,7 @@ const mockStorage = (context: import("node:test").TestContext) => {
   let active = true;
   type IndexFixture = { key: Record<string, number>; name: string; unique: boolean; partialFilterExpression?: Record<string, unknown> };
   const indexes = context.mock.method(User.collection, "indexes", async (): Promise<IndexFixture[]> => customerIdentityIndexes);
+  const missingStatus = context.mock.method(User.collection, "findOne", async (): Promise<{ _id: string } | null> => null);
   const payment = context.mock.method(CashfreePaymentAttempt, "exists", async (): Promise<{ _id: string } | null> => null);
   const write = context.mock.method(User, "updateOne", async () => {
     const matchedCount = Number(active);
@@ -28,7 +29,7 @@ const mockStorage = (context: import("node:test").TestContext) => {
   const read = context.mock.fn(() => ({ readConcern }));
   context.mock.method(User, "exists", () => ({ read }));
   const feedback = context.mock.method(AccountDeletionFeedback, "updateOne", async () => ({}));
-  return { indexes, payment, write, read, readConcern, feedback, isActive: () => active, commit: () => { active = false; } };
+  return { indexes, missingStatus, payment, write, read, readConcern, feedback, isActive: () => active, commit: () => { active = false; } };
 };
 
 test("legacy or malformed identity indexes block deletion before payments or writes", async (context) => {
@@ -44,6 +45,17 @@ test("legacy or malformed identity indexes block deletion before payments or wri
   assert.equal(db.payment.mock.callCount(), 0);
   assert.equal(db.write.mock.callCount(), 0);
   assert.equal(db.isActive(), true);
+});
+
+test("replacement indexes alone do not make a missing status ready", async (context) => {
+  const db = mockStorage(context);
+  db.missingStatus.mock.mockImplementationOnce(async () => ({ _id: userId }));
+  await assert.rejects(deactivateCustomer(userId, input), {
+    statusCode: 503, code: "MIGRATION_REQUIRED",
+    indexIssues: { invalidActiveIndexes: [], legacyIdentityFields: [], hasMissingIsActive: true },
+  });
+  assert.equal(db.payment.mock.callCount(), 0);
+  assert.equal(db.write.mock.callCount(), 0);
 });
 
 test("index connectivity failure leaves account and feedback untouched", async (context) => {

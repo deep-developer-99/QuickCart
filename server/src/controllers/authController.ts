@@ -1,5 +1,5 @@
 import { verifyPhoneOtp } from "../services/twilioService";
-import { activeCustomerFilter, isDuplicateIdentity } from "../utils/customerLifecycle";
+import { activeCustomerFilter, isDuplicateIdentity, normalizeCustomerPhone } from "../utils/customerLifecycle";
 import { Request, Response } from "express";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
 import { uploadImageToCloudinary } from "../services/cloudinaryService";
@@ -414,7 +414,7 @@ export const updateProfileController = async (
 
     const trimmedName = name.trim();
     const rawPhone = typeof phone === "string" ? phone.trim() : "";
-    const trimmedPhone = /^\d{10}$/.test(rawPhone) ? `+91${rawPhone}` : rawPhone;
+    const trimmedPhone = normalizeCustomerPhone(rawPhone);
 
     if (trimmedName.length < 2) {
       res.status(400).json({

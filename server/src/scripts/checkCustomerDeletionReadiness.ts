@@ -1,15 +1,16 @@
 import "dotenv/config";
 import mongoose from "mongoose";
-import { inspectCustomerIdentityIndexes } from "../services/accountDeletionService";
+import { hasUnmigratedCustomers, inspectCustomerIdentityIndexes } from "../services/accountDeletionService";
 
 const check = async () => {
   const uri = process.env.MONGO_URI;
   if (!uri) throw new Error("MONGO_URI is not configured.");
 
-  await mongoose.connect(uri, { autoCreate: false, autoIndex: false, serverSelectionTimeoutMS: 8000 });
+  await mongoose.connect(uri, { autoCreate: false, autoIndex: false, readPreference: "primary", serverSelectionTimeoutMS: 8000 });
   const issues = await inspectCustomerIdentityIndexes();
-  const ready = !issues.invalidActiveIndexes.length && !issues.legacyIdentityFields.length;
-  console.log(JSON.stringify({ ready, ...issues }));
+  const hasMissingIsActive = await hasUnmigratedCustomers();
+  const ready = !issues.invalidActiveIndexes.length && !issues.legacyIdentityFields.length && !hasMissingIsActive;
+  console.log(JSON.stringify({ ready, database: mongoose.connection.name, hasMissingIsActive, ...issues }));
   if (!ready) process.exitCode = 1;
 };
 
