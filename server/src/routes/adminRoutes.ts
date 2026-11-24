@@ -66,6 +66,7 @@ import {
   saveAdminHomepageSectionsController,
 } from "../controllers/homepageSectionController";
 import { deleteUnusedMobileCategoryNavigationIcon, getAdminMobileCategoryNavigation, saveAdminMobileCategoryNavigation, uploadMobileCategoryNavigationIcon } from "../controllers/mobileCategoryNavigationController";
+import { createMobileBannerController, deleteMobileBannerController, getAdminMobileBannersController, reorderMobileBannersController, setMobileBannerStatusController, updateMobileBannerController } from "../controllers/mobileBannerController";
 
 const router = Router();
 
@@ -111,6 +112,14 @@ router.post("/banners", upload.fields([{ name: "image", maxCount: 1 }, { name: "
 router.put("/banners/:id", upload.fields([{ name: "image", maxCount: 1 }, { name: "mobileImage", maxCount: 1 }]), updateBannerController);
 router.delete("/banners/:id", deleteBannerController);
 router.put("/banners/:id/status", toggleBannerStatusController);
+
+// Mobile app banners are independent of website banners.
+router.get("/mobile-banners", getAdminMobileBannersController);
+router.post("/mobile-banners", upload.single("image"), createMobileBannerController);
+router.put("/mobile-banners/reorder", reorderMobileBannersController);
+router.put("/mobile-banners/:id", upload.single("image"), updateMobileBannerController);
+router.patch("/mobile-banners/:id/status", setMobileBannerStatusController);
+router.delete("/mobile-banners/:id", deleteMobileBannerController);
 
 // Offers
 router.get("/offers", validatePagination, getAdminOffersController);

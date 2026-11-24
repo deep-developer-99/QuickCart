@@ -31,6 +31,7 @@ const AdminSidebar = () => {
     { to: "/admin/homepage-sections", label: "Homepage Sections", icon: "▦" },
     { to: "/admin/mobile-category-navigation", label: "Mobile Category Navigation", icon: "📱" },
     { to: "/admin/banners", label: "Banners", icon: "🖼️" },
+    { to: "/admin/mobile-banners", label: "Mobile App Banners", icon: "📱" },
     { to: "/admin/offers", label: "Offers & Notifications", icon: "🎁" },
     { to: "/admin/orders", label: "Manage Orders", icon: "🛒" },
     { to: "/admin/theme", label: "Theme Settings", icon: "🎨" },
