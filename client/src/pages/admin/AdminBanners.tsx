@@ -70,6 +70,8 @@ const AdminBanners = () => {
   const [form, setForm] = useState<BannerFormState>(initialForm);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [mobileImageFile, setMobileImageFile] = useState<File | null>(null);
+  const [mobileImagePreview, setMobileImagePreview] = useState("");
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -131,6 +133,8 @@ const AdminBanners = () => {
     setForm(initialForm);
     setImageFile(null);
     setImagePreview("");
+    setMobileImageFile(null);
+    setMobileImagePreview("");
   };
 
   const openAddForm = () => {
@@ -140,6 +144,8 @@ const AdminBanners = () => {
     setForm(initialForm);
     setImageFile(null);
     setImagePreview("");
+    setMobileImageFile(null);
+    setMobileImagePreview("");
     setShowForm(true);
   };
 
@@ -157,6 +163,8 @@ const AdminBanners = () => {
     });
     setImageFile(null);
     setImagePreview(banner.image || "");
+    setMobileImageFile(null);
+    setMobileImagePreview(banner.mobileImage || "");
     setShowForm(true);
   };
 
@@ -242,6 +250,7 @@ const AdminBanners = () => {
       if (imageFile) {
         formData.append("image", imageFile);
       }
+      if (mobileImageFile) formData.append("mobileImage", mobileImageFile);
 
       const response =
         isEditing && editingBanner
@@ -457,6 +466,18 @@ const AdminBanners = () => {
                       <img src={imagePreview} alt="Banner preview" />
                     </div>
                   )}
+
+                  <label className="full-width">
+                    Mobile banner image (optional)
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/jpg" disabled={isSubmitting} onChange={(event) => {
+                      const file = event.target.files?.[0] || null;
+                      if (!file) return;
+                      if (!ALLOWED_IMAGE_TYPES.includes(file.type) || file.size > MAX_IMAGE_SIZE) { setError("Mobile image must be JPG, PNG or WEBP and 5 MB or smaller."); return; }
+                      setMobileImageFile(file); setMobileImagePreview(URL.createObjectURL(file)); setError("");
+                    }} />
+                    <small>Recommended: 1080 × 1080 px (square) or 1080 × 514 px (wide). The mobile app uses this image first.</small>
+                  </label>
+                  {mobileImagePreview && <div className="admin-banner-preview full-width"><img src={mobileImagePreview} alt="Mobile banner preview" /></div>}
 
                   <label>
                     Redirect Type

@@ -38,6 +38,11 @@ const parseOrder = (value: unknown) => {
   return order;
 };
 
+const bannerFiles = (req: AuthenticatedRequest) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+  return { image: files?.image?.[0], mobileImage: files?.mobileImage?.[0] };
+};
+
 export const getActiveBannersController = async (
   _req: Request,
   res: Response,
@@ -85,9 +90,11 @@ export const createBannerController = async (
   res: Response,
 ): Promise<void> => {
   let uploadedImagePublicId: string | undefined;
+  let uploadedMobilePublicId: string | undefined;
 
   try {
-    if (!req.file) {
+    const files = bannerFiles(req);
+    if (!files.image) {
       res.status(400).json({
         success: false,
         message: "Banner image is required",
@@ -103,11 +110,13 @@ export const createBannerController = async (
     const endDate = parseBannerDate(req.body.endDate);
 
     const uploadedImage = await uploadImageToCloudinary(
-      req.file.buffer,
+      files.image.buffer,
       "quickcart/banners",
     );
 
     uploadedImagePublicId = uploadedImage.public_id;
+    const uploadedMobile = files.mobileImage ? await uploadImageToCloudinary(files.mobileImage.buffer, "quickcart/banners/mobile") : undefined;
+    uploadedMobilePublicId = uploadedMobile?.public_id;
 
     try {
       const banner = await createBanner({
@@ -119,9 +128,12 @@ export const createBannerController = async (
         endDate,
         image: uploadedImage.secure_url,
         imagePublicId: uploadedImage.public_id,
+        mobileImage: uploadedMobile?.secure_url,
+        mobileImagePublicId: uploadedMobile?.public_id,
       });
 
       uploadedImagePublicId = undefined;
+      uploadedMobilePublicId = undefined;
 
       res.status(201).json({
         success: true,
@@ -129,15 +141,11 @@ export const createBannerController = async (
         data: banner,
       });
     } catch (error) {
-      if (uploadedImagePublicId) {
-        await deleteImageFromCloudinary(uploadedImagePublicId).catch(() => {
-          console.error("Failed to clean up banner image.");
-        });
-      }
-
       throw error;
     }
   } catch (error) {
+    if (uploadedImagePublicId) await deleteImageFromCloudinary(uploadedImagePublicId).catch(() => undefined);
+    if (uploadedMobilePublicId) await deleteImageFromCloudinary(uploadedMobilePublicId).catch(() => undefined);
     console.error("Create banner error:", error);
 
     res.status(400).json({
@@ -153,10 +161,12 @@ export const updateBannerController = async (
   res: Response,
 ): Promise<void> => {
   let uploadedImagePublicId: string | undefined;
+  let uploadedMobilePublicId: string | undefined;
 
   try {
     const { id } = req.params as { id: string };
     const currentBanner = await getBannerById(id);
+    const files = bannerFiles(req);
 
     const order = parseOrder(req.body.order);
     const redirectType = req.body.redirectType as "category" | "product" | undefined;
@@ -168,9 +178,9 @@ export const updateBannerController = async (
     let image = currentBanner.image;
     let imagePublicId = currentBanner.imagePublicId;
 
-    if (req.file) {
+    if (files.image) {
       const uploadedImage = await uploadImageToCloudinary(
-        req.file.buffer,
+        files.image.buffer,
         "quickcart/banners",
       );
 
@@ -178,6 +188,8 @@ export const updateBannerController = async (
       image = uploadedImage.secure_url;
       imagePublicId = uploadedImage.public_id;
     }
+    const uploadedMobile = files.mobileImage ? await uploadImageToCloudinary(files.mobileImage.buffer, "quickcart/banners/mobile") : undefined;
+    uploadedMobilePublicId = uploadedMobile?.public_id;
 
     try {
       const banner = await updateBanner(id, {
@@ -189,10 +201,12 @@ export const updateBannerController = async (
         endDate,
         image,
         imagePublicId,
+        mobileImage: uploadedMobile?.secure_url ?? currentBanner.mobileImage,
+        mobileImagePublicId: uploadedMobile?.public_id ?? currentBanner.mobileImagePublicId,
       });
 
       if (
-        req.file &&
+        files.image &&
         currentBanner.imagePublicId &&
         currentBanner.imagePublicId !== banner.imagePublicId
       ) {
@@ -205,8 +219,10 @@ export const updateBannerController = async (
           },
         );
       }
+      if (uploadedMobile && currentBanner.mobileImagePublicId && currentBanner.mobileImagePublicId !== uploadedMobile.public_id) await deleteImageFromCloudinary(currentBanner.mobileImagePublicId).catch(() => undefined);
 
       uploadedImagePublicId = undefined;
+      uploadedMobilePublicId = undefined;
 
       res.status(200).json({
         success: true,
@@ -214,15 +230,11 @@ export const updateBannerController = async (
         data: banner,
       });
     } catch (error) {
-      if (uploadedImagePublicId) {
-        await deleteImageFromCloudinary(uploadedImagePublicId).catch(() => {
-          console.error("Failed to clean up new banner image.");
-        });
-      }
-
       throw error;
     }
   } catch (error) {
+    if (uploadedImagePublicId) await deleteImageFromCloudinary(uploadedImagePublicId).catch(() => undefined);
+    if (uploadedMobilePublicId) await deleteImageFromCloudinary(uploadedMobilePublicId).catch(() => undefined);
     console.error("Update banner error:", error);
 
     res.status(400).json({

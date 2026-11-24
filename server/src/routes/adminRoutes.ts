@@ -65,6 +65,7 @@ import {
   getAdminHomepageSectionsController,
   saveAdminHomepageSectionsController,
 } from "../controllers/homepageSectionController";
+import { deleteUnusedMobileCategoryNavigationIcon, getAdminMobileCategoryNavigation, saveAdminMobileCategoryNavigation, uploadMobileCategoryNavigationIcon } from "../controllers/mobileCategoryNavigationController";
 
 const router = Router();
 
@@ -76,6 +77,10 @@ router.get("/dashboard", getAdminDashboardController);
 // Homepage product sections
 router.get("/homepage-sections", getAdminHomepageSectionsController);
 router.put("/homepage-sections", saveAdminHomepageSectionsController);
+router.get("/mobile-category-navigation", getAdminMobileCategoryNavigation);
+router.put("/mobile-category-navigation", saveAdminMobileCategoryNavigation);
+router.post("/mobile-category-navigation/icon", upload.single("icon"), uploadMobileCategoryNavigationIcon);
+router.delete("/mobile-category-navigation/icon", deleteUnusedMobileCategoryNavigationIcon);
 
 // Users
 router.get("/users", getAllUsersController);
@@ -102,8 +107,8 @@ router.delete("/subcategories/:id", deleteSubcategoryController);
 
 // Banners
 router.get("/banners", getAllBannersAdminController);
-router.post("/banners", upload.single("image"), createBannerController);
-router.put("/banners/:id", upload.single("image"), updateBannerController);
+router.post("/banners", upload.fields([{ name: "image", maxCount: 1 }, { name: "mobileImage", maxCount: 1 }]), createBannerController);
+router.put("/banners/:id", upload.fields([{ name: "image", maxCount: 1 }, { name: "mobileImage", maxCount: 1 }]), updateBannerController);
 router.delete("/banners/:id", deleteBannerController);
 router.put("/banners/:id/status", toggleBannerStatusController);
 

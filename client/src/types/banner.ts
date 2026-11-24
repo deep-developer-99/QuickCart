@@ -3,6 +3,7 @@ export type BannerRedirectType = "category" | "product";
 export interface Banner {
   _id: string;
   image: string;
+  mobileImage?: string;
   imagePublicId?: string;
   redirectType?: BannerRedirectType;
   redirectValue?: string;

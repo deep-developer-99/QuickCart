@@ -50,6 +50,7 @@ import AdminPromotionalBanners from "../pages/admin/AdminPromotionalBanners";
 import AdminFooter from "../pages/admin/AdminFooter";
 import AdminSearchSuggestions from "../pages/admin/AdminSearchSuggestions";
 import AdminHomepageSections from "../pages/admin/AdminHomepageSections";
+import AdminMobileCategoryNavigation from "../pages/admin/AdminMobileCategoryNavigation";
 
 import ScrollToTop from "../components/ScrollToTop";
 import ContactUs from "../pages/ContactUs";
@@ -130,6 +131,7 @@ const AppRoutes = () => {
           <Route path="/admin/categories" element={<AdminCategories />} />
           <Route path="/admin/subcategories" element={<AdminSubCategories />} />
           <Route path="/admin/homepage-sections" element={<AdminHomepageSections />} />
+          <Route path="/admin/mobile-category-navigation" element={<AdminMobileCategoryNavigation />} />
           <Route path="/admin/banners" element={<AdminBanners />} />
           <Route path="/admin/offers" element={<AdminOffers />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
