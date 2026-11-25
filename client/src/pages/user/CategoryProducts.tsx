@@ -36,7 +36,6 @@ const CategoryProducts = () => {
   const [productRetry, setProductRetry] = useState(0);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<ProductPage>({ currentPage: 1, totalPages: 1, totalItems: 0, hasNextPage: false });
-  const [hasLoadedFirstPage, setHasLoadedFirstPage] = useState(false);
   const productScrollRef = useRef<HTMLElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const inFlightRef = useRef(false);
@@ -58,7 +57,6 @@ const CategoryProducts = () => {
     setProducts([]);
     setPage(1);
     setPagination({ currentPage: 1, totalPages: 1, totalItems: 0, hasNextPage: false });
-    setHasLoadedFirstPage(false);
 
     if (!categoryId) {
       setIsInitialLoading(false);
@@ -105,7 +103,6 @@ const CategoryProducts = () => {
       setPage(1);
       setProducts([]);
       setPagination({ currentPage: 1, totalPages: 1, totalItems: 0, hasNextPage: false });
-      setHasLoadedFirstPage(false);
       setProductError("");
       setIsProductsLoading(false);
       if (productScrollRef.current) productScrollRef.current.scrollTop = 0;
@@ -150,7 +147,6 @@ const CategoryProducts = () => {
         });
         setPagination(nextPagination);
         requestedPageRef.current = nextPagination.currentPage;
-        setHasLoadedFirstPage(true);
       })
       .catch((requestError: unknown) => {
         if (!current || generation !== generationRef.current) return;
@@ -186,7 +182,6 @@ const CategoryProducts = () => {
     setPage(1);
     setProducts([]);
     setPagination({ currentPage: 1, totalPages: 1, totalItems: 0, hasNextPage: false });
-    setHasLoadedFirstPage(false);
     setProductError("");
     setIsProductsLoading(false);
     setSelectedSubcategory(subcategoryId);
@@ -239,7 +234,7 @@ const CategoryProducts = () => {
               <span>{pagination.totalItems} {pagination.totalItems === 1 ? "product" : "products"} available</span>
             </div>
 
-            {productError && !hasLoadedFirstPage ? (
+            {productError && products.length === 0 ? (
               <div className="category-products-inline-error" role="alert"><span>{productError}</span><button type="button" onClick={retryProducts}>Retry</button></div>
             ) : products.length > 0 ? (
               <>
@@ -249,9 +244,8 @@ const CategoryProducts = () => {
                 </div>
                 <div ref={sentinelRef} className="category-products-sentinel" aria-hidden="true" />
                 {productError && <div className="category-products-inline-error" role="alert"><span>{productError}</span><button type="button" onClick={retryProducts}>Retry</button></div>}
-                {hasLoadedFirstPage && !pagination.hasNextPage && <p className="category-products-end">You’ve reached the end of the list.</p>}
               </>
-            ) : isProductsLoading || !hasLoadedFirstPage ? (
+            ) : isProductsLoading ? (
               <div className="category-products-grid category-products-grid--loading" aria-label="Loading products">
                 {Array.from({ length: 15 }, (_, index) => <div className="category-product-skeleton" key={index}><span className="category-product-skeleton-image" /><span className="category-product-skeleton-line" /><span className="category-product-skeleton-line short" /></div>)}
               </div>

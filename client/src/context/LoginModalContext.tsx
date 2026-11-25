@@ -7,14 +7,11 @@ export interface LoginModalOptions {
   onAuthenticated?: () => void | Promise<void>;
 }
 
-type LoginDialog = { kind: "required"; trigger?: HTMLElement } | { kind: "login"; options: LoginModalOptions };
+type LoginDialog = { kind: "login"; options: LoginModalOptions };
 
 interface LoginModalContextValue {
-  isLoginRequiredOpen: boolean;
-  loginRequiredTrigger?: HTMLElement;
   isLoginModalOpen: boolean;
   loginModalSession: number;
-  openLoginRequired: (trigger?: HTMLElement) => void;
   openLoginModal: (options?: LoginModalOptions) => void;
   closeLoginModal: () => void;
   completeLoginModal: () => Promise<void>;
@@ -27,13 +24,12 @@ export const LoginModalProvider = ({ children }: { children: ReactNode }) => {
   const [dialog, setDialog] = useState<LoginDialog | null>(null);
   const [loginModalSession, setLoginModalSession] = useState(0);
 
-  const openLoginRequired = useCallback((trigger?: HTMLElement) => {
-    setDialog((current) => current ?? { kind: "required", trigger });
-  }, []);
-
   const openLoginModal = useCallback((nextOptions: LoginModalOptions = {}) => {
-    setLoginModalSession((session) => session + 1);
-    setDialog({ kind: "login", options: nextOptions });
+    setDialog((current) => {
+      if (current?.kind === "login") return current;
+      setLoginModalSession((session) => session + 1);
+      return { kind: "login", options: nextOptions };
+    });
   }, []);
 
   const closeLoginModal = useCallback(() => {
@@ -52,15 +48,12 @@ export const LoginModalProvider = ({ children }: { children: ReactNode }) => {
   }, [navigate, dialog]);
 
   const value = useMemo(() => ({
-    isLoginRequiredOpen: dialog?.kind === "required",
-    loginRequiredTrigger: dialog?.kind === "required" ? dialog.trigger : undefined,
     isLoginModalOpen: dialog?.kind === "login",
     loginModalSession,
-    openLoginRequired,
     openLoginModal,
     closeLoginModal,
     completeLoginModal,
-  }), [dialog, loginModalSession, openLoginRequired, openLoginModal, closeLoginModal, completeLoginModal]);
+  }), [dialog, loginModalSession, openLoginModal, closeLoginModal, completeLoginModal]);
 
   return <LoginModalContext.Provider value={value}>{children}</LoginModalContext.Provider>;
 };

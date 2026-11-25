@@ -7,14 +7,15 @@ import { setCredentials } from "../store/slice/authSlice";
 import type { RootState } from "../store/store";
 import { normalizeAuthUser } from "../utils/normalizeAuthUser";
 
-export const useCartLogin = (beforeLoginRequired?: () => void) => {
-  const { openLoginRequired } = useLoginModal();
+export const useCartLogin = (beforeLogin?: () => void) => {
+  const { openLoginModal } = useLoginModal();
   const store = useStore<RootState>();
 
-  return async (trigger?: HTMLElement) => {
+  return async (...args: [HTMLElement?]) => {
+    void args;
     const requireLogin = () => {
-      beforeLoginRequired?.();
-      openLoginRequired(trigger);
+      beforeLogin?.();
+      openLoginModal();
       return false;
     };
 
