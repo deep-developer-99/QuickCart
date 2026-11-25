@@ -1,5 +1,6 @@
 import api from "./api";
 import type { PaymentMethod } from "../types/order";
+import { setCurrentAccountCount } from "./accountCountCache";
 
 export const createOrder = async (
   addressId: string,
@@ -79,7 +80,11 @@ export const verifyRazorpayPayment = async (
 
 export const getMyOrders = async (page = 1, limit = 10) => {
   const response = await api.get("/orders/my-orders", { params: { page, limit } });
-  return response.data;
+  const result = response.data;
+  if (limit > 1 && result?.success && Number.isSafeInteger(result.pagination?.totalItems)) {
+    setCurrentAccountCount("orders", result.pagination.totalItems);
+  }
+  return result;
 };
 
 export const getOrderById = async (id: string) => {

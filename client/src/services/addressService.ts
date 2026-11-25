@@ -1,16 +1,21 @@
 import api from "./api";
 import type { CreateAddressData } from "../types/address";
+import { invalidateCurrentAccountCount, setCurrentAccountCount } from "./accountCountCache";
 
 export const getAddresses = async (page = 1, limit = 10) => {
   const response = await api.get("/addresses", { params: { page, limit } });
-
-  return response.data;
+  const result = response.data;
+  if (limit > 1 && result?.success && Number.isSafeInteger(result.pagination?.totalItems)) {
+    setCurrentAccountCount("addresses", result.pagination.totalItems);
+  }
+  return result;
 };
 
 export const createAddress = async (data: CreateAddressData) => {
   const response = await api.post("/addresses", data);
-
-  return response.data;
+  const result = response.data;
+  if (result?.success) invalidateCurrentAccountCount("addresses");
+  return result;
 };
 
 export const getAddressById = async (id: string) => {
@@ -30,6 +35,7 @@ export const updateAddress = async (
 
 export const deleteAddress = async (id: string) => {
   const response = await api.delete(`/addresses/${id}`);
-
-  return response.data;
+  const result = response.data;
+  if (result?.success) invalidateCurrentAccountCount("addresses");
+  return result;
 };
