@@ -1,5 +1,8 @@
 import api from "./api";
 import type { FooterSettings, FooterSettingsPatch } from "../types/footer";
+import { FooterSettingsCache } from "./footerSettingsCache";
+
+export const PUBLIC_FOOTER_SETTINGS_CACHE_TTL_MS = 5 * 60_000;
 
 export const defaultFooterSettings: FooterSettings = {
   usefulLinks: [
@@ -39,11 +42,18 @@ const readSettings = ({ success, data }: FooterResponse): FooterSettings => {
   };
 };
 
-export const getFooterSettings = async () =>
-  readSettings((await api.get<FooterResponse>("/footer-settings")).data);
+const publicFooterSettingsCache = new FooterSettingsCache<FooterSettings>(PUBLIC_FOOTER_SETTINGS_CACHE_TTL_MS);
+
+export const getFooterSettings = () => publicFooterSettingsCache.get(async () =>
+  readSettings((await api.get<FooterResponse>("/footer-settings")).data));
+
+export const invalidatePublicFooterSettings = () => publicFooterSettingsCache.invalidate();
 
 export const getAdminFooterSettings = async (signal?: AbortSignal) =>
   readSettings((await api.get<FooterResponse>("/admin/footer-settings", { signal })).data);
 
-export const updateFooterSettings = async (settings: FooterSettingsPatch) =>
-  readSettings((await api.patch<FooterResponse>("/admin/footer-settings", settings)).data);
+export const updateFooterSettings = async (settings: FooterSettingsPatch) => {
+  const updatedSettings = readSettings((await api.patch<FooterResponse>("/admin/footer-settings", settings)).data);
+  publicFooterSettingsCache.update(updatedSettings);
+  return updatedSettings;
+};
