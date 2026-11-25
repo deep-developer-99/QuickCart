@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useEffect, useState } from "react";
 import { getCategories } from "../services/productService";
 import type { Category } from "../types/product";
@@ -10,11 +11,12 @@ export const useFooterCategories = () => {
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     const onError = () => {
       if (!cancelled) setState({ categories: [], categoryStatus: "Unable to load categories." });
     };
 
-    getCategories().then((response) => {
+    getCategories(controller.signal).then((response) => {
       if (cancelled) return;
       if (!response?.success) {
         onError();
@@ -22,9 +24,15 @@ export const useFooterCategories = () => {
       }
       const categories = response.data || [];
       setState({ categories, categoryStatus: categories.length ? "" : "No categories available." });
-    }).catch(onError);
+    }).catch((error: unknown) => {
+      if (cancelled || axios.isCancel(error)) return;
+      onError();
+    });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, []);
 
   return state;

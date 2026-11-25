@@ -39,8 +39,8 @@ export const getProductsByCategory = async (id: string, page = 1, limit = 10, su
   return response.data;
 };
 
-export const getCategories = async () => {
-  const response = await api.get("/categories");
+export const getCategories = async (signal?: AbortSignal) => {
+  const response = await api.get("/categories", { signal });
 
   return response.data;
 };

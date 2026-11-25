@@ -26,38 +26,40 @@ const Home = () => {
   const [bannerError, setBannerError] = useState("");
 
   useEffect(() => {
+    let current = true;
     const fetchHomeData = async () => {
-      try {
-        setIsLoading(true);
-        setBannerError("");
+      setIsLoading(true);
+      setBannerError("");
+      const [categoryResult, bannerResult, promotionalResult] = await Promise.allSettled([
+        getCategories(),
+        getActiveBanners(),
+        getPromotionalBanners(),
+      ]);
+      if (!current) return;
 
-        const [categoryResponse, bannerResponse, promotionalResponse] =
-          await Promise.all([
-            getCategories(),
-            getActiveBanners(),
-            getPromotionalBanners(),
-          ]);
-
-        if (categoryResponse?.success) {
-          setCategories(categoryResponse.data || []);
-        }
-
-        if (bannerResponse?.success) {
-          setBanners(bannerResponse.data || []);
-        } else {
-          setBannerError("Unable to load promotional banners.");
-        }
-        if (promotionalResponse?.success)
-          setPromotionalBanners(promotionalResponse.data || []);
-      } catch (error) {
-        console.error("Failed to load home page:", error);
-        setBannerError("Unable to load promotional banners.");
-      } finally {
-        setIsLoading(false);
+      if (categoryResult.status === "fulfilled" && categoryResult.value?.success) {
+        setCategories(categoryResult.value.data || []);
+      } else if (categoryResult.status === "rejected") {
+        console.warn("Failed to load homepage categories:", categoryResult.reason);
       }
+
+      if (bannerResult.status === "fulfilled" && bannerResult.value?.success) {
+        setBanners(bannerResult.value.data || []);
+      } else {
+        if (bannerResult.status === "rejected") console.warn("Failed to load homepage banners:", bannerResult.reason);
+        setBannerError("Unable to load promotional banners.");
+      }
+
+      if (promotionalResult.status === "fulfilled" && promotionalResult.value?.success) {
+        setPromotionalBanners(promotionalResult.value.data || []);
+      } else if (promotionalResult.status === "rejected") {
+        console.warn("Failed to load promotional banners:", promotionalResult.reason);
+      }
+      setIsLoading(false);
     };
 
     void fetchHomeData();
+    return () => { current = false; };
   }, []);
 
   if (isLoading) {

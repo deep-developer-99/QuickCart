@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useStore } from "react-redux";
 
-import { setCredentials, logoutUser } from "../store/slice/authSlice";
+import { setCredentials, resolveGuestSession } from "../store/slice/authSlice";
 import { getCurrentUser } from "../services/authService";
 import { initializeFirebaseAuthSession } from "../config/firebase";
 import { useAppDispatch, useAppSelector } from "./reduxHooks";
@@ -35,10 +35,10 @@ const useAuth = () => {
         if (response?.success && response?.data) {
           dispatch(setCredentials(response.data));
         } else {
-          dispatch(logoutUser());
+          dispatch(resolveGuestSession());
         }
       } catch {
-        if (active && store.getState().auth.revision === requestRevision) dispatch(logoutUser());
+        if (active && store.getState().auth.revision === requestRevision) dispatch(resolveGuestSession());
       }
     };
 
