@@ -9,11 +9,11 @@ import {
   FaUser, FaShieldAlt,
 } from "react-icons/fa";
 
-import { logout } from "../services/authService";
+import { logout, LogoutServiceError } from "../services/authService";
 import { getAddresses } from "../services/addressService";
 import { getMyOrders } from "../services/orderService";
-import { logoutUser } from "../store/slice/authSlice";
-import { useAppDispatch, useAppSelector } from "../hooks/reduxHooks";
+import { finalizeLocalLogout } from "../services/authSession";
+import { useAppSelector } from "../hooks/reduxHooks";
 
 import "./AccountLayout.css";
 
@@ -32,7 +32,6 @@ const getCount = (response: PaginatedCountResponse): number | null => {
 
 const AccountLayout = () => {
   const { user } = useAppSelector((state) => state.auth);
-  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -49,7 +48,7 @@ const AccountLayout = () => {
       if (!isCurrent) return;
       if (axios.isAxiosError(error) && error.response?.status === 401 && !sessionExpired) {
         sessionExpired = true;
-        dispatch(logoutUser());
+        finalizeLocalLogout();
         navigate("/login", { state: { from: location }, replace: true });
         return;
       }
@@ -77,7 +76,7 @@ const AccountLayout = () => {
     return () => {
       isCurrent = false;
     };
-  }, [dispatch, location, navigate, user?.id]);
+  }, [location, navigate, user?.id]);
 
   useEffect(() => {
     contentRef.current?.scrollIntoView({ block: "start" });
@@ -86,11 +85,10 @@ const AccountLayout = () => {
   const handleLogout = async () => {
     try {
       await logout();
+      navigate("/");
     } catch (error) {
       console.error("Logout failed:", error);
-    } finally {
-      dispatch(logoutUser());
-      navigate("/");
+      if (error instanceof LogoutServiceError && error.backendLoggedOut) navigate("/");
     }
   };
 

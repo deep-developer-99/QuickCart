@@ -1,4 +1,16 @@
 import api from "./api";
+import { finalizeLocalLogout } from "./authSession";
+import { signOutFirebaseAuth } from "./firebaseAuthService";
+
+export class LogoutServiceError extends Error {
+  readonly backendLoggedOut: boolean;
+
+  constructor(message: string, backendLoggedOut: boolean, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "LogoutServiceError";
+    this.backendLoggedOut = backendLoggedOut;
+  }
+}
 
 export interface VendorRegisterData {
   name: string;
@@ -66,11 +78,17 @@ export const verifyPhoneOtp = async (data: VerifyPhoneOtpData) => {
 
 // Google Firebase Login
 export const loginWithFirebaseGoogle = async (idToken: string) => {
-  const response = await api.post("/auth/google", {
-    idToken,
-  });
-
-  return response.data;
+  try {
+    const response = await api.post("/auth/google", { idToken });
+    return response.data;
+  } finally {
+    // Firebase proves the Google identity; QuickCart owns the ongoing session.
+    try {
+      await signOutFirebaseAuth();
+    } catch (error) {
+      console.error("Firebase sign-out after Google authentication failed:", error);
+    }
+  }
 };
 
 export const getCurrentUser = async (config?: { timeout: number }) => {
@@ -101,9 +119,25 @@ export const updateVendorShopLocation = async (
 };
 
 export const logout = async () => {
-  const response = await api.post("/auth/logout");
+  const [backendResult, firebaseResult] = await Promise.allSettled([
+    api.post("/auth/logout"),
+    signOutFirebaseAuth(),
+  ]);
 
-  return response.data;
+  if (backendResult.status === "rejected" || backendResult.value.data?.success !== true) {
+    const reason = backendResult.status === "rejected" ? backendResult.reason : undefined;
+    throw new LogoutServiceError(
+      reason instanceof Error ? reason.message : "QuickCart logout failed; the server session may still be active.",
+      false,
+      reason instanceof Error ? { cause: reason } : undefined,
+    );
+  }
+
+  finalizeLocalLogout();
+  if (firebaseResult.status === "rejected") {
+    throw new LogoutServiceError("QuickCart session ended, but Firebase cleanup failed.", true, { cause: firebaseResult.reason });
+  }
+  return backendResult.value.data;
 };
 
 export interface UpdateProfileData {

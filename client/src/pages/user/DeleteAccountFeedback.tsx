@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { FaTrashAlt, FaTimes } from "react-icons/fa";
-import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
+import { useAppSelector } from "../../hooks/reduxHooks";
 import { clearAccountDeletionConfirmation, getAccountDeletionConfirmation, getConfirmationRetryAfterSeconds, deleteAccount } from "../../services/accountDeletionService";
-import { logout } from "../../services/authService";
-import { logoutUser } from "../../store/slice/authSlice";
+import { logout, LogoutServiceError } from "../../services/authService";
+import { finalizeLocalLogout } from "../../services/authSession";
+import { signOutFirebaseAuth } from "../../services/firebaseAuthService";
 import { clearDeactivatedCustomerStorage } from "../../utils/customerSession";
 import { accountDeletionReasons } from "./accountPrivacyContent";
 import "./AccountPrivacy.css";
@@ -23,7 +24,6 @@ function DeletionDialog({ reason, feedback, onClose }: { reason: string; feedbac
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const confirmationPending = useRef(false);
   const { user } = useAppSelector((state) => state.auth);
-  const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -82,10 +82,15 @@ function DeletionDialog({ reason, feedback, onClose }: { reason: string; feedbac
     return () => window.clearInterval(interval);
   }, [cooldownUntil]);
 
-  const finish = () => {
+  const finish = async () => {
     clearAccountDeletionConfirmation();
     if (user) clearDeactivatedCustomerStorage(user.id);
-    dispatch(logoutUser());
+    finalizeLocalLogout(true, user?.id);
+    try {
+      await signOutFirebaseAuth();
+    } catch (error) {
+      console.error("Firebase sign-out after account deactivation failed:", error);
+    }
     navigate("/account-deactivated", { replace: true });
   };
 
@@ -108,11 +113,11 @@ function DeletionDialog({ reason, feedback, onClose }: { reason: string; feedbac
     setError("");
     try {
       await deleteAccount(reason, feedback, token);
-      finish();
+      await finish();
     } catch (requestError) {
       const data = axios.isAxiosError(requestError) ? requestError.response?.data : undefined;
       // A retry after a lost success response can encounter the revoked session.
-      if (data?.code === "ACCOUNT_INACTIVE") { finish(); return; }
+      if (data?.code === "ACCOUNT_INACTIVE") { await finish(); return; }
       setError(data?.message || "We could not confirm deletion. Please try again.");
       setReauth(data?.code === "REAUTH_REQUIRED");
       if (data?.code === "CONFIRMATION_EXPIRED") {
@@ -130,10 +135,13 @@ function DeletionDialog({ reason, feedback, onClose }: { reason: string; feedbac
     try {
       clearAccountDeletionConfirmation();
       await logout();
-      dispatch(logoutUser());
       navigate("/login", { replace: true, state: { from: "/account/delete-account" } });
-    } catch {
-      setError("Could not sign out. Please try again.");
+    } catch (error) {
+      if (error instanceof LogoutServiceError && error.backendLoggedOut) {
+        navigate("/login", { replace: true, state: { from: "/account/delete-account" } });
+        return;
+      }
+      setError(error instanceof Error ? error.message : "Could not sign out. Please try again.");
       setBusy(false);
     }
   };

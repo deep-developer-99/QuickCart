@@ -1,11 +1,15 @@
 import { useEffect } from "react";
+import { useStore } from "react-redux";
 
 import { setCredentials, logoutUser } from "../store/slice/authSlice";
 import { getCurrentUser } from "../services/authService";
+import { initializeFirebaseAuthSession } from "../config/firebase";
 import { useAppDispatch, useAppSelector } from "./reduxHooks";
+import type { RootState } from "../store/store";
 
 const useAuth = () => {
   const dispatch = useAppDispatch();
+  const store = useStore<RootState>();
 
   const { isLoading } = useAppSelector((state) => state.auth);
 
@@ -15,18 +19,26 @@ const useAuth = () => {
     if (!isLoading) return;
 
     let active = true;
+    const requestRevision = store.getState().auth.revision;
     const checkAuth = async () => {
+      try {
+        await initializeFirebaseAuthSession();
+      } catch (error) {
+        // Firebase cleanup must not prevent QuickCart cookie validation.
+        console.error("Firebase session cleanup failed during startup:", error);
+      }
+      if (!active || store.getState().auth.revision !== requestRevision) return;
       try {
         const response = await getCurrentUser();
 
-        if (!active) return;
+        if (!active || store.getState().auth.revision !== requestRevision) return;
         if (response?.success && response?.data) {
           dispatch(setCredentials(response.data));
         } else {
           dispatch(logoutUser());
         }
       } catch {
-        if (active) dispatch(logoutUser());
+        if (active && store.getState().auth.revision === requestRevision) dispatch(logoutUser());
       }
     };
 
@@ -34,7 +46,7 @@ const useAuth = () => {
     return () => {
       active = false;
     };
-  }, [dispatch, isLoading]);
+  }, [dispatch, isLoading, store]);
 
   return null;
 };

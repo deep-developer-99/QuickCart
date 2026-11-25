@@ -2,6 +2,7 @@ import { verifyPhoneOtp } from "../services/twilioService";
 import { activeCustomerFilter, isDuplicateIdentity, normalizeCustomerPhone } from "../utils/customerLifecycle";
 import { Request, Response } from "express";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
+import { clearAuthCookies } from "../utils/clearAuthCookies";
 import { uploadImageToCloudinary } from "../services/cloudinaryService";
 import User from "../models/User";
 import Vendor from "../models/Vendor";
@@ -59,6 +60,7 @@ export const loginVendorController = async (
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -98,6 +100,7 @@ export const loginAdminController = async (
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -145,6 +148,7 @@ export const loginGoogleController = async (
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -228,6 +232,7 @@ export const verifyPhoneOtpController = async (
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -260,13 +265,7 @@ export const verifyPhoneOtpController = async (
 // Logout
 export const logoutController = (req: Request, res: Response): void => {
   try {
-    const isProduction = process.env.NODE_ENV === "production";
-
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "none" : "lax",
-    });
+    clearAuthCookies(res);
 
     res.status(200).json({
       success: true,

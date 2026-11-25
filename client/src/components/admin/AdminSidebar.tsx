@@ -1,23 +1,19 @@
 import ManagementNavigation from "../management/ManagementNavigation";
 import { NavLink, useNavigate } from "react-router-dom";
-import { logout } from "../../services/authService";
-import { logoutUser } from "../../store/slice/authSlice";
-import { useAppDispatch } from "../../hooks/reduxHooks";
+import { logout, LogoutServiceError } from "../../services/authService";
 
 import "./AdminSidebar.css";
 
 const AdminSidebar = () => {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
 
   const handleLogout = async () => {
     try {
       await logout();
+      navigate("/admin/login", { replace: true });
     } catch (error) {
       console.error("Admin logout error:", error);
-    } finally {
-      dispatch(logoutUser());
-      navigate("/admin/login", { replace: true });
+      if (error instanceof LogoutServiceError && error.backendLoggedOut) navigate("/admin/login", { replace: true });
     }
   };
 

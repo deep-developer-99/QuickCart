@@ -1,5 +1,5 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, inMemoryPersistence, setPersistence, signOut } from "firebase/auth";
 import { getMessaging, isSupported, type Messaging } from "firebase/messaging";
 
 const firebaseConfig = {
@@ -14,6 +14,25 @@ const firebaseConfig = {
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 export const firebaseAuth = getAuth(app);
+
+// Firebase is used only to verify a Google identity before exchanging its ID
+// token for the QuickCart session. Keep the browser session memory-only and
+// migrate/sign out older persisted sessions through the official SDK.
+let firebaseSessionInitialization: Promise<void> | null = null;
+export const clearFirebaseAuthSession = async (): Promise<void> => {
+  await setPersistence(firebaseAuth, inMemoryPersistence);
+  if (firebaseAuth.currentUser) await signOut(firebaseAuth);
+};
+
+export const initializeFirebaseAuthSession = (): Promise<void> => {
+  if (!firebaseSessionInitialization) {
+    firebaseSessionInitialization = clearFirebaseAuthSession().catch((error: unknown) => {
+      firebaseSessionInitialization = null;
+      throw error;
+    });
+  }
+  return firebaseSessionInitialization;
+};
 
 let messagingPromise: Promise<Messaging | null> | null = null;
 

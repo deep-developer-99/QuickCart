@@ -1,6 +1,6 @@
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
-import { firebaseAuth } from "../config/firebase";
+import { clearFirebaseAuthSession, firebaseAuth, initializeFirebaseAuthSession } from "../config/firebase";
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -9,12 +9,28 @@ googleProvider.setCustomParameters({
 });
 
 export const signInWithGoogle = async () => {
-  const result = await signInWithPopup(firebaseAuth, googleProvider);
+  await initializeFirebaseAuthSession();
+  try {
+    const result = await signInWithPopup(firebaseAuth, googleProvider);
+    const idToken = await result.user.getIdToken();
+    try {
+      await signOutFirebaseAuth();
+    } catch (error) {
+      console.error("Firebase sign-out after token creation failed:", error);
+    }
+    return { idToken };
+  } catch (error) {
+    if (firebaseAuth.currentUser) {
+      try {
+        await signOutFirebaseAuth();
+      } catch (signOutError) {
+        console.error("Firebase sign-out after Google sign-in failure failed:", signOutError);
+      }
+    }
+    throw error;
+  }
+};
 
-  const idToken = await result.user.getIdToken();
-
-  return {
-    idToken,
-    user: result.user,
-  };
+export const signOutFirebaseAuth = async () => {
+  await clearFirebaseAuthSession();
 };

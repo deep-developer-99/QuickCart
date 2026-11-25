@@ -1,24 +1,20 @@
 import ManagementNavigation from "../management/ManagementNavigation";
 import { NavLink, useNavigate } from "react-router-dom";
 
-import { logout } from "../../services/authService";
-import { logoutUser } from "../../store/slice/authSlice";
-import { useAppDispatch } from "../../hooks/reduxHooks";
+import { logout, LogoutServiceError } from "../../services/authService";
 
 import "./VendorSidebar.css";
 
 const VendorSidebar = () => {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
 
   const handleLogout = async () => {
     try {
       await logout();
+      navigate("/vendor/login", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
-    } finally {
-      dispatch(logoutUser());
-      navigate("/vendor/login", { replace: true });
+      if (error instanceof LogoutServiceError && error.backendLoggedOut) navigate("/vendor/login", { replace: true });
     }
   };
 

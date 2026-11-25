@@ -5,6 +5,7 @@ import type { Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "../middleware/authMiddleware";
 import User from "../models/User";
 import { AccountDeletionError, deactivateCustomer } from "../services/accountDeletionService";
+import { clearAuthCookies } from "../utils/clearAuthCookies";
 
 const logDeletionFailure = (res: Response, phase: "deactivation" | "throttling", error: unknown) => {
   const code = error instanceof Error ? (error as Error & { code?: unknown }).code : undefined;
@@ -65,8 +66,7 @@ export const deleteAccountController = async (req: AuthenticatedRequest, res: Re
       throw new AccountDeletionError("Please sign in again before deleting your account.", 403, "REAUTH_REQUIRED");
     }
     await deactivateCustomer(req.user.id, req.body);
-    const isProduction = process.env.NODE_ENV === "production";
-    res.clearCookie("token", { httpOnly: true, secure: isProduction, sameSite: isProduction ? "none" : "lax" });
+    clearAuthCookies(res);
     res.set("Cache-Control", "no-store").json({ success: true, message: "Your account has been deactivated." });
   } catch (error) {
     const known = error instanceof AccountDeletionError;

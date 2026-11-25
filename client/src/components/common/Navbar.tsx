@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import UserProfileIcon from "../../assets/icons8-user-profile-100.png";
 
-import { logout } from "../../services/authService";
-import { logoutUser } from "../../store/slice/authSlice";
-import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
+import { logout, LogoutServiceError } from "../../services/authService";
+import { useAppSelector } from "../../hooks/reduxHooks";
 import SearchBar from "./SearchBar";
 import LocationSelector from "./LocationSelector";
 
@@ -22,7 +21,6 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isCartActive = pathname === "/cart";
-  const dispatch = useAppDispatch();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const {
@@ -87,12 +85,14 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       await logout();
-    } catch (error) {
-      console.error("Logout failed:", error);
-    } finally {
-      dispatch(logoutUser());
       setIsProfileOpen(false);
       navigate("/");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      if (error instanceof LogoutServiceError && error.backendLoggedOut) {
+        setIsProfileOpen(false);
+        navigate("/");
+      }
     }
   };
 
