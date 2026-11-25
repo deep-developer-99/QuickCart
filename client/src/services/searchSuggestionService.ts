@@ -29,9 +29,11 @@ let snapshot: StoreSnapshot = { config: null, isLoading: false };
 let pendingRequest: Promise<void> | null = null;
 let retryTimer: number | undefined;
 let lastFetchedAt = 0;
-let refreshQueued = false;
-const CACHE_TTL_MS = 30_000;
-const RETRY_DELAY_MS = 15_000;
+let lastAttemptAt = 0;
+let invalidatedWhilePending = false;
+const CACHE_TTL_MS = 5 * 60_000;
+const MIN_REVALIDATION_INTERVAL_MS = 5_000;
+const RETRY_DELAY_MS = 60_000;
 const notify = () => listeners.forEach((listener) => listener());
 
 const parsePublicConfig = (response: PublicResponse): PublicConfig => {
@@ -76,22 +78,20 @@ const scheduleRetry = () => {
   retryTimer = window.setTimeout(() => {
     retryTimer = undefined;
     if (document.visibilityState === "hidden") return;
-    lastFetchedAt = 0;
     void loadPublicSearchSuggestions(true);
   }, RETRY_DELAY_MS);
 };
 
 export const loadPublicSearchSuggestions = (force = false): Promise<void> => {
-  if (pendingRequest) {
-    if (force) refreshQueued = true;
-    return pendingRequest;
-  }
+  if (pendingRequest) return pendingRequest;
   if (!force && snapshot.config && Date.now() - lastFetchedAt < CACHE_TTL_MS) return Promise.resolve();
+  if (snapshot.config && Date.now() - lastAttemptAt < MIN_REVALIDATION_INTERVAL_MS) return Promise.resolve();
   if (retryTimer !== undefined) {
     window.clearTimeout(retryTimer);
     retryTimer = undefined;
   }
   snapshot = { ...snapshot, isLoading: true };
+  lastAttemptAt = Date.now();
   notify();
   let failed = false;
   pendingRequest = getPublicSearchSuggestions().then(parsePublicConfig).then((config) => {
@@ -99,23 +99,24 @@ export const loadPublicSearchSuggestions = (force = false): Promise<void> => {
     lastFetchedAt = Date.now();
   }).catch(() => {
     failed = true;
-    snapshot = { config: null, isLoading: false };
+    snapshot = { ...snapshot, isLoading: false };
   }).finally(() => {
     pendingRequest = null;
     notify();
-    if (refreshQueued) {
-      refreshQueued = false;
+    if (invalidatedWhilePending) {
+      invalidatedWhilePending = false;
       lastFetchedAt = 0;
+      lastAttemptAt = 0;
       if (listeners.size) void loadPublicSearchSuggestions(true);
-    } else if (failed) {
-      scheduleRetry();
-    }
+    } else if (failed) scheduleRetry();
   });
   return pendingRequest;
 };
 
 export const invalidatePublicSearchSuggestions = () => {
   lastFetchedAt = 0;
+  lastAttemptAt = 0;
+  if (pendingRequest) invalidatedWhilePending = true;
   void loadPublicSearchSuggestions(true);
 };
 
@@ -131,7 +132,6 @@ export const subscribeToSearchSuggestions = (listener: () => void) => {
     if (!listeners.size) {
       if (retryTimer !== undefined) window.clearTimeout(retryTimer);
       retryTimer = undefined;
-      refreshQueued = false;
       window.removeEventListener("online", handleNetworkAvailable);
       document.removeEventListener("visibilitychange", handlePageVisible);
     }
@@ -139,13 +139,12 @@ export const subscribeToSearchSuggestions = (listener: () => void) => {
 };
 
 const handleNetworkAvailable = () => {
-  lastFetchedAt = 0;
   void loadPublicSearchSuggestions(true);
 };
 
 const handlePageVisible = () => {
   if (document.visibilityState !== "visible") return;
-  if (!snapshot.config || Date.now() - lastFetchedAt >= CACHE_TTL_MS) void loadPublicSearchSuggestions();
+  if (Date.now() - lastFetchedAt >= CACHE_TTL_MS) void loadPublicSearchSuggestions();
 };
 
 export const getSearchSuggestionSnapshot = () => snapshot;
