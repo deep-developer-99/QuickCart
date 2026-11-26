@@ -1,10 +1,8 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { useAppSelector } from "../hooks/reduxHooks";
-import NotificationBell from "../components/common/NotificationBell";
-import VendorSidebar from "../components/vendor/VendorSidebar";
-import AdminSidebar from "../components/admin/AdminSidebar";
-import "../layouts/ManagementLayout.css";
+const ManagementLayout = lazy(() => import("../layouts/ManagementLayout"));
 
 interface ProtectedRouteProps {
   allowedRole: "user" | "vendor" | "admin";
@@ -44,15 +42,7 @@ const ProtectedRoute = ({ allowedRole }: ProtectedRouteProps) => {
   }
 
   if (allowedRole !== "user") {
-    return (
-      <div className="management-shell">
-        {allowedRole === "admin" ? <AdminSidebar /> : <VendorSidebar />}
-        <NotificationBell />
-        <main className="management-content">
-          <Outlet />
-        </main>
-      </div>
-    );
+    return <Suspense fallback={<div className="route-loading" role="status">Loading…</div>}><ManagementLayout role={allowedRole}><Outlet /></ManagementLayout></Suspense>;
   }
 
   return <Outlet />;

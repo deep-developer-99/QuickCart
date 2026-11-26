@@ -1,5 +1,5 @@
 import { useDialogFocus } from "../../hooks/useDialogFocus";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 
 import { useCart } from "../../context/useCart";
@@ -9,11 +9,12 @@ import { createAddress, getAddresses, updateAddress } from "../../services/addre
 import type { Address, CreateAddressData } from "../../types/address";
 import type { Order } from "../../types/order";
 import CartItem from "./CartItem";
-import Checkout from "../../pages/user/Checkout";
-import AddressMap from "../common/AddressMap";
 import { extractAddressComponents, getCurrentLocation, reverseGeocodeFromBackend, searchLocations, type DetectedLocation, type LocationSearchResult } from "../../services/locationService";
 
 import "./CartDrawer.css";
+
+const Checkout = lazy(() => import("../../pages/user/Checkout"));
+const AddressMap = lazy(() => import("../common/AddressMap"));
 
 type DrawerStage = "cart" | "address" | "checkout" | "success";
 
@@ -356,7 +357,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
 
         {stage === "checkout" && (
           <div className="cart-drawer-checkout-content">
-            <Checkout
+            <Suspense fallback={<div className="cart-drawer-loading" role="status">Loading checkout…</div>}><Checkout
               key="drawer-checkout"
               embedded
               initialSelectedAddress={selectedAddress?._id}
@@ -365,7 +366,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
               onOrderSuccess={handleOrderSuccess}
               donationSelected={donationSelected}
               autoStartPayment
-            />
+            /></Suspense>
           </div>
         )}
 
@@ -421,7 +422,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
                 {!isSearchingLocations && locationResults.map((result, index) => <button id={`cart-address-result-${index}`} key={`${result.latitude}:${result.longitude}`} type="button" role="option" aria-selected={activeLocationResult === index} className={activeLocationResult === index ? "active" : ""} onMouseDown={(event) => event.preventDefault()} onClick={() => handleLocationSuggestionSelect(result)}><span className="cart-address-result-icon" aria-hidden="true">⌖</span><span><strong>{result.displayName.split(",")[0]}</strong><small>{result.displayName}</small></span></button>)}
                 {!isSearchingLocations && !locationResults.length && locationSearchError && <p className="cart-address-search-status" role="status">{locationSearchError}</p>}
               </div>}
-              <AddressMap latitude={selectedLocation?.latitude} longitude={selectedLocation?.longitude} onDetectLocation={() => void locateCurrentPosition()} isDetecting={isLocating} onLocationChange={handleSelectedLocationChange} />
+                <Suspense fallback={<div className="cart-drawer-loading" role="status">Loading map…</div>}><AddressMap latitude={selectedLocation?.latitude} longitude={selectedLocation?.longitude} onDetectLocation={() => void locateCurrentPosition()} isDetecting={isLocating} onLocationChange={handleSelectedLocationChange} /></Suspense>
               <div className="cart-address-preview"><strong>Delivering your order to</strong>{addressForm.buildingName?.trim() && <b>{addressForm.buildingName.trim()}</b>}<span>{selectedLocation?.address.displayName || "Select a point on the map"}</span></div>
               {locationError && <p className="cart-address-location-error" role="alert">{locationError}</p>}
             </div>

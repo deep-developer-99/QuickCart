@@ -1,8 +1,10 @@
+import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
 
-import Home from "../pages/user/Home";
 import HomeShimmer from "../components/user/HomeShimmer";
 import { useAppSelector } from "../hooks/reduxHooks";
+
+const Home = lazy(() => import("../pages/user/Home"));
 
 const HomeRoute = () => {
   const { user, isAuthenticated, isLoading } = useAppSelector(
@@ -23,7 +25,7 @@ const HomeRoute = () => {
     }
   }
 
-  return <Home />;
+  return <Suspense fallback={<HomeShimmer />}><Home /></Suspense>;
 };
 
 export default HomeRoute;
