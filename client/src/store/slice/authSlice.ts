@@ -34,6 +34,7 @@ const authSlice = createSlice({
         localStorage.removeItem(`quickcart_selected_address_${state.user.id}`);
         if (typeof window !== "undefined") {
           window.sessionStorage.removeItem(`quickcart-selected-address:${state.user.id}`);
+          window.sessionStorage.removeItem(`quickcart_selected_location_${state.user.id}`);
           window.sessionStorage.removeItem(`quickcart-cart-donation:${state.user.id}`);
         }
       }

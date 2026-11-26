@@ -1,8 +1,9 @@
 import api from "./api";
 import type { FooterSettings, FooterSettingsPatch } from "../types/footer";
-import { FooterSettingsCache } from "./footerSettingsCache";
+import { getPublicCached, invalidatePublicCache, setPublicCached, subscribePublicCache } from "./queryCache";
+import { PUBLIC_CACHE_TTL_MS } from "./cachePolicy";
 
-export const PUBLIC_FOOTER_SETTINGS_CACHE_TTL_MS = 5 * 60_000;
+export const PUBLIC_FOOTER_SETTINGS_CACHE_TTL_MS = PUBLIC_CACHE_TTL_MS.footerSettings;
 
 export const defaultFooterSettings: FooterSettings = {
   usefulLinks: [
@@ -42,18 +43,25 @@ const readSettings = ({ success, data }: FooterResponse): FooterSettings => {
   };
 };
 
-const publicFooterSettingsCache = new FooterSettingsCache<FooterSettings>(PUBLIC_FOOTER_SETTINGS_CACHE_TTL_MS);
+export const getFooterSettings = async () => readSettings(
+  await getPublicCached<FooterResponse>("/footer-settings", {}, PUBLIC_FOOTER_SETTINGS_CACHE_TTL_MS, ["FooterSettings"]),
+);
 
-export const getFooterSettings = () => publicFooterSettingsCache.get(async () =>
-  readSettings((await api.get<FooterResponse>("/footer-settings")).data));
+export const subscribeToFooterSettings = (listener: (settings: FooterSettings) => void) =>
+  subscribePublicCache("/footer-settings", () => {
+    void getFooterSettings().then(listener).catch(() => undefined);
+  });
 
-export const invalidatePublicFooterSettings = () => publicFooterSettingsCache.invalidate();
+export const invalidatePublicFooterSettings = () => invalidatePublicCache(["FooterSettings"]);
 
 export const getAdminFooterSettings = async (signal?: AbortSignal) =>
   readSettings((await api.get<FooterResponse>("/admin/footer-settings", { signal })).data);
 
 export const updateFooterSettings = async (settings: FooterSettingsPatch) => {
   const updatedSettings = readSettings((await api.patch<FooterResponse>("/admin/footer-settings", settings)).data);
-  publicFooterSettingsCache.update(updatedSettings);
+  setPublicCached("/footer-settings", {}, PUBLIC_FOOTER_SETTINGS_CACHE_TTL_MS, ["FooterSettings"], {
+    success: true,
+    data: updatedSettings,
+  });
   return updatedSettings;
 };

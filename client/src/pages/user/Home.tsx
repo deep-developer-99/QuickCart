@@ -13,22 +13,46 @@ import HomepageProductSections from "../../components/user/HomepageProductSectio
 import type { Banner } from "../../types/banner";
 import type { PromotionalBanner } from "../../types/promotionalBanner";
 import type { Category } from "../../types/product";
+import { peekPublicCached, subscribePublicCache } from "../../services/queryCache";
 
 import "./Home.css";
 
 const Home = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const [initialCache] = useState(() => ({
+    categories: peekPublicCached<{ success: boolean; data: Category[] }>("/categories"),
+    banners: peekPublicCached<{ success: boolean; data: Banner[] }>("/banners"),
+    promotions: peekPublicCached<{ success: boolean; data: PromotionalBanner[] }>("/promotional-banners"),
+  }));
+  const hasCachedHomeData = Boolean(initialCache.categories || initialCache.banners || initialCache.promotions);
+  const [categories, setCategories] = useState<Category[]>(initialCache.categories?.data ?? []);
+  const [banners, setBanners] = useState<Banner[]>(initialCache.banners?.data ?? []);
   const [promotionalBanners, setPromotionalBanners] = useState<
     PromotionalBanner[]
-  >([]);
-  const [isLoading, setIsLoading] = useState(true);
+  >(initialCache.promotions?.data ?? []);
+  const [isLoading, setIsLoading] = useState(!hasCachedHomeData);
   const [bannerError, setBannerError] = useState("");
 
   useEffect(() => {
     let current = true;
+    const syncCachedSections = () => {
+      if (!current) return;
+      const categories = peekPublicCached<{ success: boolean; data: Category[] }>("/categories");
+      const banners = peekPublicCached<{ success: boolean; data: Banner[] }>("/banners");
+      const promotions = peekPublicCached<{ success: boolean; data: PromotionalBanner[] }>("/promotional-banners");
+      if (categories) setCategories(categories.data ?? []);
+      if (banners) {
+        setBanners(banners.data ?? []);
+        setBannerError("");
+      }
+      if (promotions) setPromotionalBanners(promotions.data ?? []);
+    };
+    const unsubscribe = [
+      subscribePublicCache("/categories", syncCachedSections),
+      subscribePublicCache("/banners", syncCachedSections),
+      subscribePublicCache("/promotional-banners", syncCachedSections),
+    ];
     const fetchHomeData = async () => {
-      setIsLoading(true);
+      if (!hasCachedHomeData) setIsLoading(true);
       setBannerError("");
       const [categoryResult, bannerResult, promotionalResult] = await Promise.allSettled([
         getCategories(),
@@ -59,8 +83,8 @@ const Home = () => {
     };
 
     void fetchHomeData();
-    return () => { current = false; };
-  }, []);
+    return () => { current = false; unsubscribe.forEach((stop) => stop()); };
+  }, [hasCachedHomeData]);
 
   if (isLoading) {
     return <HomeShimmer />;

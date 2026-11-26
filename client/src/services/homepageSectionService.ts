@@ -1,49 +1,50 @@
 import api from "./api";
 import type { AdminHomepageSection, AdminHomepageSectionData, HomepageSectionPreview } from "../types/homepageSection";
+import { getPublicCached, invalidatePublicCache, peekPublicCached, subscribePublicCache } from "./queryCache";
 
 export const HOMEPAGE_SECTIONS_CACHE_TTL_MS = 60_000;
 
 type PublicHomepageSectionsResponse = { success: boolean; data: HomepageSectionPreview[] };
 type HomepageSectionsSnapshot = { data: HomepageSectionPreview[] | null; isLoading: boolean; error: string };
 const listeners = new Set<() => void>();
-let snapshot: HomepageSectionsSnapshot = { data: null, isLoading: false, error: "" };
-let lastFetchedAt = 0;
+let loadState = { isLoading: false, error: "" };
 let pendingRequest: Promise<void> | null = null;
 let lastRevalidationAttemptAt = 0;
 let invalidatedWhilePending = false;
 
-export const getHomepageSections = async (): Promise<PublicHomepageSectionsResponse> => {
-  const response = await api.get("/homepage-sections");
-  return response.data;
+const getCachedData = () => peekPublicCached<PublicHomepageSectionsResponse>("/homepage-sections")?.data ?? null;
+
+export const getHomepageSections = async (force = false): Promise<PublicHomepageSectionsResponse> => {
+  return getPublicCached<PublicHomepageSectionsResponse>("/homepage-sections", {}, HOMEPAGE_SECTIONS_CACHE_TTL_MS, ["HomepageSections"], undefined, { force });
 };
 
 const notify = () => listeners.forEach((listener) => listener());
-export const getHomepageSectionsSnapshot = () => snapshot;
+export const getHomepageSectionsSnapshot = (): HomepageSectionsSnapshot => ({ data: getCachedData(), ...loadState });
 export const subscribeToHomepageSections = (listener: () => void) => {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  const unsubscribeCache = subscribePublicCache("/homepage-sections", notify);
+  return () => {
+    listeners.delete(listener);
+    unsubscribeCache();
+  };
 };
 
 export const loadHomepageSections = (options: { force?: boolean; throttleMs?: number } = {}): Promise<void> => {
   const { force = false, throttleMs = 5_000 } = options;
   if (pendingRequest) return pendingRequest;
-  if (!force && snapshot.data && Date.now() - lastFetchedAt < HOMEPAGE_SECTIONS_CACHE_TTL_MS) return Promise.resolve();
   const now = Date.now();
-  if (snapshot.data && now - lastRevalidationAttemptAt < throttleMs) return Promise.resolve();
+  if (getCachedData() && now - lastRevalidationAttemptAt < throttleMs) return Promise.resolve();
   lastRevalidationAttemptAt = now;
 
-  snapshot = { ...snapshot, isLoading: snapshot.data === null, error: "" };
+  loadState = { isLoading: getCachedData() === null, error: "" };
   notify();
-  pendingRequest = getHomepageSections().then((response) => {
+  pendingRequest = getHomepageSections(force).then((response) => {
     if (!response?.success || !Array.isArray(response.data)) throw new Error("Unable to load homepage product sections.");
-    snapshot = { data: response.data, isLoading: false, error: "" };
-    lastFetchedAt = Date.now();
+    loadState = { isLoading: false, error: "" };
   }).catch((requestError: unknown) => {
     const message = requestError instanceof Error ? requestError.message : "Unable to load homepage product sections.";
-    snapshot = snapshot.data
-      ? { ...snapshot, isLoading: false }
-      : { data: null, isLoading: false, error: message };
-    if (snapshot.data) console.warn("Homepage product sections could not be refreshed:", message);
+    loadState = { isLoading: false, error: getCachedData() ? "" : message };
+    if (getCachedData()) console.warn("Homepage product sections could not be refreshed:", message);
   }).finally(() => {
     pendingRequest = null;
     notify();
@@ -56,8 +57,8 @@ export const loadHomepageSections = (options: { force?: boolean; throttleMs?: nu
 };
 
 export const invalidateHomepageSections = () => {
-  lastFetchedAt = 0;
   lastRevalidationAttemptAt = 0;
+  invalidatePublicCache(["HomepageSections"]);
   if (pendingRequest) invalidatedWhilePending = true;
   if (listeners.size) void loadHomepageSections({ force: true });
 };
@@ -72,6 +73,8 @@ export const saveAdminHomepageSections = async (sections: AdminHomepageSection[]
     sections: sections.map(({ subCategoryId, isActive, productLimit }) => ({ subCategoryId, isActive, productLimit })),
   });
   const result = response.data as { success: boolean; data: AdminHomepageSectionData };
-  if (result.success) invalidateHomepageSections();
+  if (result.success) {
+    invalidateHomepageSections();
+  }
   return result;
 };

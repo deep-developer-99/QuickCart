@@ -9,22 +9,29 @@ import { useCartLogin } from "../../hooks/useCartLogin";
 import { getProductById, getProducts } from "../../services/productService";
 import type { Product } from "../../types/product";
 import { getVariantDiscountPercentage, getVariantSellingPrice, hasVariantDiscount } from "../../utils/productPricing";
+import { createCloudinarySrcSet, optimizeCloudinaryImageUrl } from "../../utils/cloudinaryImage";
+import { peekPublicCached } from "../../services/queryCache";
 
 import "./ProductDetails.css";
+
+const readCachedProduct = (productId: string | undefined) => productId
+  ? peekPublicCached<{ success: boolean; data: Product }>(`/products/${productId}`)?.data ?? null
+  : null;
 
 const ProductDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { addProduct, getQuantity, updateProductQuantity, removeProduct } = useCart();
   const confirmCartSession = useCartLogin();
 
-  const [product, setProduct] = useState<Product | null>(null);
+  const [productState, setProductState] = useState(() => ({ id: id ?? "", product: readCachedProduct(id) }));
+  const product = productState.id === id ? productState.product : readCachedProduct(id);
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
   const [topCategoryProducts, setTopCategoryProducts] = useState<Product[]>([]);
   const [selectedImage, setSelectedImage] = useState("");
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>();
   const [isUpdatingQuantity, setIsUpdatingQuantity] = useState(false);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !readCachedProduct(id));
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -40,7 +47,7 @@ const ProductDetails = () => {
       }
 
       try {
-        setIsLoading(true);
+        setIsLoading(!readCachedProduct(id));
         setError("");
         setSuccess("");
         const response = await getProductById(id);
@@ -49,20 +56,20 @@ const ProductDetails = () => {
           const nextProduct = response.data as Product;
           const nextVariants = (nextProduct.variants ?? []).filter((item) => item.isActive);
           const defaultVariant = nextVariants.find((item) => item.stock > 0) ?? nextVariants[0];
-          setProduct(nextProduct);
+          setProductState({ id, product: nextProduct });
           setSimilarProducts([]);
           setTopCategoryProducts([]);
           setSelectedVariantId(defaultVariant?._id);
           setSelectedImage(nextProduct.image || "");
           setIsDetailsExpanded(false);
         } else {
-          setProduct(null);
+          setProductState({ id, product: null });
           setError("Product not found.");
         }
       } catch (requestError) {
         if (!current) return;
         console.error("Failed to fetch product:", requestError);
-        setProduct(null);
+        setProductState({ id: id ?? "", product: null });
         setError(
           axios.isAxiosError(requestError) && requestError.response?.data?.message
             ? requestError.response.data.message
@@ -196,7 +203,7 @@ const ProductDetails = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || (productState.id !== id && !product)) {
     return (
       <section className="product-details-page">
         <div className="product-details-loading">
@@ -240,9 +247,13 @@ const ProductDetails = () => {
                 <div className="product-details-image-wrapper">
                   {selectedImage && (
                     <img
-                      src={selectedImage}
+                      src={optimizeCloudinaryImageUrl(selectedImage, { width: 960 })}
+                      srcSet={createCloudinarySrcSet(selectedImage, [480, 720, 960, 1200])}
+                      sizes="(max-width: 900px) 100vw, 50vw"
                       alt={product.name}
                       className="product-details-image"
+                      fetchPriority="high"
+                      decoding="async"
                       onError={(event) => {
                         if (event.currentTarget.getAttribute("src") !== product.image) event.currentTarget.src = product.image;
                         else {
@@ -266,7 +277,7 @@ const ProductDetails = () => {
                         aria-label={`Show product image ${index + 1}`}
                         aria-pressed={selectedImage === image}
                       >
-                        <img src={image} alt="" />
+                        <img src={optimizeCloudinaryImageUrl(image, { width: 160 })} srcSet={createCloudinarySrcSet(image, [80, 120, 160, 240])} sizes="80px" alt="" loading="lazy" decoding="async" />
                       </button>
                     ))}
                   </div>

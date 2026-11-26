@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import axios from "axios";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   FaBoxOpen,
@@ -10,18 +9,9 @@ import {
 } from "react-icons/fa";
 
 import { logout, LogoutServiceError } from "../services/authService";
-import { getAddresses } from "../services/addressService";
-import { getMyOrders } from "../services/orderService";
-import { finalizeLocalLogout } from "../services/authSession";
 import { useAppSelector } from "../hooks/reduxHooks";
-import {
-  ACCOUNT_COUNT_CACHE_TTL_MS,
-  EMPTY_ACCOUNT_COUNTS,
-  getAccountCountSnapshot,
-  loadAccountCount,
-  subscribeToAccountCounts,
-  type AccountCountScope,
-} from "../services/accountCountCache";
+import { usePrivateCachedQuery } from "../services/queryCache";
+import { PRIVATE_CACHE_TTL_MS } from "../services/cachePolicy";
 
 import "./AccountLayout.css";
 
@@ -32,93 +22,35 @@ type PaginatedCountResponse = {
   };
 };
 
-const getCount = (response: PaginatedCountResponse): number | null => {
-  const count = response.pagination?.totalItems;
-  return typeof count === "number" && Number.isSafeInteger(count) && count >= 0
-    ? count
-    : null;
-};
-
 const AccountLayout = () => {
   const { user, revision } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
   const location = useLocation();
-  const locationRef = useRef(location);
   const contentRef = useRef<HTMLDivElement>(null);
   const [failedProfileImage, setFailedProfileImage] = useState<string | null>(null);
 
-  const scope = useMemo<AccountCountScope | null>(
-    () => user?.role === "user" && user.id ? { userId: user.id, revision } : null,
+  const scope = useMemo(
+    () => user?.role === "user" && user.id ? `user:${user.id}:${revision}` : null,
     [user, revision],
   );
-  const subscribeCounts = useCallback(
-    (listener: () => void) => scope ? subscribeToAccountCounts(scope, listener) : () => undefined,
-    [scope],
-  );
-  const getCounts = useCallback(
-    () => scope ? getAccountCountSnapshot(scope) : EMPTY_ACCOUNT_COUNTS,
-    [scope],
-  );
-  const counts = useSyncExternalStore(subscribeCounts, getCounts, getCounts);
-
-  useEffect(() => {
-    locationRef.current = location;
-  }, [location]);
+  const addressCounts = usePrivateCachedQuery<PaginatedCountResponse>(scope, "/addresses", { page: 1, limit: 1 }, PRIVATE_CACHE_TTL_MS.orderCount, ["Addresses"]);
+  const orderCounts = usePrivateCachedQuery<PaginatedCountResponse>(scope, "/orders/my-orders", { page: 1, limit: 1 }, PRIVATE_CACHE_TTL_MS.orderCount, ["Orders"]);
+  const refetchAddressCounts = addressCounts.refetch;
+  const refetchOrderCounts = orderCounts.refetch;
+  const addressCount = addressCounts.data?.pagination?.totalItems;
+  const orderCount = orderCounts.data?.pagination?.totalItems;
 
   useEffect(() => {
     if (!scope) return;
-
-    let isCurrent = true;
-    let sessionExpired = false;
-    const handleRequestError = (error: unknown) => {
-      if (!isCurrent) return;
-      if (axios.isAxiosError(error) && error.response?.status === 401 && !sessionExpired) {
-        sessionExpired = true;
-        finalizeLocalLogout();
-        navigate("/login", { state: { from: locationRef.current }, replace: true });
-        return;
-      }
-      return null;
-    };
-
-    const loadCount = async (kind: "addresses" | "orders", loader: () => Promise<PaginatedCountResponse>) => {
-      try {
-        await loadAccountCount(scope, kind, async () => {
-          const response = await loader();
-          return response?.success === false ? null : getCount(response);
-        });
-      } catch (error) {
-        handleRequestError(error);
-        if (!axios.isCancel(error)) console.warn(`Unable to load account ${kind} count:`, error);
-      }
-    };
-
-    void loadCount("addresses", () => getAddresses(1, 1));
-    void loadCount("orders", () => getMyOrders(1, 1));
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [navigate, scope, counts]);
+    const timer = window.setInterval(() => { void refetchAddressCounts(); }, PRIVATE_CACHE_TTL_MS.orderCount);
+    return () => window.clearInterval(timer);
+  }, [scope, refetchAddressCounts]);
 
   useEffect(() => {
-    if (!scope || (counts.addresses === null && counts.orders === null)) return;
-    const timer = window.setTimeout(() => {
-      void loadAccountCount(scope, "addresses", async () => {
-        const response = await getAddresses(1, 1);
-        return response?.success === false ? null : getCount(response);
-      }).catch((error: unknown) => {
-        if (!axios.isCancel(error)) console.warn("Unable to refresh account address count:", error);
-      });
-      void loadAccountCount(scope, "orders", async () => {
-        const response = await getMyOrders(1, 1);
-        return response?.success === false ? null : getCount(response);
-      }).catch((error: unknown) => {
-        if (!axios.isCancel(error)) console.warn("Unable to refresh account order count:", error);
-      });
-    }, ACCOUNT_COUNT_CACHE_TTL_MS);
-    return () => window.clearTimeout(timer);
-  }, [scope, counts]);
+    if (!scope) return;
+    const timer = window.setInterval(() => { void refetchOrderCounts(); }, PRIVATE_CACHE_TTL_MS.orderCount);
+    return () => window.clearInterval(timer);
+  }, [scope, refetchOrderCounts]);
 
   useEffect(() => {
     contentRef.current?.scrollIntoView({ block: "start" });
@@ -189,9 +121,9 @@ const AccountLayout = () => {
               <span className="account-nav-icon" aria-hidden="true"><FaMapMarkerAlt /></span>
               <span>My Addresses</span>
               <span className="account-nav-meta">
-                {counts.addresses !== null && (
-                  <span className="account-nav-count" aria-label={`${counts.addresses} saved addresses`}>
-                    {counts.addresses}
+                {typeof addressCount === "number" && (
+                  <span className="account-nav-count" aria-label={`${addressCount} saved addresses`}>
+                    {addressCount}
                   </span>
                 )}
                 <FaChevronRight aria-hidden="true" />
@@ -207,9 +139,9 @@ const AccountLayout = () => {
               <span className="account-nav-icon" aria-hidden="true"><FaBoxOpen /></span>
               <span>My Orders</span>
               <span className="account-nav-meta">
-                {counts.orders !== null && (
-                  <span className="account-nav-count" aria-label={`${counts.orders} orders`}>
-                    {counts.orders}
+                {typeof orderCount === "number" && (
+                  <span className="account-nav-count" aria-label={`${orderCount} orders`}>
+                    {orderCount}
                   </span>
                 )}
                 <FaChevronRight aria-hidden="true" />

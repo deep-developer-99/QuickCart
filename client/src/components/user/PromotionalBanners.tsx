@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { PromotionalBanner } from "../../types/promotionalBanner";
+import { createCloudinarySrcSet, optimizeCloudinaryImageUrl } from "../../utils/cloudinaryImage";
 import "./PromotionalBanners.css";
 
 const PromotionalBanners = ({ banners }: { banners: PromotionalBanner[] }) => {
@@ -24,7 +25,9 @@ const PromotionalBanners = ({ banners }: { banners: PromotionalBanner[] }) => {
           }
         >
           <img
-            src={banner.image}
+            src={optimizeCloudinaryImageUrl(banner.image, { width: 720 })}
+            srcSet={createCloudinarySrcSet(banner.image, [320, 480, 640, 900])}
+            sizes="(max-width: 700px) 100vw, 33vw"
             alt=""
             loading="lazy"
             decoding="async"

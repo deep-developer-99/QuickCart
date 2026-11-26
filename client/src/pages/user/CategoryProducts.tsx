@@ -8,6 +8,9 @@ import {
 } from "../../services/productService";
 import type { Category, Product } from "../../types/product";
 import { activeSubcategoriesForParent, getDefaultSubcategoryId } from "../../utils/categorySelection";
+import { createCloudinarySrcSet, optimizeCloudinaryImageUrl } from "../../utils/cloudinaryImage";
+import { peekPublicCached } from "../../services/queryCache";
+import type { PublicProductListResponse } from "../../services/productService";
 import ProductCard from "../../components/user/ProductCard";
 import "./CategoryProducts.css";
 
@@ -20,22 +23,43 @@ interface ProductPage {
   hasNextPage: boolean;
 }
 
+const readCachedCategoryContext = (categoryId: string | undefined, requestedSubcategoryId: string) => {
+  if (!categoryId) return null;
+  const category = peekPublicCached<{ success: boolean; data: Category }>(`/categories/${categoryId}`);
+  const subcategoryResponse = peekPublicCached<{ success: boolean; data: Category[] }>(`/categories/${categoryId}/subcategories`);
+  if (!category?.success || !subcategoryResponse?.success) return null;
+  const subcategories = activeSubcategoriesForParent(subcategoryResponse.data, categoryId);
+  const selectedSubcategory = subcategories.some((item) => item._id === requestedSubcategoryId)
+    ? requestedSubcategoryId
+    : getDefaultSubcategoryId(subcategories);
+  const products = peekPublicCached<PublicProductListResponse>(`/products/category/${categoryId}`, {
+    page: 1,
+    limit: PAGE_SIZE,
+    subCategory: selectedSubcategory || undefined,
+  });
+  return { category: category.data, subcategories, selectedSubcategory, products };
+};
+
 const CategoryProducts = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const [searchParams] = useSearchParams();
   const requestedSubcategoryId = searchParams.get("subCategory") || "";
-  const [products, setProducts] = useState<Product[]>([]);
-  const [category, setCategory] = useState<Category | null>(null);
-  const [subcategories, setSubcategories] = useState<Category[]>([]);
-  const [selectedSubcategory, setSelectedSubcategory] = useState("");
-  const [categoryReadyId, setCategoryReadyId] = useState("");
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isProductsLoading, setIsProductsLoading] = useState(false);
+  const initialCache = readCachedCategoryContext(categoryId, requestedSubcategoryId);
+  const [products, setProducts] = useState<Product[]>(() => initialCache?.products?.data ?? []);
+  const [category, setCategory] = useState<Category | null>(() => initialCache?.category ?? null);
+  const [subcategories, setSubcategories] = useState<Category[]>(() => initialCache?.subcategories ?? []);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(() => initialCache?.selectedSubcategory ?? "");
+  const [categoryReadyId, setCategoryReadyId] = useState(() => initialCache ? categoryId ?? "" : "");
+  const [isInitialLoading, setIsInitialLoading] = useState(() => !initialCache);
+  const [isProductsLoading, setIsProductsLoading] = useState(() => !initialCache?.products);
   const [categoryError, setCategoryError] = useState("");
   const [productError, setProductError] = useState("");
   const [productRetry, setProductRetry] = useState(0);
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState<ProductPage>({ currentPage: 1, totalPages: 1, totalItems: 0, hasNextPage: false });
+  const [pagination, setPagination] = useState<ProductPage>(() => {
+    const meta = initialCache?.products?.pagination;
+    return { currentPage: Number(meta?.currentPage) || 1, totalPages: Number(meta?.totalPages) || 1, totalItems: Number(meta?.totalItems) || 0, hasNextPage: Boolean(meta?.hasNextPage) };
+  });
   const productScrollRef = useRef<HTMLElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const inFlightRef = useRef(false);
@@ -47,16 +71,18 @@ const CategoryProducts = () => {
     generationRef.current += 1;
     inFlightRef.current = false;
     requestedPageRef.current = 1;
-    setIsInitialLoading(true);
     setCategoryError("");
     setProductError("");
-    setCategoryReadyId("");
-    setCategory(null);
-    setSubcategories([]);
-    setSelectedSubcategory("");
-    setProducts([]);
+    const cachedContext = readCachedCategoryContext(categoryId, requestedSubcategoryId);
+    setIsInitialLoading(!cachedContext);
+    setCategoryReadyId(cachedContext && categoryId ? categoryId : "");
+    setCategory(cachedContext?.category ?? null);
+    setSubcategories(cachedContext?.subcategories ?? []);
+    setSelectedSubcategory(cachedContext?.selectedSubcategory ?? "");
+    setProducts(cachedContext?.products?.data ?? []);
     setPage(1);
-    setPagination({ currentPage: 1, totalPages: 1, totalItems: 0, hasNextPage: false });
+    const cachedMeta = cachedContext?.products?.pagination;
+    setPagination({ currentPage: Number(cachedMeta?.currentPage) || 1, totalPages: Number(cachedMeta?.totalPages) || 1, totalItems: Number(cachedMeta?.totalItems) || 0, hasNextPage: Boolean(cachedMeta?.hasNextPage) });
 
     if (!categoryId) {
       setIsInitialLoading(false);
@@ -125,19 +151,28 @@ const CategoryProducts = () => {
     let current = true;
     const generation = generationRef.current;
     inFlightRef.current = true;
-    setIsProductsLoading(true);
+    const cachedPage = page === 1
+      ? peekPublicCached<PublicProductListResponse>(`/products/category/${categoryId}`, { page, limit: PAGE_SIZE, subCategory: selectedSubcategory || undefined })
+      : undefined;
+    if (!cachedPage) setIsProductsLoading(true);
+    else {
+      setProducts(cachedPage.data ?? []);
+      const meta = cachedPage.pagination;
+      setPagination({ currentPage: Number(meta?.currentPage) || page, totalPages: Number(meta?.totalPages) || 1, totalItems: Number(meta?.totalItems) || 0, hasNextPage: Boolean(meta?.hasNextPage) });
+      setIsProductsLoading(false);
+    }
     setProductError("");
 
     getProductsByCategory(categoryId, page, PAGE_SIZE, selectedSubcategory || undefined)
       .then((response) => {
         if (!current || generation !== generationRef.current) return;
         if (!response?.success || !Array.isArray(response.data)) throw new Error("Failed to load products.");
-        const meta = response.pagination || {};
+        const meta = response.pagination;
         const nextPagination: ProductPage = {
-          currentPage: Number(meta.currentPage) || page,
-          totalPages: Number(meta.totalPages) || 1,
-          totalItems: Number(meta.totalItems) || 0,
-          hasNextPage: Boolean(meta.hasNextPage),
+          currentPage: Number(meta?.currentPage) || page,
+          totalPages: Number(meta?.totalPages) || 1,
+          totalItems: Number(meta?.totalItems) || 0,
+          hasNextPage: Boolean(meta?.hasNextPage),
         };
         setProducts((existing) => {
           const combined = page === 1 ? response.data as Product[] : [...existing, ...response.data as Product[]];
@@ -221,7 +256,7 @@ const CategoryProducts = () => {
                     className={`category-subcategory-option${subcategory._id === selectedSubcategory ? " active" : ""}`}
                     onClick={() => selectSubcategory(subcategory._id)}
                     aria-current={subcategory._id === selectedSubcategory ? "true" : undefined}>
-                    {subcategory.image ? <img src={subcategory.image} alt="" /> : <span className="category-subcategory-placeholder" aria-hidden="true">▧</span>}
+                    {subcategory.image ? <img src={optimizeCloudinaryImageUrl(subcategory.image, { width: 160 })} srcSet={createCloudinarySrcSet(subcategory.image, [80, 120, 160, 240])} sizes="80px" alt="" loading="lazy" decoding="async" /> : <span className="category-subcategory-placeholder" aria-hidden="true">▧</span>}
                     <span>{subcategory.name}</span>
                   </button>
                 ))}

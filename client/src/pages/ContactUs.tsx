@@ -5,7 +5,7 @@ import {
   FaLinkedinIn,
 } from "react-icons/fa";
 
-import { defaultFooterSettings, getFooterSettings } from "../services/footerService";
+import { defaultFooterSettings, getFooterSettings, subscribeToFooterSettings } from "../services/footerService";
 import type { FooterSettings } from "../types/footer";
 import "./ContactUs.css";
 
@@ -34,9 +34,12 @@ const ContactUs = () => {
   const [settings, setSettings] = useState<FooterSettings>(defaultFooterSettings);
 
   useEffect(() => {
+    let active = true;
+    const unsubscribe = subscribeToFooterSettings((next) => { if (active) setSettings(next); });
     getFooterSettings()
-      .then(setSettings)
+      .then((next) => { if (active) setSettings(next); })
       .catch((error) => console.warn("Failed to load contact page footer settings:", error));
+    return () => { active = false; unsubscribe(); };
   }, []);
 
   const copyright = settings.copyright

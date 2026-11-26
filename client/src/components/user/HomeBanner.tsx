@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Banner } from "../../types/banner";
+import { createCloudinarySrcSet, optimizeCloudinaryImageUrl } from "../../utils/cloudinaryImage";
 
 import "./HomeBanner.css";
 
@@ -50,10 +51,13 @@ const HomeBanner = ({ banners }: HomeBannerProps) => {
         }
       >
         <img
-          src={banner.image}
+          src={optimizeCloudinaryImageUrl(banner.image, { width: 1440 })}
+          srcSet={createCloudinarySrcSet(banner.image, [640, 960, 1280, 1600])}
+          sizes="100vw"
           alt="QuickCart banner"
           className="home-banner-image"
           fetchPriority="high"
+          decoding="async"
         />
       </button>
     );

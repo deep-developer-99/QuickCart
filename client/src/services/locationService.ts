@@ -104,7 +104,16 @@ export const detectCurrentLocation = async (): Promise<DetectedLocation> => {
 };
 
 export const saveCurrentLocation = (location: DetectedLocation) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(location));
+  const locality = {
+    city: location.address.city,
+    state: location.address.state,
+    pincode: location.address.pincode,
+  };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(locality));
+  } catch {
+    // The active location remains available in component state.
+  }
 
   window.dispatchEvent(new CustomEvent("quickcart:location-changed"));
 };
@@ -117,14 +126,29 @@ export const getSavedCurrentLocation = (): DetectedLocation | null => {
       return null;
     }
 
-    return JSON.parse(stored) as DetectedLocation;
+    const parsed = JSON.parse(stored) as Partial<DetectedLocation> & { city?: string; state?: string; pincode?: string };
+    const locality = parsed.address ?? parsed;
+    const city = typeof locality.city === "string" ? locality.city : "";
+    const state = typeof locality.state === "string" ? locality.state : "";
+    const pincode = typeof locality.pincode === "string" ? locality.pincode : "";
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ city, state, pincode }));
+    return {
+      latitude: 0,
+      longitude: 0,
+      accuracy: 0,
+      address: { addressLine: "", city, state, pincode, displayName: [city, state, pincode].filter(Boolean).join(", ") },
+    };
   } catch {
     return null;
   }
 };
 
 export const clearSavedCurrentLocation = () => {
-  localStorage.removeItem(STORAGE_KEY);
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Ignore storage errors while clearing a preference.
+  }
 
   window.dispatchEvent(new CustomEvent("quickcart:location-changed"));
 };

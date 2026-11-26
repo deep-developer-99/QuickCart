@@ -1,6 +1,7 @@
 import type { CartItem as CartItemType } from "../../types/cart";
 import { getCartItemUnitPrice } from "../../utils/hasValidCartItems";
 import { getVariantDiscountPercentage, hasVariantDiscount } from "../../utils/productPricing";
+import { optimizeCloudinaryImageUrl } from "../../utils/cloudinaryImage";
 import "./CartItem.css";
 
 interface CartItemProps {
@@ -17,7 +18,7 @@ const CartItem = ({ item, onQuantityChange, onRemove, hideRemove = false }: Cart
   const variant = hasProductDetails && item.variantId ? product.variants?.find((entry) => entry._id === item.variantId) : undefined;
   const price = getCartItemUnitPrice(item);
   return <div className="cart-item-card">
-    <div className="cart-item-image-wrapper">{hasProductDetails ? <img src={product.image} alt={product.name} /> : <span aria-hidden="true">🛒</span>}</div>
+    <div className="cart-item-image-wrapper">{hasProductDetails ? <img src={optimizeCloudinaryImageUrl(product.image, { width: 120 })} alt={product.name} loading="lazy" decoding="async" /> : <span aria-hidden="true">🛒</span>}</div>
     <div className="cart-item-info">
       <h3>{hasProductDetails ? product.name : "Product"}</h3>
       {variant && <p className="cart-item-variant">{variant.quantity} {variant.unit}</p>}

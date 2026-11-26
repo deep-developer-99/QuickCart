@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { getProducts } from "../../services/productService";
+import { getProducts, type PublicProductListResponse } from "../../services/productService";
 import type { Product } from "../../types/product";
 import ProductCard from "../../components/user/ProductCard";
 import { addRecentSearch, useRecentSearches } from "../../hooks/useRecentSearches";
+import { createCloudinarySrcSet, optimizeCloudinaryImageUrl } from "../../utils/cloudinaryImage";
+import { peekPublicCached } from "../../services/queryCache";
 
 import "./SearchResults.css";
 
@@ -12,12 +14,20 @@ const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = (searchParams.get("q") || "").trim();
+  const cachedResponse = query
+    ? peekPublicCached<PublicProductListResponse>("/products", { search: query, category: undefined, subCategory: undefined, page: 1, limit: 24 })
+    : undefined;
   const { searches, clearRecentSearches } = useRecentSearches();
   const [products, setProducts] = useState<Product[]>([]);
   const [resolvedQuery, setResolvedQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [retryKey, setRetryKey] = useState(0);
+  const visibleProducts = useMemo(
+    () => resolvedQuery === query ? products : cachedResponse?.success ? cachedResponse.data : [],
+    [resolvedQuery, query, products, cachedResponse],
+  );
+  const visibleError = cachedResponse ? "" : resolvedQuery === query ? error : "";
 
   useEffect(() => {
     const inputSelector = window.matchMedia("(max-width: 768px)").matches
@@ -62,15 +72,15 @@ const SearchResults = () => {
   const suggestions = useMemo(() => {
     const normalized = query.toLocaleLowerCase();
     const seen = new Set<string>();
-    return products.filter((product) => {
+    return visibleProducts.filter((product) => {
       const name = product.name.trim();
       const key = name.toLocaleLowerCase();
       if (!name || !key.includes(normalized) || seen.has(key)) return false;
       seen.add(key);
       return true;
     }).slice(0, 5);
-  }, [products, query]);
-  const showingLoading = Boolean(query) && (isLoading || resolvedQuery !== query);
+  }, [visibleProducts, query]);
+  const showingLoading = Boolean(query) && !cachedResponse && (isLoading || resolvedQuery !== query);
 
   const selectRecentSearch = (term: string) => {
     setSearchParams({ q: term });
@@ -112,36 +122,36 @@ const SearchResults = () => {
               </div>
             )}
 
-            {!showingLoading && error && (
+            {!showingLoading && visibleError && (
               <div className="search-state search-state-error" role="alert">
                 <div className="search-state-icon" aria-hidden="true">!</div>
                 <h2>Unable to search right now</h2>
-                <p>{error}</p>
+                <p>{visibleError}</p>
                 <button type="button" onClick={() => { setResolvedQuery(""); setRetryKey((current) => current + 1); }}>Try again</button>
               </div>
             )}
 
-            {!showingLoading && !error && products.length > 0 && (
+            {!showingLoading && !visibleError && visibleProducts.length > 0 && (
               <>
                 {suggestions.length > 0 && (
                   <div className="search-suggestions" role="listbox" aria-label="Product suggestions">
                     {suggestions.map((product) => (
                       <button type="button" role="option" className="search-suggestion" key={product._id} onClick={() => openProduct(product)}>
-                        <img src={product.image} alt="" />
+                        <img src={optimizeCloudinaryImageUrl(product.image, { width: 120 })} srcSet={createCloudinarySrcSet(product.image, [80, 120, 180])} sizes="64px" alt="" loading="lazy" decoding="async" />
                         <span>{product.name}</span>
                         <span className="search-suggestion-arrow" aria-hidden="true">↗</span>
                       </button>
                     ))}
                   </div>
                 )}
-                <div className="search-results-count">{products.length} {products.length === 1 ? "product" : "products"} found</div>
+                <div className="search-results-count">{visibleProducts.length} {visibleProducts.length === 1 ? "product" : "products"} found</div>
                 <div className="search-results-grid">
-                  {products.map((product) => <ProductCard key={product._id} product={product} variant="compact" />)}
+                  {visibleProducts.map((product) => <ProductCard key={product._id} product={product} variant="compact" />)}
                 </div>
               </>
             )}
 
-            {!showingLoading && !error && products.length === 0 && (
+            {!showingLoading && !visibleError && visibleProducts.length === 0 && (
               <div className="search-state search-state-empty">
                 <div className="search-state-icon" aria-hidden="true">⌕</div>
                 <h2>No products found.</h2>

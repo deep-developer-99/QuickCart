@@ -1,4 +1,5 @@
 import type { Category } from "../../types/product";
+import { createCloudinarySrcSet, optimizeCloudinaryImageUrl } from "../../utils/cloudinaryImage";
 import "./CategoryCard.css";
 
 interface CategoryCardProps {
@@ -16,9 +17,13 @@ const CategoryCard = ({ category, onClick }: CategoryCardProps) => {
       <div className="category-card-image-wrapper">
         {category.image ? (
           <img
-            src={category.image}
+            src={optimizeCloudinaryImageUrl(category.image, { width: 240 })}
+            srcSet={createCloudinarySrcSet(category.image, [120, 180, 240, 360])}
+            sizes="(max-width: 600px) 42vw, 160px"
             alt={category.name}
             className="category-card-image"
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="category-card-placeholder">

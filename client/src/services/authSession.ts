@@ -1,7 +1,6 @@
 import { store } from "../store/store";
 import { logoutUser } from "../store/slice/authSlice";
 import { clearDeactivatedCustomerStorage } from "../utils/customerSession";
-import { clearAccountCountCache } from "./accountCountCache";
 import { signOutFirebaseAuth } from "./firebaseAuthService";
 
 const AUTH_LOGOUT_SIGNAL_KEY = "quickcart-auth-logout-signal";
@@ -9,7 +8,6 @@ const AUTH_LOGOUT_SIGNAL_KEY = "quickcart-auth-logout-signal";
 export const finalizeLocalLogout = (broadcast = true, deactivatedUserId?: string) => {
   if (deactivatedUserId) clearDeactivatedCustomerStorage(deactivatedUserId);
   store.dispatch(logoutUser());
-  clearAccountCountCache();
   if (broadcast && typeof window !== "undefined") {
     try {
       window.localStorage.setItem(AUTH_LOGOUT_SIGNAL_KEY, JSON.stringify({ at: Date.now(), deactivatedUserId }));

@@ -11,6 +11,7 @@ import { useCartLogin } from "../../hooks/useCartLogin";
 import type { Product, ProductVariant } from "../../types/product";
 import { getCartProductId, getValidCartItems } from "../../utils/hasValidCartItems";
 import { getLowestPricedAvailableVariant, getVariantDiscountPercentage, getVariantSellingPrice, hasVariantDiscount } from "../../utils/productPricing";
+import { createCloudinarySrcSet, optimizeCloudinaryImageUrl } from "../../utils/cloudinaryImage";
 import "./ProductCard.css";
 
 interface ProductCardProps {
@@ -169,7 +170,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
       <article className={`product-card${variant ? ` product-card--${variant}` : ""}${!hasStock ? " product-card--unavailable" : ""}`}>
         <Link to={`/products/${product._id}`} className="product-card-main">
           <div className="product-card-image-wrapper">
-            <img src={product.image} alt={product.name} className="product-card-image" onError={(event) => {
+            <img src={optimizeCloudinaryImageUrl(product.image, { width: 480 })} srcSet={createCloudinarySrcSet(product.image, [240, 360, 480, 640])} sizes="(max-width: 600px) 45vw, (max-width: 1100px) 30vw, 240px" alt={product.name} className="product-card-image" loading="lazy" decoding="async" onError={(event) => {
               event.currentTarget.hidden = true;
               event.currentTarget.nextElementSibling?.classList.add("product-card-image-fallback--visible");
             }} />
@@ -224,7 +225,7 @@ const ProductCard = ({ product, variant }: ProductCardProps) => {
                 const canIncrease = itemQuantity < item.stock;
                 return (
                 <div className="product-variant-choice" key={item._id}>
-                  <img src={product.image} alt="" className="product-variant-image" onError={(event) => {
+                  <img src={optimizeCloudinaryImageUrl(product.image, { width: 240 })} srcSet={createCloudinarySrcSet(product.image, [120, 180, 240, 360])} sizes="90px" alt="" className="product-variant-image" loading="lazy" decoding="async" onError={(event) => {
                     if (event.currentTarget.getAttribute("src") !== product.image) {
                       event.currentTarget.onerror = null;
                       event.currentTarget.src = product.image;

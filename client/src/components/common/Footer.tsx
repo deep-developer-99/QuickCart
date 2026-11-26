@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { useAppSelector } from "../../hooks/reduxHooks";
 import { useFooterCategories } from "../../hooks/useFooterCategories";
-import { defaultFooterSettings, getFooterSettings } from "../../services/footerService";
+import { defaultFooterSettings, getFooterSettings, subscribeToFooterSettings } from "../../services/footerService";
 import FooterContent from "./FooterContent";
 
 const Footer = () => {
@@ -63,10 +63,11 @@ const Footer = () => {
 
   useEffect(() => {
     let cancelled = false;
+    const unsubscribe = subscribeToFooterSettings((footer) => { if (!cancelled) setSettings(footer); });
     getFooterSettings()
       .then((footer) => { if (!cancelled) setSettings(footer); })
       .catch((error) => console.warn("Failed to load footer settings:", error));
-    return () => { cancelled = true; };
+    return () => { cancelled = true; unsubscribe(); };
   }, []);
 
   return (

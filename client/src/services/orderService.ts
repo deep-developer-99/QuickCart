@@ -1,6 +1,7 @@
 import api from "./api";
-import type { PaymentMethod } from "../types/order";
-import { setCurrentAccountCount } from "./accountCountCache";
+import type { Order, PaymentMethod } from "../types/order";
+import { getPrivateCached, seedPrivateCache } from "./queryCache";
+import { PRIVATE_CACHE_TTL_MS } from "./cachePolicy";
 
 export const createOrder = async (
   addressId: string,
@@ -79,17 +80,20 @@ export const verifyRazorpayPayment = async (
 };
 
 export const getMyOrders = async (page = 1, limit = 10) => {
-  const response = await api.get("/orders/my-orders", { params: { page, limit } });
-  const result = response.data;
+  const result = await getPrivateCached<{ success: boolean; data: Order[]; pagination?: { totalItems: number; totalPages: number } }>("/orders/my-orders", { page, limit }, limit === 1 ? PRIVATE_CACHE_TTL_MS.orderCount : PRIVATE_CACHE_TTL_MS.orders, ["Orders"]);
   if (limit > 1 && result?.success && Number.isSafeInteger(result.pagination?.totalItems)) {
-    setCurrentAccountCount("orders", result.pagination.totalItems);
+    const totalItems = result.pagination!.totalItems;
+    seedPrivateCache("/orders/my-orders", { page: 1, limit: 1 }, ["Orders"], {
+      success: true,
+      data: [],
+      pagination: { page: 1, limit: 1, totalItems, totalPages: Math.max(1, totalItems) },
+    });
   }
   return result;
 };
 
 export const getOrderById = async (id: string) => {
-  const response = await api.get(`/orders/${id}`);
-  return response.data;
+  return getPrivateCached<{ success: boolean; data: Order }>(`/orders/${id}`, {}, PRIVATE_CACHE_TTL_MS.orderDetails, ["Orders", `Order:${id}`]);
 };
 
 export const getVendorOrders = async (page = 1, limit = 10) => {

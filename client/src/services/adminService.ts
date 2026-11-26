@@ -1,4 +1,7 @@
 import api from "./api";
+import { invalidatePublicCache } from "./queryCache";
+
+const invalidateCatalog = () => invalidatePublicCache(["Categories", "Products", "HomepageSections", "SearchResults"]);
 
 export const getAdminUsers = async (page = 1, limit = 10, status = "all") => {
   const resposne = await api.get("/admin/users", { params: { page, limit, status } });
@@ -60,7 +63,7 @@ export const getAdminCategories = async (page = 1, limit = 10) => {
 
 export const createAdminCategory = async (categoryData: FormData) => {
   const response = await api.post("/admin/categories", categoryData);
-
+  if (response.data?.success) invalidateCatalog();
   return response.data;
 };
 
@@ -69,13 +72,13 @@ export const updateAdminCategory = async (
   categoryData: FormData,
 ) => {
   const response = await api.put(`/admin/categories/${id}`, categoryData);
-
+  if (response.data?.success) invalidateCatalog();
   return response.data;
 };
 
 export const deleteAdminCategory = async (id: string) => {
   const response = await api.delete(`/admin/categories/${id}`);
-
+  if (response.data?.success) invalidateCatalog();
   return response.data;
 };
 
@@ -101,6 +104,7 @@ export const createAdminSubcategory = async (
       if (event.total) onUploadProgress?.(Math.round((event.loaded / event.total) * 100));
     },
   });
+  if (response.data?.success) invalidateCatalog();
   return response.data;
 };
 
@@ -114,10 +118,12 @@ export const updateAdminSubcategory = async (
       if (event.total) onUploadProgress?.(Math.round((event.loaded / event.total) * 100));
     },
   });
+  if (response.data?.success) invalidateCatalog();
   return response.data;
 };
 
 export const deleteAdminSubcategory = async (id: string) => {
   const response = await api.delete(`/admin/subcategories/${id}`);
+  if (response.data?.success) invalidateCatalog();
   return response.data;
 };

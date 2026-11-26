@@ -17,15 +17,27 @@ import type { Address } from "../../types/address";
 import "./LocationSelector.css";
 
 const SELECTED_LOCATION_KEY_PREFIX = "quickcart_selected_location_";
+const SELECTED_ADDRESS_SESSION_KEY_PREFIX = "quickcart-selected-address:";
 
 const getSelectedLocationKey = (userId: string) =>
   `${SELECTED_LOCATION_KEY_PREFIX}${userId}`;
 
 const getStoredSelectedLocation = (userId: string): DetectedLocation | null => {
   try {
-    const stored = localStorage.getItem(getSelectedLocationKey(userId));
-
-    return stored ? (JSON.parse(stored) as DetectedLocation) : null;
+    // Older versions kept the full address in LocalStorage; remove it when upgrading.
+    localStorage.removeItem(getSelectedLocationKey(userId));
+    const stored = sessionStorage.getItem(getSelectedLocationKey(userId));
+    if (!stored) return null;
+    const locality = JSON.parse(stored) as { city?: unknown; state?: unknown; pincode?: unknown };
+    const city = typeof locality.city === "string" ? locality.city : "";
+    const state = typeof locality.state === "string" ? locality.state : "";
+    const pincode = typeof locality.pincode === "string" ? locality.pincode : "";
+    return {
+      latitude: 0,
+      longitude: 0,
+      accuracy: 0,
+      address: { addressLine: "", city, state, pincode, displayName: [city, state, pincode].filter(Boolean).join(", ") },
+    };
   } catch {
     return null;
   }
@@ -33,9 +45,13 @@ const getStoredSelectedLocation = (userId: string): DetectedLocation | null => {
 
 const saveSelectedLocation = (userId: string, location: DetectedLocation) => {
   try {
-    localStorage.setItem(
+    sessionStorage.setItem(
       getSelectedLocationKey(userId),
-      JSON.stringify(location),
+      JSON.stringify({
+        city: location.address.city,
+        state: location.address.state,
+        pincode: location.address.pincode,
+      }),
     );
   } catch {
     // Keep the current location in React state even if storage is unavailable.
@@ -44,7 +60,8 @@ const saveSelectedLocation = (userId: string, location: DetectedLocation) => {
 
 const clearSelectedLocation = (userId: string) => {
   try {
-    localStorage.removeItem(getSelectedLocationKey(userId));
+    sessionStorage.removeItem(getSelectedLocationKey(userId));
+    sessionStorage.removeItem(`${SELECTED_ADDRESS_SESSION_KEY_PREFIX}${userId}`);
   } catch {
     // Ignore storage errors during logout.
   }
@@ -94,6 +111,11 @@ const LocationSelector = () => {
       };
     }
 
+    const previousUserId = previousUserIdRef.current;
+    if (previousUserId && previousUserId !== user.id) {
+      clearSelectedLocation(previousUserId);
+      clearSavedCurrentLocation();
+    }
     previousUserIdRef.current = user.id;
 
     const storedLocation = getStoredSelectedLocation(user.id);
@@ -114,19 +136,7 @@ const LocationSelector = () => {
 
         setAddresses(list);
 
-        const storedAddressId = storedLocation?.address?.displayName
-          ? list.find(
-              (address) =>
-                [
-                  address.addressLine,
-                  address.city,
-                  address.state,
-                  address.pincode,
-                ]
-                  .filter(Boolean)
-                  .join(", ") === storedLocation.address.displayName,
-            )?._id
-          : undefined;
+        const storedAddressId = sessionStorage.getItem(`${SELECTED_ADDRESS_SESSION_KEY_PREFIX}${user.id}`) || undefined;
 
         setSelectedAddress(
           (storedAddressId
@@ -299,6 +309,11 @@ const LocationSelector = () => {
       // Manual saved-address selection becomes the selected location and
       // survives page refresh until this user logs out.
       saveSelectedLocation(user.id, savedLocation);
+      try {
+        sessionStorage.setItem(`${SELECTED_ADDRESS_SESSION_KEY_PREFIX}${user.id}`, address._id);
+      } catch {
+        // Keep the selected address in component state for this session.
+      }
       saveCurrentLocation(savedLocation);
     }
 
@@ -308,7 +323,6 @@ const LocationSelector = () => {
   const dialogFocus = useDialogFocus<HTMLDivElement>(isOpen, () => setIsOpen(false));
 
   const locationText =
-    currentLocation?.address?.displayName ||
     (selectedAddress
       ? [
           selectedAddress.addressLine,
@@ -318,7 +332,7 @@ const LocationSelector = () => {
         ]
           .filter(Boolean)
           .join(", ")
-      : "");
+      : currentLocation?.address?.displayName || "");
 
   return (
     <div className="location-selector" ref={containerRef}>

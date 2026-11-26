@@ -1,4 +1,5 @@
-import api from "../services/api";
+import { getPublicCached } from "../services/queryCache";
+import { PUBLIC_CACHE_TTL_MS } from "../services/cachePolicy";
 
 export const themeColorKeys = [
   "primary",
@@ -148,6 +149,6 @@ export const applyTheme = (colors: ThemeColors) => {
 };
 
 export const fetchPublicTheme = async (): Promise<ThemeColors> => {
-  const response = await api.get("/theme/public");
-  return normalizeTheme(response.data?.data);
+  const response = await getPublicCached<{ data?: unknown }>("/theme/public", {}, PUBLIC_CACHE_TTL_MS.theme, ["Theme"]);
+  return normalizeTheme(response?.data);
 };

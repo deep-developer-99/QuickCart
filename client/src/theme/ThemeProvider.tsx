@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import api from "../services/api";
+import { invalidatePublicCache } from "../services/queryCache";
 import {
   applyTheme,
   defaultTheme,
@@ -44,12 +45,14 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       publishTheme: async (updates) => {
         const response = await api.patch("/admin/theme", { colors: updates });
         const nextColors = normalizeTheme(response.data?.data);
+        invalidatePublicCache(["Theme"]);
         setColors(nextColors);
         return nextColors;
       },
       resetTheme: async () => {
         const response = await api.post("/admin/theme/reset");
         const nextColors = normalizeTheme(response.data?.data);
+        invalidatePublicCache(["Theme"]);
         setColors(nextColors);
         return nextColors;
       },

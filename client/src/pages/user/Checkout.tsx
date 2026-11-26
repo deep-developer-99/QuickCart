@@ -25,7 +25,7 @@ import type { CheckoutSummary } from "../../services/orderService";
 
 import { loadRazorpayScript } from "../../utils/razorpay";
 import { getConfirmedOrder } from "../../utils/confirmedOrder";
-import { markConfirmedOrderCountStale } from "../../services/accountCountCache";
+import { markConfirmedOrderCacheStale } from "../../services/orderCacheInvalidation";
 import { getCartItemUnitPrice, getCartProductId, getCartSubtotal } from "../../utils/hasValidCartItems";
 
 import { useAppSelector } from "../../hooks/reduxHooks";
@@ -450,7 +450,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
       const expectedTotal = checkoutSummary?.totalAmount;
       const response = await createOrder(selectedAddress, "COD", donationAmountSelected, orderedItems, expectedTotal);
       const confirmedOrder = getConfirmedOrder<Order>(response, "The order was not confirmed. Your cart is unchanged.");
-      markConfirmedOrderCountStale(confirmedOrder._id);
+      markConfirmedOrderCacheStale(confirmedOrder._id);
       await removePurchasedItems(orderedItems);
       if (embedded && onOrderSuccess) {
         onOrderSuccess(confirmedOrder, addresses.find((address) => address._id === selectedAddress));
@@ -528,7 +528,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
               expectedTotal,
             });
             const confirmedOrder = getConfirmedOrder<Order>(verified, "Payment was not verified. Your cart is unchanged.");
-            markConfirmedOrderCountStale(confirmedOrder._id);
+            markConfirmedOrderCacheStale(confirmedOrder._id);
             await removePurchasedItems(orderedItems);
 
             if (embedded && onOrderSuccess) {
