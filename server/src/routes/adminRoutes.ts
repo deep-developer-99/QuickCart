@@ -29,6 +29,7 @@ import {
   deleteSubcategoryController,
   getAdminSubcategoriesController,
   updateSubcategoryController,
+  bulkCreateSubcategoriesController,
 } from "../controllers/categoryController";
 
 import authMiddleware from "../middleware/authMiddleware";
@@ -102,6 +103,7 @@ router.post("/categories", upload.single("image"), createCategoryController);
 router.put("/categories/:id", upload.single("image"), updateCategoryController);
 router.delete("/categories/:id", deleteCategoryController);
 router.get("/subcategories", getAdminSubcategoriesController);
+router.post("/subcategories/bulk", bulkCreateSubcategoriesController);
 router.post("/subcategories", upload.single("image"), createSubcategoryController);
 router.put("/subcategories/:id", upload.single("image"), updateSubcategoryController);
 router.delete("/subcategories/:id", deleteSubcategoryController);

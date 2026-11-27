@@ -22,12 +22,12 @@ export interface SubcategoryInput {
   isActive?: boolean;
 }
 
-const normalizeName = (name: string) => name.trim().normalize("NFKC").toLocaleLowerCase("en");
+export const normalizeCategoryName = (name: string) => name.trim().normalize("NFKC").toLocaleLowerCase("en");
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const duplicateError = (message: string) => Object.assign(new Error(message), { statusCode: 409 });
 const validationError = (message: string) => Object.assign(new Error(message), { statusCode: 400 });
 
-const ensureActiveMainCategory = async (categoryId: string) => {
+export const ensureActiveMainCategory = async (categoryId: string) => {
   if (!mongoose.isValidObjectId(categoryId)) throw validationError("Select a valid main category.");
   const parent = await Category.findOne({ _id: categoryId, parentCategory: null, isActive: true });
   if (!parent) throw validationError("The selected main category is missing, inactive, or is a subcategory.");
@@ -118,7 +118,7 @@ export const getAdminSubcategories = async (options: {
 export const createCategory = async (data: CreateCategoryData) => {
   const name = data.name.trim();
   if (!name) throw validationError("Category name is required");
-  const normalizedName = normalizeName(name);
+  const normalizedName = normalizeCategoryName(name);
   const existingCategory = await Category.findOne({ parentCategory: null, normalizedName });
   if (existingCategory) {
     if (existingCategory.isActive === false) {
@@ -158,7 +158,7 @@ export const updateCategory = async (categoryId: string, data: UpdateCategoryDat
   const name = data.name.trim();
   if (!name) throw validationError("Category name is required");
   const category = await getCategoryByIdAdmin(categoryId);
-  const normalizedName = normalizeName(name);
+  const normalizedName = normalizeCategoryName(name);
   const existingCategory = await Category.findOne({
     _id: { $ne: categoryId }, parentCategory: null, normalizedName,
   });
@@ -182,7 +182,7 @@ export const createSubcategory = async (data: SubcategoryInput) => {
   if (!name) throw validationError("Subcategory name is required.");
   if (!data.image?.trim() || !data.imagePublicId?.trim()) throw validationError("A successfully uploaded subcategory image is required.");
   await ensureActiveMainCategory(data.parentCategory);
-  const normalizedName = normalizeName(name);
+  const normalizedName = normalizeCategoryName(name);
   const existing = await Category.findOne({ parentCategory: data.parentCategory, normalizedName });
   if (existing) throw duplicateError("A subcategory with this name already exists under that main category.");
   try {
@@ -196,7 +196,16 @@ export const createSubcategory = async (data: SubcategoryInput) => {
       isActive: data.isActive ?? true,
     });
   } catch (error) {
-    if ((error as { code?: number })?.code === 11000) throw duplicateError("A subcategory with this name already exists under that main category.");
+    if ((error as { code?: number })?.code === 11000) {
+      const duplicate = error as { keyPattern?: Record<string, unknown> };
+      if (duplicate.keyPattern && Object.hasOwn(duplicate.keyPattern, "name")) {
+        throw Object.assign(
+          new Error("This name conflicts with the legacy global unique name index. Complete the category hierarchy migration before reusing it under another parent."),
+          { statusCode: 409, categoryConflict: "legacy-global-name-index" },
+        );
+      }
+      throw duplicateError("A subcategory with this name already exists under that main category.");
+    }
     throw error;
   }
 };
@@ -228,7 +237,7 @@ export const updateSubcategory = async (subcategoryId: string, data: Subcategory
     }
   }
 
-  const normalizedName = normalizeName(name);
+  const normalizedName = normalizeCategoryName(name);
   const duplicate = await Category.findOne({
     _id: { $ne: subcategory._id }, parentCategory: data.parentCategory, normalizedName,
   });

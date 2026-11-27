@@ -1,0 +1,78 @@
+{
+  "info": {
+    "_postman_id": "84af67a1-0f63-41af-bc7a-dcf81304c8cb",
+    "name": "QuickCart Admin - Bulk Subcategories",
+    "description": "Admin-only bulk subcategory creation. Admin Login captures the existing HttpOnly token cookie into the local adminToken environment variable so requests can use the backend's supported Bearer authentication. External image hosts require an exact server-side SUBCATEGORY_IMAGE_ALLOWED_HOSTS allowlist entry. Cloudinary's res.cloudinary.com source host is allowed by default. The collection never generates category data; edit the example request explicitly.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Admin Login",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "const headers = pm.response.headers.all().filter((header) => header.key.toLowerCase() === 'set-cookie');",
+            "const tokenCookie = headers.map((header) => header.value).join(';').match(/(?:^|;\\s*)token=([^;]+)/);",
+            "if (tokenCookie) { pm.environment.set('adminToken', decodeURIComponent(tokenCookie[1])); }",
+            "pm.test('Admin login succeeded and returned the token cookie', function () { pm.response.to.have.status(200); pm.expect(tokenCookie).to.not.be.null; });"
+          ]
+        }
+      }],
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{baseUrl}}/api/auth/admin/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "admin", "login"] }
+      }
+    },
+    {
+      "name": "Get Main Categories",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/admin/categories?page=1&limit=100", "host": ["{{baseUrl}}"], "path": ["api", "admin", "categories"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "100" }] }
+      }
+    },
+    {
+      "name": "Get Existing Subcategories",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/admin/subcategories?parentCategory={{parentCategoryId}}&page=1&limit=100", "host": ["{{baseUrl}}"], "path": ["api", "admin", "subcategories"], "query": [{ "key": "parentCategory", "value": "{{parentCategoryId}}" }, { "key": "page", "value": "1" }, { "key": "limit", "value": "100" }] }
+      }
+    },
+    {
+      "name": "Bulk Subcategory Validation (Dry-Run)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{{bulkSubcategoryBody}}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{baseUrl}}/api/admin/subcategories/bulk?dryRun=true", "host": ["{{baseUrl}}"], "path": ["api", "admin", "subcategories", "bulk"], "query": [{ "key": "dryRun", "value": "true" }] }
+      }
+    },
+    {
+      "name": "Bulk Subcategory Creation",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{{bulkSubcategoryBody}}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{baseUrl}}/api/admin/subcategories/bulk", "host": ["{{baseUrl}}"], "path": ["api", "admin", "subcategories", "bulk"] }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "adminEmail", "value": "", "type": "string" },
+    { "key": "adminPassword", "value": "", "type": "string" },
+    { "key": "parentCategoryId", "value": "", "type": "string" },
+    { "key": "bulkSubcategoryBody", "value": "{\n  \"parentCategory\": \"{{parentCategoryId}}\",\n  \"subcategories\": [\n    { \"name\": \"Example Produce 1\", \"description\": \"Replace with a manually reviewed description.\", \"image\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\", \"isActive\": true },\n    { \"name\": \"Example Produce 2\", \"description\": \"Replace with a manually reviewed description.\", \"image\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\", \"isActive\": true },\n    { \"name\": \"Example Produce 3\", \"description\": \"Replace with a manually reviewed description.\", \"image\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\", \"isActive\": true },\n    { \"name\": \"Example Produce 4\", \"description\": \"Replace with a manually reviewed description.\", \"image\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\", \"isActive\": true },\n    { \"name\": \"Example Produce 5\", \"description\": \"Replace with a manually reviewed description.\", \"image\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\", \"isActive\": true },\n    { \"name\": \"Example Produce 6\", \"description\": \"Replace with a manually reviewed description.\", \"image\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\", \"isActive\": true },\n    { \"name\": \"Example Produce 7\", \"description\": \"Replace with a manually reviewed description.\", \"image\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\", \"isActive\": true },\n    { \"name\": \"Example Produce 8\", \"description\": \"Replace with a manually reviewed description.\", \"image\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\", \"isActive\": true },\n    { \"name\": \"Example Produce 9\", \"description\": \"Replace with a manually reviewed description.\", \"image\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\", \"isActive\": true },\n    { \"name\": \"Example Produce 10\", \"description\": \"Replace with a manually reviewed description.\", \"image\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\", \"isActive\": true }\n  ]\n}", "type": "string" }
+  ]
+}

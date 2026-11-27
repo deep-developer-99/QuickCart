@@ -21,6 +21,10 @@ import {
   deleteImageFromCloudinary,
   uploadImageToCloudinary,
 } from "../services/cloudinaryService";
+import {
+  BulkSubcategoryRequestError,
+  processBulkSubcategories,
+} from "../services/bulkSubcategoryService";
 
 // Get all active categories.
 export const getAllCategoriesController = async (
@@ -361,6 +365,36 @@ export const createSubcategoryController = async (req: AuthenticatedRequest, res
   } catch (error) {
     if (uploadedPublicId) await deleteImageFromCloudinary(uploadedPublicId).catch(() => undefined);
     sendSubcategoryError(res, error, "Failed to create subcategory.");
+  }
+};
+
+export const bulkCreateSubcategoriesController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  if (!req.is("application/json")) {
+    res.status(415).json({ success: false, message: "Content-Type must be application/json." });
+    return;
+  }
+
+  const dryRunValue = req.query.dryRun;
+  if (dryRunValue !== undefined && dryRunValue !== "true" && dryRunValue !== "false") {
+    res.status(400).json({ success: false, message: "dryRun must be true or false." });
+    return;
+  }
+
+  const dryRun = dryRunValue === "true";
+  try {
+    const result = await processBulkSubcategories(req.body, dryRun);
+    const status = dryRun
+      ? 200
+      : result.summary.created === result.summary.requested ? 201
+        : result.summary.created > 0 ? 207
+          : result.summary.failed > 0 ? 422 : 200;
+    res.status(status).json(result);
+  } catch (error) {
+    if (error instanceof BulkSubcategoryRequestError) {
+      res.status(error.statusCode).json({ success: false, message: error.message });
+      return;
+    }
+    res.status(500).json({ success: false, message: "Bulk subcategory processing could not be completed." });
   }
 };
 
