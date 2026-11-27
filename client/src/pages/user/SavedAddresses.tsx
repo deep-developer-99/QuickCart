@@ -164,7 +164,7 @@ const SavedAddresses = () => {
       "pincode",
     ];
 
-    const hasMissingField = requiredFields.some(
+    const hasMissingField = requiredFields.filter((field) => field !== "phone").some(
       (field) => typeof form[field] === "string" && !String(form[field]).trim(),
     );
 
@@ -173,8 +173,13 @@ const SavedAddresses = () => {
       return;
     }
 
-    if (!/^\+?[0-9]{10,15}$/.test(form.phone.trim())) {
-      setError("Please enter a valid phone number.");
+    if (!form.phone.trim()) {
+      setError("Phone number is required");
+      return;
+    }
+
+    if (!/^(?:\+91)?[6-9]\d{9}$/.test(form.phone.trim().replace(/[\s()-]/g, ""))) {
+      setError("Please enter a valid mobile number");
       return;
     }
 
@@ -581,3 +586,5 @@ const SavedAddresses = () => {
 };
 
 export default SavedAddresses;
+
+

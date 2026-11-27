@@ -346,7 +346,8 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
     const { name, value } = event.target;
 
     if (name === "phone") {
-      const phone = value.replace(/\D/g, "").slice(0, 10);
+      const digits = value.replace(/\D/g, "");
+      const phone = digits.length > 10 ? digits.slice(-10) : digits.slice(0, 10);
 
       setAddressForm((previous) => ({
         ...previous,
@@ -385,8 +386,8 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
     event.preventDefault();
     if (addressSaveLockRef.current) return;
 
-    if (!/^\d{10}$/.test(addressForm.phone)) {
-      const message = "Phone number must be exactly 10 digits.";
+    if (!/^(?:\+91)?[6-9]\d{9}$/.test(addressForm.phone.trim().replace(/[\s()-]/g, ""))) {
+      const message = addressForm.phone.trim() ? "Please enter a valid mobile number" : "Phone number is required";
       if (embedded) setCheckoutError(message);
       else alert(message);
       return;
@@ -812,7 +813,7 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
                   <input
                     type="tel"
                     name="phone"
-                    placeholder="Phone"
+                    placeholder="Your phone number *"
                     value={addressForm.phone}
                     maxLength={10}
                     inputMode="numeric"
@@ -943,3 +944,6 @@ const Checkout = ({ embedded = false, initialSelectedAddress, onBack, onAddressC
 };
 
 export default Checkout;
+
+
+

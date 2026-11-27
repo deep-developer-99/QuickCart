@@ -40,7 +40,7 @@ test("address creation persists supplied valid coordinates and omits missing coo
   try {
     await createAddress("user-1", {
       fullName: "Customer",
-      phone: "+911234567890",
+      phone: "+919625226196",
       addressLine: "1 Main Road",
       city: "Pune",
       state: "Maharashtra",
@@ -50,7 +50,7 @@ test("address creation persists supplied valid coordinates and omits missing coo
     });
     await createAddress("user-1", {
       fullName: "Customer",
-      phone: "+911234567890",
+      phone: "+919625226196",
       addressLine: "Old address",
       city: "Pune",
       state: "Maharashtra",
@@ -92,6 +92,7 @@ test("address retrieval returns persisted coordinates", async () => {
 
 test("address updates preserve saved coordinates when no new pair is supplied", async () => {
   const saved = {
+    phone: "+919625226196",
     latitude: 18.5204,
     longitude: 73.8567,
     addressLine: "Old address",
@@ -107,6 +108,31 @@ test("address updates preserve saved coordinates when no new pair is supplied", 
     assert.equal(result.addressLine, "New address");
   } finally {
     restore();
+  }
+});
+
+test("address phone is required and validated on create and update", async () => {
+  const restoreCreate = setModelMethod("create", async (value: Record<string, unknown>) => value);
+  try {
+    await assert.rejects(() => createAddress("user-1", {
+      fullName: "Customer", phone: "   ", addressLine: "1 Main Road", city: "Pune", state: "Maharashtra", pincode: "411001",
+    }), /Phone number is required/);
+    await assert.rejects(() => createAddress("user-1", {
+      fullName: "Customer", phone: "123", addressLine: "1 Main Road", city: "Pune", state: "Maharashtra", pincode: "411001",
+    }), /Please enter a valid mobile number/);
+  } finally {
+    restoreCreate();
+  }
+
+  const saved = { phone: "+919625226196", addressLine: "Old address", async save() { return this; } };
+  const restoreFind = setModelMethod("findOne", async () => saved);
+  try {
+    await assert.rejects(() => updateAddress("address-1", "user-1", { phone: "" }), /Phone number is required/);
+    await assert.rejects(() => updateAddress("address-1", "user-1", { phone: "123" }), /Please enter a valid mobile number/);
+    const result = await updateAddress("address-1", "user-1", { addressLine: "Updated" });
+    assert.equal(result.phone, "+919625226196");
+  } finally {
+    restoreFind();
   }
 });
 

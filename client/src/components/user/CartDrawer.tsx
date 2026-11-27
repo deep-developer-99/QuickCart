@@ -431,7 +431,8 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
               if (!selectedLocation) { setAddressError("Select a delivery location on the map."); return; }
               if (!selectedLocation.address.displayName) { setAddressError("Wait for the address to finish updating, or choose another map location."); return; }
               const phone = addressForm.phone?.replace(/\D/g, "") ?? "";
-              if (phone && !/^[6-9]\d{9}$/.test(phone)) { setAddressError("Enter a valid 10-digit Indian phone number."); return; }
+              if (!phone) { setAddressError("Phone number is required"); return; }
+              if (!/^[6-9]\d{9}$/.test(phone.length > 10 ? phone.slice(-10) : phone)) { setAddressError("Please enter a valid mobile number"); return; }
               setIsSavingAddress(true);
               const resolved = selectedLocation.address;
               const payload: CreateAddressData = { ...addressForm, phone, addressType, latitude: selectedLocation.latitude, longitude: selectedLocation.longitude, formattedAddress: resolved.displayName, addressLine: [addressForm.buildingName, addressForm.floor && `Floor ${addressForm.floor}`, addressForm.towerWing, addressForm.landmark, resolved.addressLine].filter(Boolean).join(", "), city: resolved.city || addressForm.city || "", state: resolved.state || addressForm.state || "", pincode: resolved.pincode || addressForm.pincode || "" };
@@ -447,7 +448,7 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
               <input required value={addressForm.pincode || selectedLocation?.address.pincode || ""} placeholder="Postal code *" onChange={(event) => setAddressForm((current) => ({ ...current, pincode: event.target.value }))} />
               <h3>Enter your details for seamless delivery experience</h3>
               <input required value={addressForm.fullName} placeholder="Your name *" onChange={(event) => setAddressForm((current) => ({ ...current, fullName: event.target.value }))} />
-              <input value={addressForm.phone ?? ""} placeholder="Your phone number (optional)" onChange={(event) => setAddressForm((current) => ({ ...current, phone: event.target.value }))} />
+              <input required type="tel" inputMode="numeric" value={addressForm.phone ?? ""} placeholder="Your phone number *" onChange={(event) => setAddressForm((current) => ({ ...current, phone: event.target.value }))} />
               {addressError && <p role="alert">{addressError}</p>}<button className="cart-address-save" disabled={isSavingAddress}>{isSavingAddress ? "Saving…" : editingAddress ? "Update Address" : "Save Address"}</button>
             </form>
           </section>
@@ -483,3 +484,5 @@ const CartDrawer = ({ isOpen, isClosing = false, onClose, onNavigate }: CartDraw
 };
 
 export default CartDrawer;
+
+

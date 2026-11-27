@@ -42,8 +42,12 @@ const addressSchema = new Schema<IAddress>(
 
     phone: {
       type: String,
-      required: false,
+      required: true,
       trim: true,
+      validate: {
+        validator: (value: string) => /^(?:\+91)?[6-9]\d{9}$/.test(value.replace(/[\s()-]/g, "")),
+        message: "Please enter a valid mobile number",
+      },
     },
 
     addressLine: {

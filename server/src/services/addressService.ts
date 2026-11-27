@@ -44,11 +44,24 @@ interface UpdateAddressData {
   formattedAddress?: string;
 }
 
+const normalizeAndValidatePhone = (value: unknown): string => {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error("Phone number is required");
+  }
+  const phone = value.trim();
+  const compact = phone.replace(/[\s()-]/g, "");
+  if (!/^(?:\+91)?[6-9]\d{9}$/.test(compact)) {
+    throw new Error("Please enter a valid mobile number");
+  }
+  return compact;
+};
+
 // Create Address
 export const createAddress = async (
   userId: string,
   data: CreateAddressData,
 ) => {
+  const phone = normalizeAndValidatePhone((data as { phone?: unknown }).phone);
   const { latitude: _latitude, longitude: _longitude, ...addressFields } = data;
   const coordinates = optionalCoordinates(data);
 
@@ -66,6 +79,7 @@ export const createAddress = async (
   const address = await Address.create({
     user: userId,
     ...addressFields,
+    phone,
     ...coordinates,
   });
 
@@ -121,8 +135,6 @@ export const updateAddress = async (
   userId: string,
   data: UpdateAddressData,
 ) => {
-  const { latitude: _latitude, longitude: _longitude, ...addressFields } = data;
-  const coordinates = optionalCoordinates(data);
   const address = await Address.findOne({
     _id: addressId,
     user: userId,
@@ -131,6 +143,15 @@ export const updateAddress = async (
   if (!address) {
     throw new Error("Address not found");
   }
+
+  const finalPhone = Object.prototype.hasOwnProperty.call(data, "phone")
+    ? normalizeAndValidatePhone((data as { phone?: unknown }).phone)
+    : address.phone;
+  // Legacy records may have no phone; they remain readable until edited.
+  if (!finalPhone) throw new Error("Phone number is required");
+  const phone = normalizeAndValidatePhone(finalPhone);
+  const { latitude: _latitude, longitude: _longitude, ...addressFields } = data;
+  const coordinates = optionalCoordinates(data);
 
   if (data.isDefault) {
     await Address.updateMany(
@@ -146,7 +167,7 @@ export const updateAddress = async (
     );
   }
 
-  Object.assign(address, addressFields, coordinates);
+  Object.assign(address, addressFields, coordinates, { phone });
 
   await address.save();
 
@@ -167,3 +188,4 @@ export const deleteAddress = async (
     throw new Error("Address not found");
   }
 };
+
